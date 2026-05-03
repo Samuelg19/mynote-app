@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - MyNote</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body class="login-body">
+    <main class="login-page">
+      <section class="login-header">
+        <div class="logo-circle">
+          <img src="logo.png" alt="Logo" />
+        </div>
+        <h1>Bem-vindo</h1>
+        <p>Faça login para acessar suas anotações</p>
+      </section>
+
+      <section class="login-card">
+        <form id="loginForm">
+          <div
+            id="g_id_onload"
+            data-client_id="889270972410-j0gvc2qd8ls2ssrkig8187kf95rdnthb.apps.googleusercontent.com"
+            data-callback="loginComGoogle"
+            data-auto_prompt="false"
+          ></div>
+
+          <div
+            class="g_id_signin"
+            data-type="standard"
+            data-size="large"
+            data-theme="outline"
+            data-text="continue_with"
+            data-shape="rectangular"
+            data-logo_alignment="left"
+          ></div>
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="seu@email.com" required />
+
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="••••••••" required />
+
+          <div class="login-actions">
+            <label class="remember">
+              <input type="checkbox" id="lembrarUsuario" />
+              <span>Lembrar-me</span>
+            </label>
+
+            <a href="esqueci.html" class="link">Esqueceu a senha?</a>
+          </div>
+
+          <button type="submit" class="btn-login">Entrar</button>
+
+          <p class="login-footer-text">
+            Não tem uma conta?
+            <a href="cadastro.html">Cadastre-se</a>
+          </p>
+        </form>
+      </section>
+
+      <p class="bottom-text">
+        Organize suas ideias de forma simples e tranquila
+      </p>
+    </main>
+
+    <script src="app-preferences.js"></script>
+    <script src="login.js"></script>
+  </body>
+</html>

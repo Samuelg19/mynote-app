@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Dashboard - MyNote</title>
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body class="dashboard-body">
+    <div class="dashboard-layout">
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <h2>
+            <button
+              id="btnCalendario"
+              class="btn-calendario-sidebar"
+              type="button"
+            >
+              📅
+            </button>
+            Minhas Rotinas
+          </h2>
+
+          <p id="usuarioNome"></p>
+
+          <button id="btnNovaRotina" class="btn-sidebar" type="button">
+            + Nova Rotina
+          </button>
+        </div>
+
+        <ul id="listaRotinas" class="lista-rotinas"></ul>
+
+        <div class="sidebar-extra">
+          <button id="btnLembretes" class="item-menu" type="button">
+            <span class="icone-menu">🔔</span>
+            <span>Lembretes</span>
+          </button>
+        </div>
+
+        <div class="sidebar-footer">
+          <button id="btnConfiguracoes" class="item-menu" type="button">
+            <span class="icone-menu">⚙️</span>
+            <span>Configurações</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ================= CONTEÚDO PRINCIPAL ================= -->
+      <main class="dashboard-main">
+        <!-- ================= ROTINAS ================= -->
+        <section id="secaoRotinas">
+          <div class="rotina-header">
+            <h1 id="tituloRotina">Selecione uma rotina</h1>
+          </div>
+
+          <div class="acoes-topo-rotina">
+            <button id="btnNovaTarefa" class="btn-sidebar" type="button">
+              + Adicionar tarefa
+            </button>
+
+            <div class="menu-rotina">
+              <button id="btnMenuRotina" class="btn-menu-rotina" type="button">
+                ⋯
+              </button>
+
+              <div id="opcoesRotina" class="opcoes-rotina hidden">
+                <button id="btnEditarTabela" type="button">
+                  ✏️ Editar Tabela
+                </button>
+                <button id="btnExcluirRotina" type="button">
+                  🗑️ Excluir Rotina
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <section id="areaCalendario" class="card-calendario">
+            <div class="calendario-topo">
+              <button id="mesAnterior" type="button">‹</button>
+              <button id="btnModoAno" class="btn-modo-ano" type="button">
+                Abril 2026
+              </button>
+              <button id="proximoMes" type="button">›</button>
+            </div>
+
+            <div class="calendario-semana">
+              <span>Dom</span>
+              <span>Seg</span>
+              <span>Ter</span>
+              <span>Qua</span>
+              <span>Qui</span>
+              <span>Sex</span>
+              <span>Sáb</span>
+            </div>
+
+            <div id="diasCalendario" class="calendario-dias"></div>
+
+            <div
+              id="visaoAnualCalendario"
+              class="visao-anual-calendario hidden"
+            >
+              <div id="mesesAnoCalendario" class="meses-ano-calendario"></div>
+            </div>
+
+            <div id="painelEventosDia" class="painel-eventos-dia hidden">
+              <h3 id="tituloEventosDia">Eventos do dia</h3>
+              <div id="listaEventosDia"></div>
+            </div>
+
+            <button
+              id="btnHojeCalendario"
+              class="btn-hoje-calendario hidden"
+              type="button"
+            >
+              27
+            </button>
+
+            <button
+              id="btnAdicionarEventoCalendario"
+              class="btn-evento-flutuante hidden"
+              type="button"
+            >
+              +
+            </button>
+          </section>
+
+          <div class="card" id="cardTabelaTarefas">
+            <button
+              id="btnSilenciarRotina"
+              class="btn-silenciar-rotina hidden"
+              type="button"
+              title="Silenciar notificações da rotina"
+            >
+              🔕
+            </button>
+
+            <table class="tabela-tarefas">
+              <thead>
+                <tr>
+                  <th>Tarefa</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th>Disciplina</th>
+                  <th>Horário</th>
+                  <th>Notificação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+
+              <tbody id="corpoTabelaTarefas">
+                <tr>
+                  <td colspan="7">Nenhuma rotina selecionada.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="areaTreino" class="area-treino hidden"></div>
+
+          <div class="card">
+            <h3>Notas</h3>
+
+            <textarea
+              id="campoNotas"
+              placeholder="Escreva anotações sobre esta rotina..."
+            ></textarea>
+          </div>
+        </section>
+
+        <div id="modalEventoCalendario" class="modal hidden">
+          <div class="modal-content">
+            <button id="fecharModalEvento" class="btn-fechar" type="button">
+              &times;
+            </button>
+
+            <h2>Adicionar Evento</h2>
+
+            <label>Título do evento</label>
+            <input
+              id="tituloEventoInput"
+              type="text"
+              placeholder="Digite o título do evento..."
+            />
+
+            <label>Data</label>
+            <input id="dataEventoInput" type="date" />
+
+            <label>Horário</label>
+            <input id="horarioEventoInput" type="time" />
+
+            <label>Tipo</label>
+            <select id="tipoEventoInput">
+              <option value="unico">Único</option>
+              <option value="permanente">Permanente</option>
+            </select>
+
+            <label class="checkbox-row">
+              <input type="checkbox" id="aniversarioEventoInput" />
+              🎂 Aniversário
+            </label>
+
+            <button
+              id="salvarEventoCalendario"
+              class="btn-primario"
+              type="button"
+            >
+              Adicionar Evento
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= LEMBRETES ================= -->
+        <section id="secaoLembretes" style="display: none">
+          <h1>Lembretes</h1>
+
+          <button id="btnNovoLembrete" class="btn-sidebar" type="button">
+            + Novo lembrete
+          </button>
+
+          <div class="card card-lembretes">
+            <div class="menu-lembretes-topo">
+              <button
+                id="btnMenuLembretes"
+                class="btn-menu-rotina"
+                type="button"
+              >
+                ⋯
+              </button>
+
+              <div id="opcoesLembretes" class="opcoes-rotina hidden">
+                <button id="btnLimparLembretesConcluidos" type="button">
+                  🗑️ Excluir concluídos
+                </button>
+
+                <button id="btnExcluirTodosLembretes" type="button">
+                  ⚠️ Excluir todos
+                </button>
+              </div>
+            </div>
+
+            <table class="tabela-tarefas">
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Horário</th>
+                  <th>Dia/Mês</th>
+                  <th>Prioridade</th>
+                  <th>Status</th>
+                  <th>Notificação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+
+              <tbody id="corpoTabelaLembretes">
+                <tr>
+                  <td colspan="7">Nenhum lembrete cadastrado.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ================= MODAL NOVA ROTINA ================= -->
+    <div id="modalRotina" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Nova Rotina</h2>
+          <button id="fecharModalRotina" class="btn-fechar" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <label for="nomeRotinaInput">Nome da rotina</label>
+          <input
+            id="nomeRotinaInput"
+            type="text"
+            placeholder="Digite o nome da rotina"
+          />
+
+          <div class="config-rotina-personalizada">
+            <h3>Campos da tabela</h3>
+
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="titulo"
+                checked
+              />
+              Título/Tarefa</label
+            >
+            <label
+              ><input type="checkbox" class="campoRotinaCheck" value="tipo" />
+              Tipo</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="status"
+                checked
+              />
+              Status</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="disciplina"
+              />
+              Disciplina</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="horario"
+                checked
+              />
+              Horário</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="notificacao"
+              />
+              Notificação</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="link_material"
+              />
+              Link/Material</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="projeto"
+              />
+              Projeto</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="prioridade"
+              />
+              Prioridade</label
+            >
+            <label
+              ><input type="checkbox" class="campoRotinaCheck" value="prazo" />
+              Prazo</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                class="campoRotinaCheck"
+                value="calorias"
+              />
+              Calorias</label
+            >
+
+            <h3>Modelo da rotina</h3>
+
+            <label>
+              <input
+                type="radio"
+                name="tipoModeloRotina"
+                value="tabela"
+                checked
+              />
+              Tabela normal
+            </label>
+
+            <label>
+              <input type="radio" name="tipoModeloRotina" value="treino_card" />
+              Tabela de treino
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                name="tipoModeloRotina"
+                value="tabela_por_dia"
+              />
+              Tabela semanal
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="cancelarRotina" class="btn-secundario" type="button">
+            Cancelar
+          </button>
+          <button id="salvarRotina" class="btn-primario" type="button">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL NOVA TAREFA ================= -->
+    <div id="modalTarefa" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Nova Tarefa</h2>
+          <button id="fecharModalTarefa" class="btn-fechar" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <label for="tituloTarefaInput">Título</label>
+          <input
+            id="tituloTarefaInput"
+            type="text"
+            placeholder="Ex: Revisar Matemática"
+          />
+
+          <label id="labelTipoTarefa" for="tipoTarefaSelect">Tipo</label>
+          <select id="tipoTarefaSelect">
+            <option value="">Selecione</option>
+            <option value="Para fazer">Para fazer</option>
+            <option value="Prova">Prova</option>
+            <option value="Atividade">Atividade</option>
+            <option value="Trabalho">Trabalho</option>
+          </select>
+
+          <input
+            id="tipoTarefaInput"
+            class="hidden"
+            type="text"
+            placeholder="Digite o alimento"
+          />
+
+          <label id="labelDisciplinaTarefa" for="disciplinaTarefaInput"
+            >Disciplina</label
+          >
+          <input
+            id="disciplinaTarefaInput"
+            type="text"
+            placeholder="Ex: Matemática"
+          />
+
+          <label id="labelHorarioTarefa" for="horarioTarefaInput"
+            >Horário</label
+          >
+          <input id="horarioTarefaInput" type="time" />
+
+          <div id="camposEstudos" class="hidden">
+            <label for="linkMaterialInput">Link/Material</label>
+            <input
+              id="linkMaterialInput"
+              type="text"
+              placeholder="Ex: link do PDF, livro ou material"
+            />
+          </div>
+
+          <div id="camposTrabalho" class="hidden">
+            <label for="projetoInput">Projeto</label>
+            <input id="projetoInput" type="text" placeholder="Ex: App Rotina" />
+
+            <label for="prioridadeInput">Prioridade</label>
+            <select id="prioridadeInput">
+              <option value="Baixa">Baixa</option>
+              <option value="Média" selected>Média</option>
+              <option value="Alta">Alta</option>
+            </select>
+
+            <label for="prazoInput">Prazo</label>
+            <input
+              id="prazoInput"
+              type="text"
+              placeholder="Ex: 20/04"
+              maxlength="5"
+            />
+          </div>
+
+          <div id="camposAlimentacao" class="hidden">
+            <label for="caloriasInput">Calorias</label>
+            <input
+              id="caloriasInput"
+              type="number"
+              placeholder="Ex: 650"
+              min="0"
+            />
+          </div>
+
+          <div id="camposTreino" class="hidden campos-treino-fitness">
+            <div class="treino-modal-banner">
+              <div>
+                <span class="treino-modal-icon">💪</span>
+              </div>
+              <div>
+                <h3>Detalhes do treino</h3>
+                <p>Monte o exercício com dia, grupo muscular e intensidade.</p>
+              </div>
+            </div>
+
+            <div class="treino-grid">
+              <div class="campo-fitness campo-fitness-full">
+                <label for="diaSemanaInput">📅 Dia da semana</label>
+                <select id="diaSemanaInput">
+                  <option value="Segunda">Segunda</option>
+                  <option value="Terca">Terça</option>
+                  <option value="Quarta">Quarta</option>
+                  <option value="Quinta">Quinta</option>
+                  <option value="Sexta">Sexta</option>
+                  <option value="Sabado">Sábado</option>
+                  <option value="Domingo">Domingo</option>
+                </select>
+              </div>
+
+              <div class="campo-fitness campo-fitness-full">
+                <label for="grupoMuscularInput">🏋️ Grupo muscular</label>
+                <input
+                  id="grupoMuscularInput"
+                  type="text"
+                  placeholder="Ex: Peito, costas, perna..."
+                />
+              </div>
+
+              <div class="campo-fitness">
+                <label for="seriesInput">🔢 Séries</label>
+                <input
+                  id="seriesInput"
+                  type="number"
+                  min="1"
+                  max="5"
+                  step="1"
+                  placeholder="Ex: 4"
+                />
+              </div>
+
+              <div class="campo-fitness">
+                <label for="repeticoesInput">⚡ Repetições</label>
+                <input
+                  id="repeticoesInput"
+                  type="number"
+                  min="1"
+                  max="25"
+                  step="1"
+                  placeholder="Ex: 12"
+                />
+              </div>
+
+              <div class="campo-fitness campo-fitness-full">
+                <label for="cargaInput">🏋️‍♂️ Carga</label>
+                <input
+                  id="cargaInput"
+                  type="number"
+                  min="0"
+                  max="600"
+                  step="1"
+                  placeholder="Ex: 20 kg"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div id="campoRepeticaoSemanal" class="hidden">
+            <label for="repeticaoSemanalInput">Repetição</label>
+            <select id="repeticaoSemanalInput">
+              <option value="Único">Único</option>
+              <option value="Semanal">Semanal</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="linhaNotificacaoTarefa" class="linha-notificacao">
+          <label class="switch">
+            <input id="notificacaoTarefaInput" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+
+          <span id="textoNotificacaoTarefa" class="texto-switch">
+            🔕 Notificação desativada
+          </span>
+        </div>
+
+        <div class="modal-footer">
+          <button id="cancelarTarefa" class="btn-secundario" type="button">
+            Cancelar
+          </button>
+          <button id="salvarTarefa" class="btn-primario" type="button">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL NOVO LEMBRETE ================= -->
+    <div id="modalLembrete" class="modal hidden">
+      <div class="modal-content modal-treino-fitness">
+        <div class="modal-header">
+          <h2>💪 Editar exercício</h2>
+          <button id="fecharModalLembrete" class="btn-fechar" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <label for="tituloLembreteInput">Título</label>
+          <input
+            id="tituloLembreteInput"
+            type="text"
+            placeholder="Ex: Tomar remédio"
+          />
+
+          <label for="horarioLembreteInput">Horário</label>
+          <input id="horarioLembreteInput" type="time" />
+
+          <label for="diaMesLembreteInput">Dia/Mês</label>
+          <input
+            id="diaMesLembreteInput"
+            type="text"
+            placeholder="Ex: 30/04 ou Todo dia"
+          />
+
+          <label for="prioridadeLembreteInput">Prioridade</label>
+          <select id="prioridadeLembreteInput">
+            <option value="Baixa">Baixa</option>
+            <option value="Média" selected>Média</option>
+            <option value="Alta">Alta</option>
+          </select>
+
+          <div class="linha-notificacao">
+            <label class="switch">
+              <input id="notificacaoLembreteInput" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+
+            <span id="textoNotificacaoLembrete" class="texto-switch">
+              🔕 Notificação desativada
+            </span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="cancelarLembrete" class="btn-secundario" type="button">
+            Cancelar
+          </button>
+          <button id="salvarLembrete" class="btn-primario" type="button">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL EDITAR CAMPO ================= -->
+    <div id="modalEditarCampo" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="tituloModalEditarCampo">Editar informação</h2>
+          <button id="fecharModalEditarCampo" class="btn-fechar" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <label id="labelEditarCampo" for="inputEditarCampo">Novo valor</label>
+          <input id="inputEditarCampo" type="text" />
+        </div>
+
+        <div class="modal-footer">
+          <button id="cancelarEditarCampo" class="btn-secundario" type="button">
+            Cancelar
+          </button>
+          <button id="salvarEditarCampo" class="btn-primario" type="button">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL EDITAR ALIMENTAÇÃO ================= -->
+    <div id="modalEditarAlimentacao" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Editar refeição</h2>
+          <button
+            id="fecharModalEditarAlimentacao"
+            class="btn-fechar"
+            type="button"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <label for="editarAlimentoInput">Alimento</label>
+          <input id="editarAlimentoInput" type="text" />
+
+          <label for="editarHorarioAlimentacaoInput">Horário</label>
+          <input id="editarHorarioAlimentacaoInput" type="time" />
+
+          <label for="editarCaloriasInput">Calorias</label>
+          <input id="editarCaloriasInput" type="number" min="0" />
+        </div>
+
+        <div class="modal-footer">
+          <button
+            id="cancelarEditarAlimentacao"
+            class="btn-secundario"
+            type="button"
+          >
+            Cancelar
+          </button>
+          <button
+            id="salvarEditarAlimentacao"
+            class="btn-primario"
+            type="button"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL EDITAR TREINO ================= -->
+    <div id="modalEditarTreino" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Editar exerc&iacute;cio</h2>
+          <button id="fecharModalEditarTreino" class="btn-fechar" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="editar-treino-banner">
+            <span class="editar-treino-icone">💪</span>
+            <div>
+              <strong>Dados do exerc&iacute;cio</strong>
+              <small>Ajuste a intensidade do treino sem alterar o dia.</small>
+            </div>
+          </div>
+
+          <div class="editar-treino-grid">
+            <div class="campo-editar-treino">
+              <label for="editarSeriesInput">S&eacute;ries</label>
+              <input
+                id="editarSeriesInput"
+                type="number"
+                min="1"
+                max="5"
+                step="1"
+              />
+            </div>
+
+            <div class="campo-editar-treino">
+              <label for="editarRepeticoesInput"
+                >Repeti&ccedil;&otilde;es</label
+              >
+              <input
+                id="editarRepeticoesInput"
+                type="number"
+                min="1"
+                max="25"
+                step="1"
+              />
+            </div>
+
+            <div class="campo-editar-treino campo-editar-treino-full">
+              <label for="editarCargaInput">Carga</label>
+              <input
+                id="editarCargaInput"
+                type="number"
+                min="0"
+                max="600"
+                step="1"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            id="cancelarEditarTreino"
+            class="btn-secundario"
+            type="button"
+          >
+            Cancelar
+          </button>
+          <button id="salvarEditarTreino" class="btn-primario" type="button">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL AVISO ================= -->
+    <div id="modalAviso" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="tituloModalAviso">Aviso</h2>
+          <button id="fecharModalAviso" class="btn-fechar" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <p id="textoModalAviso">Mensagem de aviso</p>
+        </div>
+
+        <div class="modal-footer">
+          <button id="okModalAviso" class="btn-primario" type="button">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TOAST ================= -->
+    <div id="toastMensagem" class="toast hidden"></div>
+
+    <script src="app-preferences.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>
