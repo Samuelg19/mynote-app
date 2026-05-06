@@ -108,7 +108,7 @@ form.addEventListener("submit", async (event) => {
     window.location.href = "dashboard.html";
   } catch (erro) {
     console.error("Erro no login:", erro);
-    mostrarModalLoginErro(MyNotePrefs.t("NÃ£o foi possÃ­vel conectar ao servidor."));
+    mostrarModalLoginErro("Nao foi possivel conectar ao servidor.");
   }
 });
 
@@ -150,6 +150,6 @@ async function loginComGoogle(response) {
     window.location.href = "dashboard.html";
   } catch (erro) {
     console.error("Erro no login com Google:", erro);
-    mostrarModalLoginErro("Não foi possível fazer login com Google.");
+    mostrarModalLoginErro("Nao foi possivel fazer login com Google.");
   }
 }

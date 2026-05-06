@@ -95,9 +95,20 @@ body {
 
 .g_id_signin {
   width: 100%;
+  min-height: 44px;
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
+}
+
+.g_id_signin > div {
+  width: 100% !important;
+  max-width: 360px;
+}
+
+.g_id_signin iframe {
+  width: 100% !important;
+  max-width: 360px !important;
 }
 
 iframe {
