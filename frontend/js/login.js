@@ -57,7 +57,7 @@ if (emailSalvo) {
 
 async function sincronizarPreferenciasDaConta(token) {
   try {
-    const resposta = await fetch("https://mynote-app-production.up.railway.app/configuracoes", {
+    const resposta = await fetch("https://https://mynote-app-production-cb61.up.railway.app/configuracoes", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -79,7 +79,7 @@ form.addEventListener("submit", async (event) => {
   const senha = senhaInput.value.trim();
 
   try {
-    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/login", {
+    const resposta = await fetch("https://https://mynote-app-production-cb61.up.railway.app/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +119,7 @@ async function loginComGoogle(response) {
       return;
     }
 
-    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/google", {
+    const resposta = await fetch("https://https://mynote-app-production-cb61.up.railway.app/auth/google", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
