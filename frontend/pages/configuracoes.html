@@ -6,7 +6,8 @@
 
     <title>Configurações - MyNote</title>
 
-    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/png" href="../assets/favicon.png" />
+    <link rel="stylesheet" href="../css/style.css" />
 
     <style>
       body {
@@ -418,7 +419,7 @@
     </style>
   </head>
 
-  <body>
+  <body class="dashboard-body">
     <main class="config-page">
       <div class="config-container">
         <!-- Cabeçalho -->
@@ -733,7 +734,7 @@
                     <div
                       class="cor-opcao"
                       data-fundo="menta"
-                      style="background: #ccfbf1"
+                      style="background: #5eead4"
                     ></div>
                     <div
                       class="cor-opcao"
@@ -864,16 +865,22 @@
                 </div>
               </div>
             </div>
-
             <!-- Sobre -->
             <div class="config-tab" id="tab-sobre">
               <div class="section-card">
                 <h2>Sobre</h2>
-                <p class="section-desc">Informações do aplicativo.</p>
+                <p class="section-desc">
+                  O MyNote &eacute; um organizador pessoal para reunir rotinas,
+                  tarefas, lembretes e eventos em um s&oacute; lugar. Ele ajuda no
+                  acompanhamento do dia a dia com calend&aacute;rio, repeti&ccedil;&otilde;es
+                  personalizadas, notifica&ccedil;&otilde;es, temas visuais, backup e
+                  configura&ccedil;&otilde;es de produtividade para adaptar o app ao seu jeito
+                  de se organizar.
+                </p>
 
                 <div class="form-group">
-                  <label>Versão do app</label>
-                  <small>v2.5.1</small>
+                  <label>Vers&atilde;o do app</label>
+                  <small>v2.6.0</small>
                 </div>
 
                 <div class="actions-row">
@@ -883,6 +890,7 @@
                 </div>
               </div>
             </div>
+
 
             <!-- Barra de salvar -->
             <div class="save-bar">
@@ -907,6 +915,122 @@
       </div>
     </main>
 
+    <div id="modalAlterarSenha" class="config-modal hidden" aria-hidden="true">
+      <div class="config-modal-backdrop" data-fechar-modal-senha></div>
+      <div
+        class="config-modal-content modal-senha-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tituloModalSenha"
+      >
+        <button
+          id="btnFecharModalSenha"
+          class="config-modal-close"
+          type="button"
+          aria-label="Fechar"
+        >
+          &times;
+        </button>
+
+        <div class="config-modal-header">
+          <div class="config-modal-icon">!</div>
+          <div>
+            <h2 id="tituloModalSenha">Alterar senha</h2>
+            <p>Atualize sua senha mantendo sua conta protegida.</p>
+          </div>
+        </div>
+
+        <form id="formAlterarSenha" class="form-alterar-senha">
+          <div class="form-group">
+            <label for="senhaAtualConta">Senha atual</label>
+            <input
+              type="password"
+              id="senhaAtualConta"
+              autocomplete="current-password"
+              placeholder="Digite sua senha atual"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="novaSenhaConta">Nova senha</label>
+            <input
+              type="password"
+              id="novaSenhaConta"
+              autocomplete="new-password"
+              placeholder="No m&iacute;nimo 6 caracteres"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="confirmarNovaSenhaConta">Confirmar nova senha</label>
+            <input
+              type="password"
+              id="confirmarNovaSenhaConta"
+              autocomplete="new-password"
+              placeholder="Repita a nova senha"
+              required
+            />
+          </div>
+
+          <p id="mensagemSenhaConta" class="mensagem-modal-senha" aria-live="polite"></p>
+
+          <div class="config-modal-actions">
+            <button id="btnCancelarSenha" class="btn btn-secondary" type="button">
+              Cancelar
+            </button>
+            <button id="btnSalvarSenha" class="btn btn-primary" type="submit">
+              Salvar senha
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="modalExcluirConta" class="config-modal hidden" aria-hidden="true">
+      <div class="config-modal-backdrop" data-fechar-modal-excluir-conta></div>
+      <div
+        class="config-modal-content modal-excluir-conta-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tituloModalExcluirConta"
+        aria-describedby="descricaoModalExcluirConta"
+      >
+        <button
+          id="btnFecharModalExcluirConta"
+          class="config-modal-close"
+          type="button"
+          aria-label="Fechar"
+        >
+          &times;
+        </button>
+
+        <div class="config-modal-header">
+          <div class="config-modal-icon config-modal-icon-danger">!</div>
+          <div>
+            <h2 id="tituloModalExcluirConta">Excluir conta</h2>
+            <p id="descricaoModalExcluirConta">
+              Essa a&ccedil;&atilde;o remove sua conta e n&atilde;o pode ser desfeita.
+            </p>
+          </div>
+        </div>
+
+        <p class="modal-excluir-conta-texto">
+          Tem certeza que deseja excluir sua conta?
+        </p>
+        <p id="mensagemExcluirConta" class="mensagem-modal-senha" aria-live="polite"></p>
+
+        <div class="config-modal-actions">
+          <button id="btnCancelarExcluirConta" class="btn btn-secondary" type="button">
+            Cancelar
+          </button>
+          <button id="btnConfirmarExcluirConta" class="btn btn-danger" type="button">
+            Excluir conta
+          </button>
+        </div>
+      </div>
+    </div>
     <script>
       const tabButtons = document.querySelectorAll(".tab-button");
       const tabs = document.querySelectorAll(".config-tab");
@@ -924,7 +1048,7 @@
       });
     </script>
 
-    <script src="app-preferences.js"></script>
-    <script src="configuracoes.js"></script>
+    <script src="../js/app-preferences.js"></script>
+    <script src="../js/configuracoes.js"></script>
   </body>
 </html>

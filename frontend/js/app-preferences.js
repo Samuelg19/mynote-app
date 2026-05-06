@@ -2,10 +2,13 @@
   const STORAGE_KEY = "mynote_preferencias_site";
 
   const defaults = {
+    tema: "claro",
+    tema_fundo: "creme",
     idioma: "pt-BR",
     fuso_horario: "America/Sao_Paulo",
     formato_hora: "24",
     inicio_semana: "monday",
+    backup_automatico: true,
   };
 
   const idiomaMap = {

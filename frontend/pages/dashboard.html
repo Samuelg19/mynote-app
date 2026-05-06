@@ -6,7 +6,8 @@
 
     <title>Dashboard - MyNote</title>
 
-    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/png" href="../assets/favicon.png" />
+    <link rel="stylesheet" href="../css/style.css" />
   </head>
 
   <body class="dashboard-body">
@@ -468,23 +469,33 @@
           </div>
 
           <div id="camposTrabalho" class="hidden">
-            <label for="projetoInput">Projeto</label>
-            <input id="projetoInput" type="text" placeholder="Ex: App Rotina" />
+            <div class="campo-trabalho-field campo-trabalho-full">
+              <label for="projetoInput">Projeto</label>
+              <input
+                id="projetoInput"
+                type="text"
+                placeholder="Ex: App Rotina"
+              />
+            </div>
 
-            <label for="prioridadeInput">Prioridade</label>
-            <select id="prioridadeInput">
-              <option value="Baixa">Baixa</option>
-              <option value="Média" selected>Média</option>
-              <option value="Alta">Alta</option>
-            </select>
+            <div class="campo-trabalho-field">
+              <label for="prioridadeInput">Prioridade</label>
+              <select id="prioridadeInput">
+                <option value="Baixa">Baixa</option>
+                <option value="Média" selected>Média</option>
+                <option value="Alta">Alta</option>
+              </select>
+            </div>
 
-            <label for="prazoInput">Prazo</label>
-            <input
-              id="prazoInput"
-              type="text"
-              placeholder="Ex: 20/04"
-              maxlength="5"
-            />
+            <div class="campo-trabalho-field">
+              <label for="prazoInput">Prazo</label>
+              <input
+                id="prazoInput"
+                type="text"
+                placeholder="Ex: 20/04"
+                maxlength="5"
+              />
+            </div>
           </div>
 
           <div id="camposAlimentacao" class="hidden">
@@ -494,6 +505,8 @@
               type="number"
               placeholder="Ex: 650"
               min="0"
+              max="5000"
+              step="1"
             />
           </div>
 
@@ -706,7 +719,7 @@
           <input id="editarHorarioAlimentacaoInput" type="time" />
 
           <label for="editarCaloriasInput">Calorias</label>
-          <input id="editarCaloriasInput" type="number" min="0" />
+          <input id="editarCaloriasInput" type="number" min="0" max="5000" step="1" />
         </div>
 
         <div class="modal-footer">
@@ -822,10 +835,266 @@
       </div>
     </div>
 
+    <!-- ================= ONBOARDING INICIAL ================= -->
+    <div
+      id="modalOnboardingTutorial"
+      class="onboarding-modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tituloOnboardingTutorial"
+    >
+      <div class="onboarding-content onboarding-content-wide">
+        <button
+          id="fecharOnboardingTutorial"
+          class="onboarding-close"
+          type="button"
+          aria-label="Fechar tutorial"
+        >
+          &times;
+        </button>
+
+        <div class="onboarding-header">
+          <span class="onboarding-kicker">Primeiros passos</span>
+          <h2 id="tituloOnboardingTutorial">Bem-vindo ao MyNote</h2>
+          <p>
+            Um giro r&aacute;pido pelos lugares que voc&ecirc; vai usar mais no dashboard.
+          </p>
+        </div>
+
+        <div class="tutorial-grid">
+          <article class="tutorial-card">
+            <div class="tutorial-illustration tutorial-illustration-sidebar">
+              <div class="tutorial-sidebar-mini">
+                <span></span>
+                <span></span>
+                <span></span>
+                <strong></strong>
+              </div>
+              <div class="tutorial-pointer"></div>
+            </div>
+            <h3>Comece pela lateral</h3>
+            <p>
+              Rotinas, lembretes e configura&ccedil;&otilde;es ficam sempre no menu da esquerda.
+            </p>
+          </article>
+
+          <article class="tutorial-card">
+            <div class="tutorial-illustration tutorial-illustration-table">
+              <div class="tutorial-table-row"></div>
+              <div class="tutorial-table-row short"></div>
+              <div class="tutorial-table-action"></div>
+            </div>
+            <h3>Monte suas rotinas</h3>
+            <p>
+              Crie uma rotina, adicione tarefas e use o menu de tr&ecirc;s pontos para ajustes.
+            </p>
+          </article>
+
+          <article class="tutorial-card">
+            <div class="tutorial-illustration tutorial-illustration-calendar">
+              <div class="tutorial-calendar-head"></div>
+              <div class="tutorial-calendar-grid">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span class="active"></span><span></span><span></span>
+              </div>
+            </div>
+            <h3>Acompanhe datas</h3>
+            <p>
+              O calend&aacute;rio mostra eventos, prazos e lembretes para voc&ecirc; n&atilde;o se perder.
+            </p>
+          </article>
+        </div>
+
+        <div class="onboarding-actions">
+          <button
+            id="pularOnboardingTutorial"
+            class="btn-secundario"
+            type="button"
+          >
+            Pular tutorial
+          </button>
+          <button
+            id="continuarOnboardingTutorial"
+            class="btn-primario"
+            type="button"
+          >
+            Personalizar dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="modalOnboardingCustomizacao"
+      class="onboarding-modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tituloOnboardingCustomizacao"
+    >
+      <div class="onboarding-content onboarding-custom-content">
+        <button
+          id="fecharOnboardingCustomizacao"
+          class="onboarding-close"
+          type="button"
+          aria-label="Fechar personaliza&ccedil;&atilde;o"
+        >
+          &times;
+        </button>
+
+        <div class="onboarding-header">
+          <span class="onboarding-kicker">Seu estilo</span>
+          <h2 id="tituloOnboardingCustomizacao">Personalize o dashboard</h2>
+          <p>
+            Escolha o fundo, a cor de destaque e o tamanho da fonte antes de come&ccedil;ar.
+          </p>
+        </div>
+
+        <div class="onboarding-custom-grid">
+          <section class="onboarding-options" aria-label="Op&ccedil;&otilde;es de apar&ecirc;ncia">
+            <div class="onboarding-field">
+              <div class="onboarding-field-head">
+                <span class="onboarding-label">Tema</span>
+              </div>
+              <div class="onboarding-segmented" role="group">
+                <button
+                  class="onboarding-choice active"
+                  type="button"
+                  data-onboarding-theme="claro"
+                >
+                  Claro
+                </button>
+                <button
+                  class="onboarding-choice"
+                  type="button"
+                  data-onboarding-theme="escuro"
+                >
+                  Escuro
+                </button>
+              </div>
+            </div>
+
+            <div class="onboarding-field">
+              <div class="onboarding-field-head">
+                <span class="onboarding-label">Fundo</span>
+                <strong id="onboardingFundoLabel">Creme</strong>
+              </div>
+              <div
+                id="onboardingFundoChoices"
+                class="onboarding-swatch-grid"
+                aria-label="Cores de fundo"
+              >
+                <button type="button" data-fundo="padrao" title="Padrao" style="--swatch:#ffffff"></button>
+                <button type="button" data-fundo="creme" title="Creme" style="--swatch:#ffebbf"></button>
+                <button type="button" data-fundo="peach" title="Peach" style="--swatch:#ffe3dc"></button>
+                <button type="button" data-fundo="lilas" title="Lilas" style="--swatch:#e6ddf5"></button>
+                <button type="button" data-fundo="salvia" title="Salvia" style="--swatch:#dbe5cf"></button>
+                <button type="button" data-fundo="amarelo-suave" title="Amarelo suave" style="--swatch:#fff3b8"></button>
+                <button type="button" data-fundo="marrom" title="Marrom" style="--swatch:#7c6670"></button>
+                <button type="button" data-fundo="azul-claro" title="Azul claro" style="--swatch:#dbeafe"></button>
+                <button type="button" data-fundo="menta" title="Menta" style="--swatch:#5eead4"></button>
+                <button type="button" data-fundo="rosa-claro" title="Rosa claro" style="--swatch:#fce7f3"></button>
+                <button type="button" data-fundo="cinza-claro" title="Cinza claro" style="--swatch:#e5e7eb"></button>
+                <button type="button" data-fundo="oceano" title="Oceano" style="--swatch:#4f9db1"></button>
+                <button type="button" data-fundo="verde-escuro" title="Verde escuro" style="--swatch:#6fa987"></button>
+                <button type="button" data-fundo="vinho" title="Vinho" style="--swatch:#9d6470"></button>
+                <button type="button" data-fundo="roxo-profundo" title="Roxo profundo" style="--swatch:#8b6bbe"></button>
+                <button type="button" data-fundo="uva" title="Uva" style="--swatch:#b373ad"></button>
+                <button type="button" data-fundo="coral" title="Coral" style="--swatch:#fb8a45"></button>
+              </div>
+            </div>
+
+            <div class="onboarding-field">
+              <div class="onboarding-field-head">
+                <span class="onboarding-label">Destaque</span>
+                <strong id="onboardingDestaqueLabel">Roxo</strong>
+              </div>
+              <div
+                id="onboardingAccentChoices"
+                class="onboarding-swatch-grid onboarding-accent-grid"
+                aria-label="Cores de destaque"
+              >
+                <button type="button" data-accent="Roxo" title="Roxo" style="--swatch:#a855f7"></button>
+                <button type="button" data-accent="Azul" title="Azul" style="--swatch:#3b82f6"></button>
+                <button type="button" data-accent="Verde" title="Verde" style="--swatch:#22c55e"></button>
+                <button type="button" data-accent="Vermelho" title="Vermelho" style="--swatch:#ef4444"></button>
+                <button type="button" data-accent="Laranja" title="Laranja" style="--swatch:#f97316"></button>
+                <button type="button" data-accent="Rosa" title="Rosa" style="--swatch:#ec4899"></button>
+                <button type="button" data-accent="Ciano" title="Ciano" style="--swatch:#06b6d4"></button>
+                <button type="button" data-accent="Amarelo" title="Amarelo" style="--swatch:#eab308"></button>
+              </div>
+            </div>
+
+            <div class="onboarding-field">
+              <div class="onboarding-field-head">
+                <span class="onboarding-label">Fonte</span>
+              </div>
+              <div class="onboarding-segmented" role="group">
+                <button class="onboarding-font-choice" type="button" data-font="Pequeno">
+                  Pequena
+                </button>
+                <button class="onboarding-font-choice active" type="button" data-font="M&eacute;dio">
+                  M&eacute;dia
+                </button>
+                <button class="onboarding-font-choice" type="button" data-font="Grande">
+                  Grande
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <aside
+            id="onboardingDashboardPreview"
+            class="dashboard-miniatura"
+            aria-label="Miniatura do dashboard"
+          >
+            <div class="preview-sidebar">
+              <div class="preview-brand"></div>
+              <div class="preview-nav active"></div>
+              <div class="preview-nav"></div>
+              <div class="preview-nav small"></div>
+            </div>
+            <div class="preview-main">
+              <div class="preview-topline"></div>
+              <div class="preview-calendar">
+                <div class="preview-calendar-head"></div>
+                <div class="preview-calendar-grid">
+                  <span></span><span></span><span></span><span class="today"></span>
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span class="accent"></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="preview-card-row">
+                <span></span>
+                <span></span>
+                <strong></strong>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="onboarding-actions">
+          <button
+          id="pularOnboardingCustomizacao"
+          class="btn-secundario"
+          type="button"
+        >
+            Agora n&atilde;o
+          </button>
+          <button
+            id="salvarOnboardingCustomizacao"
+            class="btn-primario"
+            type="button"
+          >
+            Usar este estilo
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= TOAST ================= -->
     <div id="toastMensagem" class="toast hidden"></div>
 
-    <script src="app-preferences.js"></script>
-    <script src="dashboard.js"></script>
+    <script src="../js/app-preferences.js"></script>
+    <script src="../js/dashboard.js"></script>
   </body>
 </html>

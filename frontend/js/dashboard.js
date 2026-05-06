@@ -1,9 +1,11 @@
 //Usuário e proteção de login
+const LOGIN_PAGE = "index.html";
 const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 const token = localStorage.getItem("token");
+const CALORIAS_MAXIMAS = 5000;
 
 if (!usuario || !token) {
-  window.location.href = "login.html";
+  window.location.href = LOGIN_PAGE;
   throw new Error("Usuário não logado.");
 }
 
@@ -32,6 +34,13 @@ const camposRotinaCheck = document.querySelectorAll(".campoRotinaCheck");
 const btnNovaRotina = document.getElementById("btnNovaRotina");
 const tipoEventoInput = document.getElementById("tipoEventoInput");
 const btnHojeCalendario = document.getElementById("btnHojeCalendario");
+
+function fixarAcoesDoCalendarioNaTela() {
+  [btnHojeCalendario, btnAdicionarEventoCalendario].forEach((botao) => {
+    if (!botao || botao.parentElement === document.body) return;
+    document.body.appendChild(botao);
+  });
+}
 
 const btnMenuRotina = document.getElementById("btnMenuRotina");
 const btnMenuRotinaTreino = document.getElementById("btnMenuRotinaTreino");
@@ -198,7 +207,7 @@ const visaoAnualCalendario = document.getElementById("visaoAnualCalendario");
 const mesesAnoCalendario = document.getElementById("mesesAnoCalendario");
 
 if (!token) {
-  window.location.href = "login.html";
+  window.location.href = LOGIN_PAGE;
 }
 
 let modoCalendario = "mes";
@@ -219,6 +228,15 @@ function headersAuth() {
   };
 }
 
+async function lerListaJson(resposta) {
+  try {
+    const dados = await resposta.json();
+    return Array.isArray(dados) ? dados : [];
+  } catch {
+    return [];
+  }
+}
+
 async function atualizarTarefa(id, dados) {
   return fetch(`http://localhost:3000/tarefas/${id}`, {
     method: "PUT",
@@ -229,7 +247,7 @@ async function atualizarTarefa(id, dados) {
 
 function logout() {
   localStorage.clear();
-  window.location.href = "login.html";
+  window.location.href = LOGIN_PAGE;
 }
 
 function checkConclusao(tarefa) {
@@ -256,6 +274,42 @@ function obterDiaSemanaAtualConfigurado() {
 
 function formatarHorarioSite(horario) {
   return MyNotePrefs.formatTime(horario);
+}
+
+function normalizarCalorias(valor) {
+  if (valor === undefined || valor === null || valor === "") return "";
+
+  const calorias = Number(valor);
+
+  if (!Number.isFinite(calorias)) return null;
+  if (calorias < 0 || calorias > CALORIAS_MAXIMAS) return null;
+
+  return String(Math.round(calorias));
+}
+
+function validarCaloriasFormulario(valor) {
+  const calorias = normalizarCalorias(valor);
+
+  if (calorias === null) {
+    mostrarAviso(
+      "aviso",
+      `Use um valor de calorias entre 0 e ${CALORIAS_MAXIMAS}.`,
+    );
+    return null;
+  }
+
+  return calorias;
+}
+
+function formatarCalorias(valor) {
+  if (valor === undefined || valor === null || valor === "") return "-";
+
+  const calorias = Number(valor);
+
+  if (!Number.isFinite(calorias) || calorias < 0) return "-";
+  if (calorias > CALORIAS_MAXIMAS) return `${CALORIAS_MAXIMAS}+ kcal`;
+
+  return `${Math.round(calorias)} kcal`;
 }
 
 function obterDiasSemanaRotina(longo = false) {
@@ -340,7 +394,7 @@ async function verificarResetTarefas() {
         headers: headersAuth(),
       },
     );
-    const rotinas = await respostaRotinas.json();
+    const rotinas = await lerListaJson(respostaRotinas);
 
     for (const rotina of rotinas) {
       const respostaTarefas = await fetch(
@@ -349,7 +403,7 @@ async function verificarResetTarefas() {
           headers: headersAuth(),
         },
       );
-      const tarefas = await respostaTarefas.json();
+      const tarefas = await lerListaJson(respostaTarefas);
 
       let camposRotina = [];
 
@@ -962,20 +1016,31 @@ function salvarNovoEventoCalendario() {
   }
 
   let eventos = carregarEventosManuais();
+  const aniversario = aniversarioEventoInput.checked;
 
   if (eventoManualEmEdicao) {
-    eventos = eventos.map((evento) =>
-      evento.id === eventoManualEmEdicao.id
-        ? {
-            ...evento,
-            data,
-            titulo,
-            horario,
-            tipoEvento,
-            aniversario: aniversarioEventoInput.checked,
-          }
-        : evento,
-    );
+    eventos = eventos.map((evento) => {
+      if (evento.id !== eventoManualEmEdicao.id) return evento;
+
+      const frequencia = {
+        ...(evento.frequencia || {}),
+      };
+
+      if (aniversario) {
+        delete frequencia.repeticao;
+      }
+
+      return {
+        ...evento,
+        data,
+        titulo,
+        horario,
+        tipoEvento,
+        aniversario,
+        frequencia: Object.keys(frequencia).length ? frequencia : undefined,
+        excecoes: aniversario ? [] : evento.excecoes,
+      };
+    });
 
     eventoManualEmEdicao = null;
     salvarEventoCalendario.textContent = "Adicionar Evento";
@@ -986,7 +1051,7 @@ function salvarNovoEventoCalendario() {
       titulo,
       horario,
       tipoEvento,
-      aniversario: aniversarioEventoInput.checked,
+      aniversario,
     });
   }
 
@@ -1021,6 +1086,7 @@ function fecharModalEditarAlimentacaoFunc() {
 
 function fecharModalAvisoFunc() {
   modalAviso.classList.add("hidden");
+  restaurarAcoesModalAviso();
 }
 
 async function salvarEdicaoAlimentacao() {
@@ -1035,6 +1101,9 @@ async function salvarEdicaoAlimentacao() {
     return;
   }
 
+  const calorias = validarCaloriasFormulario(editarCaloriasInput.value);
+  if (calorias === null) return;
+
   try {
     const resposta = await fetch(
       `http://localhost:3000/tarefas/${alimentacaoEmEdicao.id}`,
@@ -1044,7 +1113,7 @@ async function salvarEdicaoAlimentacao() {
         body: JSON.stringify({
           tipo: editarAlimentoInput.value.trim(),
           horario: editarHorarioAlimentacaoInput.value,
-          calorias: editarCaloriasInput.value,
+          calorias,
         }),
       },
     );
@@ -1090,7 +1159,7 @@ function obterEmojiRotinaPersonalizada(rotina) {
 
 function normalizarEmojiRotina(valor) {
   const limpo = String(valor || "").trim();
-  return [...limpo][0] || "🗂️";
+  return limpo || "🗂️";
 }
 
 function atualizarIconeCardEmojiPersonalizado() {
@@ -1106,13 +1175,40 @@ function atualizarIconeCardEmojiPersonalizado() {
 function obterIconeRotina(rotinaOuNome) {
   const nome =
     typeof rotinaOuNome === "string" ? rotinaOuNome : rotinaOuNome?.nome || "";
+  const templateSalvo =
+    typeof rotinaOuNome === "string"
+      ? ""
+      : obterTemplateModalRotinaPorRotina(rotinaOuNome);
+  if (
+    templateSalvo &&
+    templateSalvo !== "personalizada" &&
+    modelosRotinaProntos[templateSalvo]
+  ) {
+    return modelosRotinaProntos[templateSalvo].icone;
+  }
+
+  const nomeLower = nome.toLowerCase();
+  const pareceRotinaPronta =
+    nomeLower.includes("matut") ||
+    nomeLower.includes("diaria") ||
+    nomeLower.includes("diária") ||
+    nomeLower.includes("estud") ||
+    nomeLower.includes("treino") ||
+    nomeLower.includes("trabalho") ||
+    nomeLower.includes("semanal") ||
+    nomeLower.includes("alimenta");
+
   const emojiPersonalizado =
     typeof rotinaOuNome === "string"
       ? ""
       : obterEmojiRotinaPersonalizada(rotinaOuNome);
-  if (emojiPersonalizado) return emojiPersonalizado;
-
-  const nomeLower = nome.toLowerCase();
+  if (
+    emojiPersonalizado &&
+    (templateSalvo === "personalizada" ||
+      (!templateSalvo && !pareceRotinaPronta))
+  ) {
+    return emojiPersonalizado;
+  }
 
   if (
     nomeLower.includes("matut") ||
@@ -1284,7 +1380,7 @@ async function alternarSilencioRotina() {
         headers: headersAuth(),
       },
     );
-    const tarefas = await resposta.json();
+    const tarefas = await lerListaJson(resposta);
 
     if (!silenciada) {
       const backup = tarefas.map((tarefa) => ({
@@ -1432,6 +1528,8 @@ function lembreteVenceu(diaMes) {
 }
 
 async function apagarLembretesVencidos(lembretes) {
+  lembretes = Array.isArray(lembretes) ? lembretes : [];
+
   const vencidos = lembretes.filter((lembrete) =>
     lembreteVenceu(lembrete.dia_mes),
   );
@@ -1517,13 +1615,8 @@ function aplicarMostrarColunasDashboard(valor) {
 
 function aplicarCalendarioPorFundo(fundo) {
   const fundosEscuros = new Set([
-    "marrom",
-    "azul-noite",
-    "oceano",
-    "verde-escuro",
-    "vinho",
-    "roxo-profundo",
-    "uva",
+    "escuro",
+    "grafite",
   ]);
   const escuro = fundosEscuros.has(String(fundo || "").toLowerCase());
 
@@ -1575,7 +1668,7 @@ function aplicarPreferenciasVisuaisDashboard(config) {
 
   if (temaEscuroAtivo) {
     document.body.removeAttribute("data-fundo");
-    aplicarCalendarioPorFundo("azul-noite");
+    aplicarCalendarioPorFundo("escuro");
   } else {
     document.body.setAttribute("data-fundo", fundoDashboard);
     aplicarCalendarioPorFundo(fundoDashboard);
@@ -1586,6 +1679,561 @@ function aplicarPreferenciasVisuaisDashboard(config) {
   aplicarCorDestaque(config.cor_destaque);
 
   requestAnimationFrame(monitorarAplicacaoCoresDashboard);
+}
+
+const onboardingFundos = {
+  padrao: {
+    label: "Padrao",
+    bg: "#ffffff",
+    main: "#ffffff",
+    sidebar: "#f9fafb",
+    card: "#ffffff",
+    card2: "#f8fafc",
+    text: "#111827",
+    muted: "#4b5563",
+    border: "#d1d5db",
+  },
+  creme: {
+    label: "Creme",
+    bg: "#ffebbf",
+    main: "#f7eedd",
+    sidebar: "#f5cfae",
+    card: "#fffaf0",
+    card2: "#f8ead5",
+    text: "#261c14",
+    muted: "#6b5842",
+    border: "#e5c89a",
+  },
+  peach: {
+    label: "Peach",
+    bg: "#ffe3dc",
+    main: "#fff1ed",
+    sidebar: "#f2c7c3",
+    card: "#fff7f4",
+    card2: "#ffe8e1",
+    text: "#2f1712",
+    muted: "#7f5148",
+    border: "#efb5a8",
+  },
+  lilas: {
+    label: "Lilas",
+    bg: "#e6ddf5",
+    main: "#f6f0ff",
+    sidebar: "#d7c8ee",
+    card: "#fbf8ff",
+    card2: "#ebe0fb",
+    text: "#26183d",
+    muted: "#675181",
+    border: "#c6b2e4",
+  },
+  salvia: {
+    label: "Salvia",
+    bg: "#dbe5cf",
+    main: "#f0f7e9",
+    sidebar: "#c8d5bb",
+    card: "#f8fff1",
+    card2: "#e2ecd7",
+    text: "#1d2a18",
+    muted: "#526348",
+    border: "#b7c8a8",
+  },
+  "amarelo-suave": {
+    label: "Amarelo suave",
+    bg: "#fff3b8",
+    main: "#fff8d9",
+    sidebar: "#faeebb",
+    card: "#fffdf0",
+    card2: "#fff2b8",
+    text: "#2d230c",
+    muted: "#7a641a",
+    border: "#ead476",
+  },
+  marrom: {
+    label: "Marrom",
+    bg: "#7c6670",
+    main: "#f7efe8",
+    sidebar: "#8a737b",
+    card: "#fffaf5",
+    card2: "#efe0d7",
+    text: "#16233d",
+    muted: "#5c667a",
+    border: "#dbc4b8",
+  },
+  "azul-claro": {
+    label: "Azul claro",
+    bg: "#dbeafe",
+    main: "#eff6ff",
+    sidebar: "#bfdbfe",
+    card: "#ffffff",
+    card2: "#dbeafe",
+    text: "#0f172a",
+    muted: "#475569",
+    border: "#bfdbfe",
+  },
+  menta: {
+    label: "Menta",
+    bg: "#5eead4",
+    main: "#ccfbf1",
+    sidebar: "#2dd4bf",
+    card: "#ecfeff",
+    card2: "#99f6e4",
+    text: "#0f172a",
+    muted: "#475569",
+    border: "#2dd4bf",
+  },
+  "rosa-claro": {
+    label: "Rosa claro",
+    bg: "#fce7f3",
+    main: "#fff1f2",
+    sidebar: "#fbcfe8",
+    card: "#ffffff",
+    card2: "#fce7f3",
+    text: "#0f172a",
+    muted: "#64748b",
+    border: "#fbcfe8",
+  },
+  "cinza-claro": {
+    label: "Cinza claro",
+    bg: "#e5e7eb",
+    main: "#f8fafc",
+    sidebar: "#d1d5db",
+    card: "#ffffff",
+    card2: "#e5e7eb",
+    text: "#111827",
+    muted: "#4b5563",
+    border: "#cbd5e1",
+  },
+  oceano: {
+    label: "Oceano",
+    bg: "#4f9db1",
+    main: "#e9f8fb",
+    sidebar: "#95cbd5",
+    card: "#ffffff",
+    card2: "#d5eef4",
+    text: "#10243a",
+    muted: "#52677a",
+    border: "#afd9e4",
+  },
+  "verde-escuro": {
+    label: "Verde escuro",
+    bg: "#6fa987",
+    main: "#eef8f0",
+    sidebar: "#80b793",
+    card: "#ffffff",
+    card2: "#dceede",
+    text: "#112d21",
+    muted: "#526a5d",
+    border: "#b7d7bf",
+  },
+  vinho: {
+    label: "Vinho",
+    bg: "#9d6470",
+    main: "#fff1f3",
+    sidebar: "#ad707b",
+    card: "#ffffff",
+    card2: "#f5d9df",
+    text: "#351522",
+    muted: "#72515b",
+    border: "#e3b8c2",
+  },
+  "roxo-profundo": {
+    label: "Roxo profundo",
+    bg: "#8b6bbe",
+    main: "#f4effc",
+    sidebar: "#9675c9",
+    card: "#ffffff",
+    card2: "#e7dcf7",
+    text: "#24143f",
+    muted: "#655479",
+    border: "#cfbdea",
+  },
+  uva: {
+    label: "Uva",
+    bg: "#b373ad",
+    main: "#fff0fb",
+    sidebar: "#bf80b9",
+    card: "#ffffff",
+    card2: "#f4d8ef",
+    text: "#361331",
+    muted: "#74516f",
+    border: "#e5badd",
+  },
+  coral: {
+    label: "Coral",
+    bg: "#fb8a45",
+    main: "#fff3ea",
+    sidebar: "#fb9a5e",
+    card: "#ffffff",
+    card2: "#fed7aa",
+    text: "#301608",
+    muted: "#7c4a31",
+    border: "#f4c29d",
+  },
+};
+
+const onboardingTemaEscuro = {
+  label: "Escuro",
+  bg: "#0f172a",
+  main: "#111827",
+  sidebar: "#0b1020",
+  card: "#1f2937",
+  card2: "#273449",
+  text: "#f8fafc",
+  muted: "#cbd5e1",
+  border: "rgba(255,255,255,0.14)",
+};
+
+const onboardingAccentMap = {
+  roxo: { label: "Roxo", value: "#a855f7" },
+  azul: { label: "Azul", value: "#3b82f6" },
+  verde: { label: "Verde", value: "#22c55e" },
+  vermelho: { label: "Vermelho", value: "#ef4444" },
+  laranja: { label: "Laranja", value: "#f97316" },
+  rosa: { label: "Rosa", value: "#ec4899" },
+  ciano: { label: "Ciano", value: "#06b6d4" },
+  amarelo: { label: "Amarelo", value: "#eab308" },
+};
+
+const modalOnboardingTutorial = document.getElementById(
+  "modalOnboardingTutorial",
+);
+const modalOnboardingCustomizacao = document.getElementById(
+  "modalOnboardingCustomizacao",
+);
+const onboardingPreview = document.getElementById("onboardingDashboardPreview");
+const onboardingFundoLabel = document.getElementById("onboardingFundoLabel");
+const onboardingDestaqueLabel = document.getElementById(
+  "onboardingDestaqueLabel",
+);
+const btnSalvarOnboardingCustomizacao = document.getElementById(
+  "salvarOnboardingCustomizacao",
+);
+
+let onboardingConfigOriginal = null;
+let onboardingConfigAtual = null;
+
+function chaveOnboardingPendente() {
+  return `mynote_onboarding_pendente_${usuario.id}`;
+}
+
+function chaveOnboardingConcluido() {
+  return `mynote_onboarding_concluido_${usuario.id}`;
+}
+
+function deveMostrarOnboarding() {
+  return (
+    localStorage.getItem(chaveOnboardingPendente()) === "true" &&
+    localStorage.getItem(chaveOnboardingConcluido()) !== "true"
+  );
+}
+
+function normalizarFonteOnboarding(valor) {
+  const texto = String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (texto.includes("pequen")) return "Pequeno";
+  if (texto.includes("grand")) return "Grande";
+  return "M\u00e9dio";
+}
+
+function classeFontePreview(valor) {
+  const texto = normalizarFonteOnboarding(valor)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (texto.includes("pequen")) return "preview-font-small";
+  if (texto.includes("grand")) return "preview-font-large";
+  return "preview-font-medium";
+}
+
+function normalizarAccentOnboarding(valor) {
+  const chave = String(valor || "roxo")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return onboardingAccentMap[chave] ? chave : "roxo";
+}
+
+function obterConfigOnboardingBase() {
+  const config = {
+    ...MyNotePrefs.defaults,
+    ...preferenciasSite,
+  };
+
+  return {
+    ...config,
+    tema: config.tema === "escuro" ? "escuro" : "claro",
+    tema_fundo: onboardingFundos[config.tema_fundo]
+      ? config.tema_fundo
+      : "creme",
+    cor_destaque: onboardingAccentMap[normalizarAccentOnboarding(
+      config.cor_destaque,
+    )].label,
+    tamanho_fonte: normalizarFonteOnboarding(config.tamanho_fonte),
+  };
+}
+
+function atualizarPreviewOnboarding() {
+  if (!onboardingPreview || !onboardingConfigAtual) return;
+
+  const accent =
+    onboardingAccentMap[
+      normalizarAccentOnboarding(onboardingConfigAtual.cor_destaque)
+    ];
+  const tema =
+    onboardingConfigAtual.tema === "escuro"
+      ? onboardingTemaEscuro
+      : onboardingFundos[onboardingConfigAtual.tema_fundo] ||
+        onboardingFundos.creme;
+
+  const variaveis = {
+    "--preview-bg": tema.bg,
+    "--preview-main": tema.main,
+    "--preview-sidebar": tema.sidebar,
+    "--preview-card": tema.card,
+    "--preview-card-2": tema.card2,
+    "--preview-text": tema.text,
+    "--preview-muted": tema.muted,
+    "--preview-border": tema.border,
+    "--preview-accent": accent.value,
+  };
+
+  Object.entries(variaveis).forEach(([nome, valor]) => {
+    onboardingPreview.style.setProperty(nome, valor);
+  });
+
+  onboardingPreview.classList.remove(
+    "preview-font-small",
+    "preview-font-medium",
+    "preview-font-large",
+  );
+  onboardingPreview.classList.add(
+    classeFontePreview(onboardingConfigAtual.tamanho_fonte),
+  );
+}
+
+function atualizarControlesOnboarding() {
+  if (!onboardingConfigAtual) return;
+
+  document.querySelectorAll("[data-onboarding-theme]").forEach((botao) => {
+    botao.classList.toggle(
+      "active",
+      botao.dataset.onboardingTheme === onboardingConfigAtual.tema,
+    );
+  });
+
+  document
+    .querySelectorAll("#onboardingFundoChoices [data-fundo]")
+    .forEach((botao) => {
+      botao.classList.toggle(
+        "active",
+        botao.dataset.fundo === onboardingConfigAtual.tema_fundo,
+      );
+    });
+
+  document.querySelectorAll("[data-accent]").forEach((botao) => {
+    botao.classList.toggle(
+      "active",
+      normalizarAccentOnboarding(botao.dataset.accent) ===
+        normalizarAccentOnboarding(onboardingConfigAtual.cor_destaque),
+    );
+  });
+
+  document.querySelectorAll("[data-font]").forEach((botao) => {
+    botao.classList.toggle(
+      "active",
+      normalizarFonteOnboarding(botao.dataset.font) ===
+        normalizarFonteOnboarding(onboardingConfigAtual.tamanho_fonte),
+    );
+  });
+
+  if (onboardingFundoLabel) {
+    const fundo =
+      onboardingFundos[onboardingConfigAtual.tema_fundo] ||
+      onboardingFundos.creme;
+    onboardingFundoLabel.textContent =
+      onboardingConfigAtual.tema === "escuro" ? "Escuro" : fundo.label;
+  }
+
+  if (onboardingDestaqueLabel) {
+    const accent =
+      onboardingAccentMap[
+        normalizarAccentOnboarding(onboardingConfigAtual.cor_destaque)
+      ];
+    onboardingDestaqueLabel.textContent = accent.label;
+  }
+}
+
+function aplicarEstadoOnboardingNoDashboard() {
+  if (!onboardingConfigAtual) return;
+
+  const config = {
+    ...preferenciasSite,
+    ...onboardingConfigAtual,
+  };
+
+  document.body.classList.remove("tema-claro", "tema-escuro");
+  document.body.classList.add(
+    config.tema === "escuro" ? "tema-escuro" : "tema-claro",
+  );
+  aplicarPreferenciasVisuaisDashboard(config);
+}
+
+function atualizarOnboarding() {
+  atualizarControlesOnboarding();
+  atualizarPreviewOnboarding();
+  aplicarEstadoOnboardingNoDashboard();
+}
+
+function abrirModalTutorialOnboarding() {
+  modalOnboardingTutorial?.classList.remove("hidden");
+}
+
+function fecharModalTutorialOnboarding() {
+  modalOnboardingTutorial?.classList.add("hidden");
+}
+
+function abrirModalCustomizacaoOnboarding() {
+  onboardingConfigOriginal = obterConfigOnboardingBase();
+  onboardingConfigAtual = { ...onboardingConfigOriginal };
+  fecharModalTutorialOnboarding();
+  modalOnboardingCustomizacao?.classList.remove("hidden");
+  atualizarOnboarding();
+}
+
+function finalizarOnboarding() {
+  modalOnboardingTutorial?.classList.add("hidden");
+  modalOnboardingCustomizacao?.classList.add("hidden");
+  localStorage.setItem(chaveOnboardingConcluido(), "true");
+  localStorage.removeItem(chaveOnboardingPendente());
+}
+
+function cancelarCustomizacaoOnboarding() {
+  if (onboardingConfigOriginal) {
+    onboardingConfigAtual = { ...onboardingConfigOriginal };
+    aplicarEstadoOnboardingNoDashboard();
+  }
+
+  finalizarOnboarding();
+}
+
+async function salvarCustomizacaoOnboarding() {
+  if (!onboardingConfigAtual) return;
+
+  const textoOriginal = btnSalvarOnboardingCustomizacao?.textContent;
+  if (btnSalvarOnboardingCustomizacao) {
+    btnSalvarOnboardingCustomizacao.disabled = true;
+    btnSalvarOnboardingCustomizacao.textContent = "Salvando...";
+  }
+
+  const payload = {
+    ...preferenciasSite,
+    ...onboardingConfigAtual,
+    preferencias_salvas_em: Date.now(),
+  };
+
+  preferenciasSite = MyNotePrefs.saveLocal(payload);
+  aplicarEstadoOnboardingNoDashboard();
+
+  try {
+    const resposta = await fetch("http://localhost:3000/configuracoes", {
+      method: "PUT",
+      headers: headersAuth(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!resposta.ok) {
+      throw new Error(`Erro ao salvar preferencias: ${resposta.status}`);
+    }
+
+    mostrarMensagem("Estilo aplicado ao dashboard.");
+  } catch (erro) {
+    console.warn("Preferencias do onboarding salvas apenas localmente:", erro);
+    mostrarMensagem("Estilo aplicado neste navegador.");
+  } finally {
+    if (btnSalvarOnboardingCustomizacao) {
+      btnSalvarOnboardingCustomizacao.disabled = false;
+      btnSalvarOnboardingCustomizacao.textContent =
+        textoOriginal || "Usar este estilo";
+    }
+
+    finalizarOnboarding();
+  }
+}
+
+function configurarEventosOnboarding() {
+  if (!modalOnboardingTutorial || !modalOnboardingCustomizacao) return;
+
+  document
+    .getElementById("continuarOnboardingTutorial")
+    ?.addEventListener("click", abrirModalCustomizacaoOnboarding);
+
+  document
+    .getElementById("pularOnboardingTutorial")
+    ?.addEventListener("click", abrirModalCustomizacaoOnboarding);
+
+  document
+    .getElementById("fecharOnboardingTutorial")
+    ?.addEventListener("click", finalizarOnboarding);
+
+  document
+    .getElementById("fecharOnboardingCustomizacao")
+    ?.addEventListener("click", cancelarCustomizacaoOnboarding);
+
+  document
+    .getElementById("pularOnboardingCustomizacao")
+    ?.addEventListener("click", cancelarCustomizacaoOnboarding);
+
+  btnSalvarOnboardingCustomizacao?.addEventListener(
+    "click",
+    salvarCustomizacaoOnboarding,
+  );
+
+  document.querySelectorAll("[data-onboarding-theme]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      onboardingConfigAtual.tema = botao.dataset.onboardingTheme;
+      atualizarOnboarding();
+    });
+  });
+
+  document
+    .querySelectorAll("#onboardingFundoChoices [data-fundo]")
+    .forEach((botao) => {
+      botao.addEventListener("click", () => {
+        onboardingConfigAtual.tema_fundo = botao.dataset.fundo;
+        atualizarOnboarding();
+      });
+    });
+
+  document.querySelectorAll("[data-accent]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      onboardingConfigAtual.cor_destaque =
+        onboardingAccentMap[normalizarAccentOnboarding(botao.dataset.accent)]
+          .label;
+      atualizarOnboarding();
+    });
+  });
+
+  document.querySelectorAll("[data-font]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      onboardingConfigAtual.tamanho_fonte = normalizarFonteOnboarding(
+        botao.dataset.font,
+      );
+      atualizarOnboarding();
+    });
+  });
+}
+
+function iniciarOnboardingPrimeiroAcesso() {
+  configurarEventosOnboarding();
+
+  if (!deveMostrarOnboarding()) return;
+
+  abrirModalTutorialOnboarding();
 }
 
 function normalizarTextoOrdenacao(valor) {
@@ -1670,10 +2318,20 @@ function ordenarTarefasPorPreferencia(tarefas, preferencia) {
 }
 
 async function carregarTemaDashboard() {
-  const res = await fetch(
-    `http://localhost:3000/configuracoes?usuario_id=${usuario.id}`,
-  );
-  const config = MyNotePrefs.normalize(await res.json());
+  const configLocal = MyNotePrefs.loadLocal();
+  let config = configLocal;
+
+  try {
+    const res = await fetch("http://localhost:3000/configuracoes", {
+      headers: headersAuth(),
+    });
+    if (!res.ok) throw new Error(`Erro ao buscar configuracoes: ${res.status}`);
+
+    config = MyNotePrefs.normalize(await res.json());
+  } catch (erro) {
+    console.warn("Usando preferencias locais do dashboard:", erro);
+  }
+
   preferenciasSite = MyNotePrefs.saveLocal(config);
   MyNotePrefs.translateDOM(document);
 
@@ -2462,7 +3120,7 @@ async function abrirModalFrequenciaRotina(manterAberto = false) {
         headers: headersAuth(),
       },
     );
-    const tarefas = await resposta.json();
+    const tarefas = await lerListaJson(resposta);
     renderizarListaFrequenciaTarefas(tarefas);
   } catch (erro) {
     console.error("Erro ao carregar frequência da rotina:", erro);
@@ -2722,25 +3380,71 @@ function abrirNumeroAntecedenciaCalendario({ valorAtual, onSave }) {
 }
 
 function obterFrequenciaEventoManual(evento) {
+  const eventoBase = obterEventoManualBase(evento);
+
   return {
-    repeticao: evento?.frequencia?.repeticao || null,
+    repeticao: eventoBase?.frequencia?.repeticao || null,
     antecedencia:
-      evento?.frequencia?.antecedencia || criarAntecedencia("dia", 1, true),
+      eventoBase?.frequencia?.antecedencia || criarAntecedencia("dia", 1, true),
   };
 }
 
+function obterEventoManualBase(evento) {
+  if (!evento || evento.tipo !== "manual") return evento;
+
+  const eventoSalvo = carregarEventosManuais().find(
+    (item) => String(item.id) === String(evento.id),
+  );
+
+  if (!eventoSalvo) return evento;
+
+  return {
+    ...evento,
+    ...eventoSalvo,
+    tipo: "manual",
+    dataOriginal:
+      eventoSalvo.dataOriginal || evento.dataOriginal || eventoSalvo.data,
+  };
+}
+
+function obterDiasRepeticaoEvento(evento) {
+  const repeticao = obterFrequenciaEventoManual(evento).repeticao;
+  const dataOriginal = criarDataLocalPorISO(evento.dataOriginal || evento.data);
+  const dias = Array.isArray(repeticao?.dias)
+    ? repeticao.dias.map(Number).filter((dia) => dia >= 1 && dia <= 31)
+    : [];
+
+  return dias.length ? [...new Set(dias)].sort((a, b) => a - b) : [dataOriginal?.getDate() || 1];
+}
+
+function obterMesesRepeticaoEvento(evento) {
+  const repeticao = obterFrequenciaEventoManual(evento).repeticao;
+  const meses = Array.isArray(repeticao?.meses)
+    ? repeticao.meses.map(Number).filter((mes) => mes >= 0 && mes <= 11)
+    : [];
+
+  return [...new Set(meses)].sort((a, b) => a - b);
+}
+
 function rotuloRepeticaoEventoManual(evento) {
-  const repeticao = evento?.frequencia?.repeticao;
+  const repeticao = obterFrequenciaEventoManual(evento).repeticao;
 
   if (!repeticao) {
     return evento?.tipoEvento === "permanente" ? "Anual" : "Evento único";
   }
 
   if (repeticao.modo === "dias") {
-    return `A cada ${repeticao.intervalo || 1} ${pluralizarUnidade("dia", repeticao.intervalo || 1)}`;
+    const dias = Array.isArray(repeticao.dias)
+      ? repeticao.dias.map(Number).sort((a, b) => a - b)
+      : [];
+
+    return dias.length ? `Dias ${dias.join(", ")} deste mes` : "Dias deste mes";
   }
 
   if (repeticao.modo === "meses") {
+    const dias = Array.isArray(repeticao.dias)
+      ? repeticao.dias.map(Number).sort((a, b) => a - b)
+      : [];
     const meses = (repeticao.meses || [])
       .map(
         (valor) =>
@@ -2748,13 +3452,17 @@ function rotuloRepeticaoEventoManual(evento) {
       )
       .filter(Boolean);
 
+    if (dias.length && meses.length) {
+      return `Dias ${dias.join(", ")} em ${meses.join(", ")}`;
+    }
+
     return meses.length ? meses.join(", ") : "Meses";
   }
 
   return "Evento único";
 }
 
-function salvarFrequenciaEventoManual(eventoId, dados, mensagem) {
+async function salvarFrequenciaEventoManual(eventoId, dados, mensagem) {
   const eventos = carregarEventosManuais().map((evento) => {
     if (String(evento.id) !== String(eventoId)) return evento;
 
@@ -2772,7 +3480,7 @@ function salvarFrequenciaEventoManual(eventoId, dados, mensagem) {
   fecharModalOpcoesFrequencia();
   fecharModalGradeFrequencia();
   fecharModalNumeroFrequencia();
-  renderizarCalendario();
+  await renderizarCalendario();
   if (dataSelecionadaCalendario) mostrarEventosDoDia(dataSelecionadaCalendario);
   mostrarMensagem(mensagem || "Frequência do evento atualizada!");
 }
@@ -2794,50 +3502,51 @@ function abrirModalFrequenciaEvento(evento) {
 }
 
 function abrirPainelFrequenciaEventoManual(evento) {
+  evento = obterEventoManualBase(evento);
   frequenciaEventoAtual = evento;
   const freq = obterFrequenciaEventoManual(evento);
+  const opcoes = [
+    {
+      titulo: "Antecedencia do aviso",
+      descricao: rotuloAntecedencia(freq.antecedencia),
+      seta: true,
+      acao: () => abrirOpcoesAntecedenciaEventoManual(evento),
+    },
+  ];
 
-  abrirModalOpcoesFrequencia(
-    "Frequência do evento",
-    evento.titulo || "Evento",
-    [
-      {
-        titulo: "Repetição",
-        descricao: rotuloRepeticaoEventoManual(evento),
-        seta: true,
-        acao: () => abrirOpcoesRepeticaoEventoManual(evento),
-      },
-      {
-        titulo: "Antecedência do aviso",
-        descricao: rotuloAntecedencia(freq.antecedencia),
-        seta: true,
-        acao: () => abrirOpcoesAntecedenciaEventoManual(evento),
-      },
-    ],
-  );
+  if (!evento.aniversario) {
+    opcoes.unshift({
+      titulo: "Repeticao",
+      descricao: rotuloRepeticaoEventoManual(evento),
+      seta: true,
+      acao: () => abrirOpcoesRepeticaoEventoManual(evento),
+    });
+  }
+
+  abrirModalOpcoesFrequencia("Frequencia do evento", evento.titulo || "Evento", opcoes);
 }
 
 function abrirOpcoesRepeticaoEventoManual(evento) {
-  const freq = obterFrequenciaEventoManual(evento);
+  evento = obterEventoManualBase(evento);
+  const diasSelecionados = obterDiasRepeticaoEvento(evento);
+  const mesesSelecionados = obterMesesRepeticaoEvento(evento);
 
-  abrirModalOpcoesFrequencia("Repetição", evento.titulo || "Evento", [
+  abrirModalOpcoesFrequencia("Repeticao", evento.titulo || "Evento", [
     {
       titulo: "Dias",
-      descricao:
-        freq.repeticao?.modo === "dias"
-          ? rotuloRepeticaoEventoManual(evento)
-          : "Escolher intervalo em dias",
-      ativo: freq.repeticao?.modo === "dias",
+      descricao: diasSelecionados.length
+        ? rotuloRepeticaoEventoManual(evento)
+        : "Escolher dias do mes",
+      ativo: diasSelecionados.length > 0,
       seta: true,
       acao: () => abrirGradeIntervaloDiasEvento(evento),
     },
     {
       titulo: "Meses",
-      descricao:
-        freq.repeticao?.modo === "meses"
-          ? rotuloRepeticaoEventoManual(evento)
-          : "Escolher meses do ano",
-      ativo: freq.repeticao?.modo === "meses",
+      descricao: mesesSelecionados.length
+        ? rotuloRepeticaoEventoManual(evento)
+        : "Escolher meses do ano",
+      ativo: mesesSelecionados.length > 0,
       seta: true,
       acao: () => abrirGradeMesesEvento(evento),
     },
@@ -2845,19 +3554,12 @@ function abrirOpcoesRepeticaoEventoManual(evento) {
 }
 
 function abrirGradeIntervaloDiasEvento(evento) {
-  const freq = obterFrequenciaEventoManual(evento);
-
-  const dataOriginal = criarDataLocalPorISO(evento.dataOriginal || evento.data);
-  const diaOriginal = dataOriginal?.getDate() || 1;
-
-  const diasSelecionados =
-    freq.repeticao?.modo === "dias" && Array.isArray(freq.repeticao.dias)
-      ? freq.repeticao.dias
-      : [diaOriginal];
+  evento = obterEventoManualBase(evento);
+  const diasSelecionados = obterDiasRepeticaoEvento(evento);
 
   abrirModalGradeFrequencia({
     titulo: "Escolher dias",
-    subtitulo: "Selecione os dias do mês em que o evento aparecerá.",
+    subtitulo: "Selecione os dias do mes em que o evento aparecera.",
     itens: Array.from({ length: 31 }, (_, index) => ({
       valor: index + 1,
       label: String(index + 1),
@@ -2871,41 +3573,47 @@ function abrirGradeIntervaloDiasEvento(evento) {
         return;
       }
 
-      salvarFrequenciaEventoManual(evento.id, {
-        repeticao: {
-          modo: "dias",
-          dias: dias.map(Number).sort((a, b) => a - b),
-        },
-      });
+      const diasAtualizados = [...new Set(dias.map(Number))].sort((a, b) => a - b);
+      const mesesExistentes = obterMesesRepeticaoEvento(evento);
+      const repeticao = {
+        modo: mesesExistentes.length ? "meses" : "dias",
+        dias: diasAtualizados,
+      };
+
+      if (mesesExistentes.length) {
+        repeticao.meses = mesesExistentes;
+      }
+
+      salvarFrequenciaEventoManual(evento.id, { repeticao });
     },
   });
 }
 
 function abrirGradeMesesEvento(evento) {
-  const freq = obterFrequenciaEventoManual(evento);
-  const mesOriginal =
-    criarDataLocalPorISO(evento.dataOriginal || evento.data)?.getMonth() ?? 0;
-  const mesesSelecionados =
-    freq.repeticao?.modo === "meses"
-      ? freq.repeticao.meses || []
-      : [mesOriginal];
+  evento = obterEventoManualBase(evento);
+  const mesOriginal = criarDataLocalPorISO(evento.dataOriginal || evento.data)?.getMonth() ?? 0;
+  const mesesSelecionados = obterMesesRepeticaoEvento(evento);
 
   abrirModalGradeFrequencia({
-    titulo: "Escolher mês",
-    subtitulo: "Selecione em quais meses o evento aparecerá.",
+    titulo: "Escolher mes",
+    subtitulo: "Selecione em quais meses o evento aparecera.",
     itens: mesesFrequenciaAno,
-    selecionados: mesesSelecionados,
+    selecionados: mesesSelecionados.length ? mesesSelecionados : [mesOriginal],
     classe: "grade-meses-frequencia",
     onSave: (meses) => {
       if (!meses.length) {
-        mostrarAviso("aviso", "Escolha pelo menos um mês.");
+        mostrarAviso("aviso", "Escolha pelo menos um mes.");
         return;
       }
+
+      const mesesAtualizados = [...new Set(meses.map(Number))].sort((a, b) => a - b);
+      const diasExistentes = obterDiasRepeticaoEvento(evento);
 
       salvarFrequenciaEventoManual(evento.id, {
         repeticao: {
           modo: "meses",
-          meses,
+          meses: mesesAtualizados,
+          dias: diasExistentes,
         },
       });
     },
@@ -2913,10 +3621,11 @@ function abrirGradeMesesEvento(evento) {
 }
 
 function abrirOpcoesAntecedenciaEventoManual(evento) {
+  evento = obterEventoManualBase(evento);
   const freq = obterFrequenciaEventoManual(evento);
 
   abrirModalOpcoesFrequencia(
-    "Antecedência do aviso",
+    "Antecedencia do aviso",
     evento.titulo || "Evento",
     [
       {
@@ -2940,7 +3649,7 @@ function abrirOpcoesAntecedenciaEventoManual(evento) {
           }),
       },
       {
-        titulo: "1 Mês",
+        titulo: "1 Mes",
         ativo:
           freq.antecedencia?.unidade === "mes" &&
           Number(freq.antecedencia.valor) === 1,
@@ -3077,6 +3786,10 @@ function diaExisteNoMes(dia, mes, ano) {
   return dia >= 1 && dia <= new Date(ano, mes + 1, 0).getDate();
 }
 
+function ocorrenciaEventoExcluida(evento, dataISO) {
+  return Array.isArray(evento.excecoes) && evento.excecoes.includes(dataISO);
+}
+
 function gerarOcorrenciasEventoManual(evento, ano, mes) {
   const dataOriginal = criarDataLocalPorISO(evento.dataOriginal || evento.data);
   if (!dataOriginal) return [];
@@ -3100,6 +3813,13 @@ function gerarOcorrenciasEventoManual(evento, ano, mes) {
   const ocorrencias = [];
 
   if (repeticao?.modo === "dias") {
+    if (
+      ano !== dataOriginal.getFullYear() ||
+      mes !== dataOriginal.getMonth()
+    ) {
+      return [];
+    }
+
     const dias = Array.isArray(repeticao.dias)
       ? repeticao.dias.map(Number).filter((d) => d >= 1 && d <= 31)
       : [];
@@ -3110,10 +3830,13 @@ function gerarOcorrenciasEventoManual(evento, ano, mes) {
       const data = new Date(ano, mes, dia);
 
       if (data >= dataOriginal) {
+        const dataISO = formatarDataISO(data);
+        if (ocorrenciaEventoExcluida(evento, dataISO)) return;
+
         ocorrencias.push({
           ...evento,
           tipo: "manual",
-          data: formatarDataISO(data),
+          data: dataISO,
           dataOriginal: evento.dataOriginal || evento.data,
         });
       }
@@ -3124,23 +3847,28 @@ function gerarOcorrenciasEventoManual(evento, ano, mes) {
 
   if (repeticao?.modo === "meses") {
     const meses = (repeticao.meses || []).map(Number);
-    const dia = dataOriginal.getDate();
+    const dias = Array.isArray(repeticao.dias)
+      ? repeticao.dias.map(Number).filter((dia) => dia >= 1 && dia <= 31)
+      : [dataOriginal.getDate()];
 
-    if (meses.includes(mes) && diaExisteNoMes(dia, mes, ano)) {
+    if (!meses.includes(mes)) return [];
+
+    dias.forEach((dia) => {
+      if (!diaExisteNoMes(dia, mes, ano)) return;
+
       const ocorrencia = new Date(ano, mes, dia);
-      if (ocorrencia < dataOriginal) return [];
+      const dataISO = formatarDataISO(ocorrencia);
+      if (ocorrenciaEventoExcluida(evento, dataISO)) return;
 
-      return [
-        {
-          ...evento,
-          tipo: "manual",
-          data: formatarDataISO(ocorrencia),
-          dataOriginal: evento.dataOriginal || evento.data,
-        },
-      ];
-    }
+      ocorrencias.push({
+        ...evento,
+        tipo: "manual",
+        data: dataISO,
+        dataOriginal: evento.dataOriginal || evento.data,
+      });
+    });
 
-    return [];
+    return ocorrencias;
   }
 
   const dia = dataOriginal.getDate();
@@ -3149,18 +3877,32 @@ function gerarOcorrenciasEventoManual(evento, ano, mes) {
   if (mes === mesOriginal && diaExisteNoMes(dia, mes, ano)) {
     const ocorrencia = new Date(ano, mes, dia);
     if (ocorrencia < dataOriginal) return [];
+    const dataISO = formatarDataISO(ocorrencia);
+    if (ocorrenciaEventoExcluida(evento, dataISO)) return [];
 
     return [
       {
         ...evento,
         tipo: "manual",
-        data: formatarDataISO(ocorrencia),
+        data: dataISO,
         dataOriginal: evento.dataOriginal || evento.data,
       },
     ];
   }
 
   return [];
+}
+
+function montarOcorrenciaEventoManual(evento, data) {
+  const dataISO = formatarDataISO(data);
+  if (ocorrenciaEventoExcluida(evento, dataISO)) return null;
+
+  return {
+    ...evento,
+    tipo: "manual",
+    data: dataISO,
+    dataOriginal: evento.dataOriginal || evento.data,
+  };
 }
 
 function gerarOcorrenciasEventoManualEmPeriodo(evento, inicio, fim) {
@@ -3187,9 +3929,18 @@ function gerarOcorrenciasEventoManualEmPeriodo(evento, inicio, fim) {
 
     if (!diasSelecionados.length) return ocorrencias;
 
-    const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+    const cursor = new Date(
+      dataOriginal.getFullYear(),
+      dataOriginal.getMonth(),
+      1,
+    );
+    const ultimoDiaMesOriginal = new Date(
+      dataOriginal.getFullYear(),
+      dataOriginal.getMonth() + 1,
+      0,
+    );
 
-    while (cursor <= fim) {
+    while (cursor <= fim && cursor <= ultimoDiaMesOriginal) {
       const ano = cursor.getFullYear();
       const mes = cursor.getMonth();
 
@@ -3204,6 +3955,39 @@ function gerarOcorrenciasEventoManualEmPeriodo(evento, inicio, fim) {
         const item = montarOcorrenciaEventoManual(evento, dataOcorrencia);
         if (item) ocorrencias.push(item);
       });
+
+      cursor.setMonth(cursor.getMonth() + 1, 1);
+    }
+
+    return ocorrencias;
+  }
+
+  if (repeticao?.modo === "meses") {
+    const meses = (repeticao.meses || []).map(Number);
+    const diasSelecionados = Array.isArray(repeticao.dias)
+      ? repeticao.dias.map(Number).filter((dia) => dia >= 1 && dia <= 31)
+      : [dataOriginal.getDate()];
+
+    if (!meses.length || !diasSelecionados.length) return ocorrencias;
+
+    const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+
+    while (cursor <= fim) {
+      const ano = cursor.getFullYear();
+      const mes = cursor.getMonth();
+
+      if (meses.includes(mes)) {
+        diasSelecionados.forEach((dia) => {
+          if (!diaExisteNoMes(dia, mes, ano)) return;
+
+          const dataOcorrencia = new Date(ano, mes, dia);
+
+          if (dataOcorrencia < inicio || dataOcorrencia > fim) return;
+
+          const item = montarOcorrenciaEventoManual(evento, dataOcorrencia);
+          if (item) ocorrencias.push(item);
+        });
+      }
 
       cursor.setMonth(cursor.getMonth() + 1, 1);
     }
@@ -3258,6 +4042,14 @@ function excluirApenasOcorrenciaEventoManual(eventoId, dataISO) {
       excecoes: [...excecoes],
     };
   });
+
+  salvarEventosManuais(eventos);
+}
+
+function excluirEventoManualCompleto(eventoId) {
+  const eventos = carregarEventosManuais().filter(
+    (evento) => String(evento.id) !== String(eventoId),
+  );
 
   salvarEventosManuais(eventos);
 }
@@ -3486,7 +4278,7 @@ async function carregarTarefasUsuarioParaNotificacoes() {
       headers: headersAuth(),
     },
   );
-  const rotinas = await respostaRotinas.json();
+  const rotinas = await lerListaJson(respostaRotinas);
 
   for (const rotina of rotinas) {
     const respostaTarefas = await fetch(
@@ -3495,7 +4287,7 @@ async function carregarTarefasUsuarioParaNotificacoes() {
         headers: headersAuth(),
       },
     );
-    const tarefas = await respostaTarefas.json();
+    const tarefas = await lerListaJson(respostaTarefas);
 
     tarefas.forEach((tarefa) => {
       tarefasUsuario.push({
@@ -3597,7 +4389,7 @@ async function verificarLembretesComAntecedencia() {
         headers: headersAuth(),
       },
     );
-    const lembretes = await resposta.json();
+    const lembretes = await lerListaJson(resposta);
     const hoje = dataHojeISO();
 
     lembretes.forEach((lembrete) => {
@@ -3767,19 +4559,7 @@ function renderizarCabecalhoPersonalizado(campos) {
   const thead = document.querySelector(".tabela-tarefas thead tr");
   thead.innerHTML = "";
 
-  const mapa = {
-    titulo: "Tarefa",
-    tipo: "Tipo",
-    status: "Status",
-    disciplina: "Disciplina",
-    horario: "Horário",
-    notificacao: "Notificação",
-    link_material: "Link/Material",
-    projeto: "Projeto",
-    prioridade: "Prioridade",
-    prazo: "Prazo",
-    calorias: "Calorias",
-  };
+  const mapa = obterRotulosCamposDaRotina();
 
   if (modoEdicaoTabela) {
     const thArrastar = document.createElement("th");
@@ -3787,13 +4567,19 @@ function renderizarCabecalhoPersonalizado(campos) {
     thead.appendChild(thArrastar);
   }
 
-  campos.forEach((campo) => {
+  const camposPrincipais = campos.filter((campo) => campo !== "notificacao");
+
+  camposPrincipais.forEach((campo) => {
     const th = document.createElement("th");
     th.textContent = mapa[campo] || campo;
     thead.appendChild(th);
   });
 
   // ações sempre no final
+  const thNotificacao = document.createElement("th");
+  thNotificacao.textContent = "Notificação";
+  thead.appendChild(thNotificacao);
+
   const thAcoes = document.createElement("th");
   thAcoes.textContent = "Ações";
   thead.appendChild(thAcoes);
@@ -3821,7 +4607,7 @@ async function mostrarResumoDiario() {
         headers: headersAuth(),
       },
     );
-    const rotinas = await resRotinas.json();
+    const rotinas = await lerListaJson(resRotinas);
 
     for (const rotina of rotinas) {
       const resTarefas = await fetch(
@@ -3830,7 +4616,7 @@ async function mostrarResumoDiario() {
           headers: headersAuth(),
         },
       );
-      const tarefas = await resTarefas.json();
+      const tarefas = await lerListaJson(resTarefas);
 
       totalTarefas += tarefas.filter(
         (t) => !String(t.status).toLowerCase().includes("conclu"),
@@ -3843,7 +4629,7 @@ async function mostrarResumoDiario() {
         headers: headersAuth(),
       },
     );
-    const lembretes = await resLembretes.json();
+    const lembretes = await lerListaJson(resLembretes);
 
     totalLembretes = lembretes.filter(
       (l) => !String(l.status).toLowerCase().includes("conclu"),
@@ -4001,6 +4787,66 @@ function normalizarCamposRotina(
   if (!unicos.length) return [];
   if (!unicos.includes("titulo")) unicos.unshift("titulo");
   return ordemCamposRotina.filter((campo) => unicos.includes(campo));
+}
+
+function ordenarCamposPorPreferencia(campos, ordemPreferida) {
+  const lista = Array.isArray(campos) ? campos : [];
+  const usados = new Set();
+  const ordenados = [];
+
+  ordemPreferida.forEach((campo) => {
+    if (lista.includes(campo)) {
+      ordenados.push(campo);
+      usados.add(campo);
+    }
+  });
+
+  lista.forEach((campo) => {
+    if (!usados.has(campo)) ordenados.push(campo);
+  });
+
+  return ordenados;
+}
+
+function obterTemplateRotina(rotina = rotinaAtual) {
+  return obterTemplateModalRotinaPorRotina(rotina);
+}
+
+function ajustarCamposParaRotina(campos, tipoRotina, rotina = rotinaAtual) {
+  const template = obterTemplateRotina(rotina);
+
+  if (tipoRotina === "alimentacao" || template === "alimentacao") {
+    return ordenarCamposPorPreferencia(campos, [
+      "titulo",
+      "tipo",
+      "status",
+      "horario",
+      "calorias",
+      "notificacao",
+    ]);
+  }
+
+  return campos;
+}
+
+function obterRotulosCamposDaRotina(
+  tipoRotina = obterTipoRotina(tituloRotina.textContent),
+) {
+  const template = obterTemplateRotina();
+  const rotulosPadrao = {
+    ...rotulosCamposRotina,
+    titulo: "Tarefa",
+  };
+
+  if (tipoRotina === "alimentacao" || template === "alimentacao") {
+    return {
+      ...rotulosPadrao,
+      titulo: "Refeição",
+      tipo: "Alimento",
+    };
+  }
+
+  return rotulosPadrao;
 }
 
 function obterCamposMarcadosRotina() {
@@ -4211,10 +5057,14 @@ function atualizarPreviewTemplateRotina(chave) {
     modelosRotinaProntos[chave] || modelosRotinaProntos.personalizada;
   if (!preview) return;
 
-  const camposBase =
+  const camposBaseBrutos =
     chave === "personalizada"
       ? obterCamposMarcadosRotina()
       : normalizarCamposRotina(modelo.campos);
+  const camposBase = ajustarCamposParaRotina(
+    camposBaseBrutos,
+    chave === "alimentacao" ? "alimentacao" : "",
+  );
   const campos = camposBase
     .filter((campo) => campo !== "dia_semana")
     .map((campo) => rotulosCamposRotina[campo] || campo);
@@ -4286,7 +5136,7 @@ async function carregarRotinas() {
         headers: headersAuth(),
       },
     );
-    const rotinas = await resposta.json();
+    const rotinas = await lerListaJson(resposta);
 
     listaRotinas.innerHTML = "";
 
@@ -4504,6 +5354,14 @@ async function salvarOrdemRotinas() {
 }
 
 //Tabela de tarefas
+function ordenarColunasComNotificacaoEAcoes(colunas) {
+  const colunasPrincipais = colunas.filter(
+    (coluna) => coluna !== "Notificação" && coluna !== "Ações",
+  );
+
+  return [...colunasPrincipais, "Notificação", "Ações"];
+}
+
 function renderizarCabecalhoTarefas(tipoRotina) {
   let colunas = [];
 
@@ -4528,7 +5386,6 @@ function renderizarCabecalhoTarefas(tipoRotina) {
       "Prazo",
       "Status",
       "Horário",
-      "Ações",
     ];
   } else if (tipoRotina === "alimentacao") {
     colunas = [
@@ -4537,8 +5394,6 @@ function renderizarCabecalhoTarefas(tipoRotina) {
       "Horário",
       "Calorias",
       "Status",
-      "Notificação",
-      "Ações",
     ];
   } else {
     colunas = [
@@ -4547,10 +5402,10 @@ function renderizarCabecalhoTarefas(tipoRotina) {
       "Status",
       "Disciplina",
       "Horário",
-      "Notificação",
-      "Ações",
     ];
   }
+
+  colunas = ordenarColunasComNotificacaoEAcoes(colunas);
 
   if (modoEdicaoTabela) {
     colunas.unshift("");
@@ -4644,6 +5499,7 @@ function montarLinhaTarefa(tarefa, tipoRotina) {
       <td>${campoEditavel(tarefa, "prazo", tarefa.prazo, "📅")}</td>
       <td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>
       <td>${campoHorarioEditavel(tarefa)}</td>
+      <td>${botaoNotificacao(tarefa)}</td>
       <td><button class="btn-excluir" data-id="${tarefa.id}">🗑️</button></td>
     `;
   }
@@ -4658,7 +5514,7 @@ function montarLinhaTarefa(tarefa, tipoRotina) {
 </td>
       <td>${tarefa.tipo || "-"}</td>
       <td>${campoHorarioEditavel(tarefa)}</td>
-      <td style="color:#f97316; font-weight:600;">${tarefa.calorias || "-"} kcal</td>
+      <td class="calorias-cell">${formatarCalorias(tarefa.calorias)}</td>
       <td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>
       <td>${botaoNotificacao(tarefa)}</td>
       <td><button class="btn-excluir" data-id="${tarefa.id}">🗑️</button></td>
@@ -4807,6 +5663,20 @@ function obterTemplateModalRotinaAtual() {
     return (
       localStorage.getItem(chaveTemplateModalRotina(rotinaAtual.id)) ||
       localStorage.getItem(chaveTemplateModalRotina(rotinaAtual.nome)) ||
+      ""
+    );
+  } catch {
+    return "";
+  }
+}
+
+function obterTemplateModalRotinaPorRotina(rotina) {
+  if (!rotina) return "";
+
+  try {
+    return (
+      localStorage.getItem(chaveTemplateModalRotina(rotina.id)) ||
+      localStorage.getItem(chaveTemplateModalRotina(rotina.nome)) ||
       ""
     );
   } catch {
@@ -5093,6 +5963,17 @@ function abrirModalTarefa() {
     horarioTarefaInput,
   ].forEach((el) => el?.classList.remove("hidden"));
 
+  [
+    camposEstudos,
+    camposTrabalho,
+    camposAlimentacao,
+    campoRepeticaoSemanal,
+  ].forEach((grupo) => {
+    grupo
+      ?.querySelectorAll("label, input, select")
+      .forEach((el) => el.classList.remove("hidden"));
+  });
+
   // Por padrão, o campo de alimento fica escondido
   tipoTarefaInput.classList.add("hidden");
   tipoTarefaSelect?.classList.remove("hidden");
@@ -5249,7 +6130,9 @@ function montarLinhaPersonalizada(tarefa, campos) {
     linha += botaoArrastar();
   }
 
-  campos.forEach((campo) => {
+  const camposPrincipais = campos.filter((campo) => campo !== "notificacao");
+
+  camposPrincipais.forEach((campo) => {
     switch (campo) {
       case "titulo":
         linha += `<td>${checkConclusao(tarefa)} ${tarefa.titulo || "-"}</td>`;
@@ -5305,7 +6188,7 @@ function montarLinhaPersonalizada(tarefa, campos) {
         break;
 
       case "calorias":
-        linha += `<td style="color:#f97316; font-weight:600;">${tarefa.calorias || "-"} kcal</td>`;
+        linha += `<td class="calorias-cell">${formatarCalorias(tarefa.calorias)}</td>`;
         break;
 
       default:
@@ -5323,6 +6206,10 @@ function montarLinhaPersonalizada(tarefa, campos) {
   });
 
   linha += `
+    <td>${botaoNotificacao(tarefa)}</td>
+  `;
+
+  linha += `
     <td>
       <button class="btn-excluir" data-id="${tarefa.id}">🗑️</button>
     </td>
@@ -5337,6 +6224,7 @@ function mostrarAviso(tipo, mensagem, aoFechar) {
   const texto = document.getElementById("textoModalAviso");
   const btn = document.getElementById("okModalAviso");
 
+  restaurarAcoesModalAviso();
   modal.classList.remove("modal-sucesso", "modal-erro", "modal-aviso");
 
   if (!mensagem) {
@@ -5370,6 +6258,7 @@ function mostrarAviso(tipo, mensagem, aoFechar) {
 }
 
 function mostrarConfirmacao(mensagem, aoConfirmar) {
+  restaurarAcoesModalAviso();
   tituloModalAviso.textContent = "Confirmar exclusão";
   textoModalAviso.textContent = mensagem;
 
@@ -5390,6 +6279,45 @@ function mostrarConfirmacao(mensagem, aoConfirmar) {
     modalAviso.classList.add("hidden");
     okModalAviso.textContent = "OK";
     okModalAviso.onclick = fecharModalAvisoFunc;
+  };
+}
+
+function restaurarAcoesModalAviso() {
+  okModalAviso.style.display = "";
+  okModalAviso.textContent = "OK";
+  okModalAviso.onclick = fecharModalAvisoFunc;
+  okModalAviso.parentElement
+    ?.querySelectorAll(".btn-opcao-confirmacao")
+    .forEach((botao) => botao.remove());
+}
+
+function mostrarConfirmacaoComOpcoes(titulo, mensagem, opcoes) {
+  restaurarAcoesModalAviso();
+
+  tituloModalAviso.textContent = titulo;
+  textoModalAviso.textContent = mensagem;
+  okModalAviso.style.display = "none";
+
+  const footer = okModalAviso.parentElement;
+
+  opcoes.forEach((opcao) => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = `${opcao.classe || "btn-primario"} btn-opcao-confirmacao`;
+    botao.textContent = opcao.texto;
+    botao.addEventListener("click", async () => {
+      modalAviso.classList.add("hidden");
+      restaurarAcoesModalAviso();
+      if (typeof opcao.acao === "function") await opcao.acao();
+    });
+    footer?.appendChild(botao);
+  });
+
+  modalAviso.classList.remove("hidden");
+
+  fecharModalAviso.onclick = () => {
+    modalAviso.classList.add("hidden");
+    restaurarAcoesModalAviso();
   };
 }
 
@@ -5598,6 +6526,12 @@ async function carregarTarefas(rotinaId, nomeRotina) {
     } catch {
       camposPersonalizados = [];
     }
+
+    camposPersonalizados = ajustarCamposParaRotina(
+      camposPersonalizados,
+      tipoRotina,
+      rotinaAtual,
+    );
 
     if (camposPersonalizados.length > 0) {
       renderizarCabecalhoPersonalizado(camposPersonalizados);
@@ -5909,7 +6843,10 @@ async function salvarNovaTarefa() {
   const projeto = projetoInput?.value.trim();
   const prioridade = prioridadeInput?.value;
   const prazo = prazoInput?.value.trim();
-  const calorias = caloriasInput?.value.trim();
+  const caloriasDigitadas = caloriasInput?.value.trim();
+  const calorias = validarCaloriasFormulario(caloriasDigitadas);
+
+  if (calorias === null) return;
 
   if (tipoRotina === "trabalho" && prazo) {
     if (!validarPrazo(prazo)) {
@@ -6338,7 +7275,7 @@ async function excluirLembretesConcluidos() {
             headers: headersAuth(),
           },
         );
-        const lembretes = await resposta.json();
+        const lembretes = await lerListaJson(resposta);
 
         const concluidos = lembretes.filter((lembrete) =>
           String(lembrete.status).toLowerCase().includes("conclu"),
@@ -6380,7 +7317,7 @@ async function excluirTodosLembretes() {
           headers: headersAuth(),
         },
       );
-      const lembretes = await resposta.json();
+      const lembretes = await lerListaJson(resposta);
 
       await Promise.all(
         lembretes.map((lembrete) =>
@@ -6522,7 +7459,7 @@ async function carregarLembretes() {
         headers: headersAuth(),
       },
     );
-    let lembretes = await resposta.json();
+    let lembretes = await lerListaJson(resposta);
     lembretes = await apagarLembretesVencidos(lembretes);
 
     corpoTabelaLembretes.innerHTML = "";
@@ -6725,8 +7662,6 @@ async function salvarNovoLembrete() {
         method: lembreteEditandoId ? "PUT" : "POST",
         headers: headersAuth(),
         body: JSON.stringify({
-          id: Date.now(),
-          headers: headersAuth(),
           titulo,
           horario,
           dia_mes: diaMes,
@@ -6825,7 +7760,8 @@ btnConfiguracoes.addEventListener("click", () => {
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {
     localStorage.removeItem("usuarioLogado");
-    window.location.href = "login.html";
+    localStorage.removeItem("token");
+    window.location.href = LOGIN_PAGE;
   });
 }
 
@@ -6849,6 +7785,10 @@ salvarRotina.addEventListener("click", async () => {
 
   let camposSelecionados = normalizarCamposRotina(
     obterCamposTemplateRotinaAtual(),
+  );
+  camposSelecionados = ajustarCamposParaRotina(
+    camposSelecionados,
+    rotinaTemplateAtual === "alimentacao" ? "alimentacao" : "",
   );
   const emojiPersonalizado =
     rotinaTemplateAtual === "personalizada"
@@ -7050,7 +7990,6 @@ salvarComEnter(
 salvarComEnter([inputEditarCampo], salvarCampoEditado);
 
 fecharModalAviso.addEventListener("click", fecharModalAvisoFunc);
-okModalAviso.addEventListener("click", fecharModalAvisoFunc);
 
 modalAviso.addEventListener("click", (event) => {
   if (event.target === modalAviso) {
@@ -7239,7 +8178,7 @@ async function carregarEventosDasTarefas() {
         headers: headersAuth(),
       },
     );
-    const rotinas = await respostaRotinas.json();
+    const rotinas = await lerListaJson(respostaRotinas);
 
     for (const rotina of rotinas) {
       const respostaTarefas = await fetch(
@@ -7248,7 +8187,7 @@ async function carregarEventosDasTarefas() {
           headers: headersAuth(),
         },
       );
-      const tarefas = await respostaTarefas.json();
+      const tarefas = await lerListaJson(respostaTarefas);
 
       tarefas.forEach((tarefa) => {
         if (!tarefa.prazo) return;
@@ -7298,7 +8237,7 @@ async function carregarEventosDosLembretes() {
         headers: headersAuth(),
       },
     );
-    let lembretes = await resposta.json();
+    let lembretes = await lerListaJson(resposta);
 
     lembretes = await apagarLembretesVencidos(lembretes);
 
@@ -7500,13 +8439,16 @@ function mostrarEventosDoDia(dataISO) {
 
     item
       .querySelector(".btn-frequencia-evento-dia")
-      ?.addEventListener("click", () => {
+      ?.addEventListener("click", (event) => {
+        event.stopPropagation();
         abrirModalFrequenciaEvento(evento);
       });
 
     item
       .querySelector(".btn-editar-evento-dia")
-      ?.addEventListener("click", () => {
+      ?.addEventListener("click", (eventClick) => {
+        eventClick.stopPropagation();
+
         if (evento.tipo === "lembrete") {
           abrirModalEditarLembreteDoCalendario(evento);
         } else if (evento.tipo === "manual") {
@@ -7521,7 +8463,17 @@ function mostrarEventosDoDia(dataISO) {
 
     item
       .querySelector(".btn-excluir-evento-dia")
-      ?.addEventListener("click", async () => {
+      ?.addEventListener("click", async (eventClick) => {
+        eventClick.stopPropagation();
+
+        if (
+          evento.tipo === "manual" &&
+          (evento.tipoEvento === "permanente" || evento.frequencia?.repeticao)
+        ) {
+          mostrarConfirmacaoExclusaoEventoRelacionado(evento, dataISO);
+          return;
+        }
+
         mostrarConfirmacao(`Excluir "${evento.titulo}"?`, async () => {
           if (evento.tipo === "lembrete") {
             await fetch(
@@ -7533,7 +8485,7 @@ function mostrarEventosDoDia(dataISO) {
             );
           } else if (evento.tipo === "manual") {
             const eventos = carregarEventosManuais().filter(
-              (ev) => ev.id !== evento.id,
+              (ev) => String(ev.id) !== String(evento.id),
             );
             salvarEventosManuais(eventos);
           } else {
@@ -7581,9 +8533,14 @@ function fecharModalEventoCalendario() {
 }
 
 function mostrarCalendarioDashboard() {
+  const hoje = new Date();
+
   rotinaSelecionadaId = null;
   rotinaSelecionadaNome = "";
   rotinaAtual = null;
+  modoCalendario = "mes";
+  dataCalendarioAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  dataSelecionadaCalendario = null;
 
   mostrarSecaoRotinas();
   limparAtivosSidebar();
@@ -7594,13 +8551,20 @@ function mostrarCalendarioDashboard() {
   tabelaCard?.classList.add("hidden");
   areaTreino?.classList.add("hidden");
   areaTreino.innerHTML = "";
+  visaoAnualCalendario?.classList.add("hidden");
+  document.querySelector(".calendario-semana")?.classList.remove("hidden");
+  diasCalendario?.classList.remove("hidden");
+  painelEventosDia?.classList.add("hidden");
 
   btnNovaTarefa?.classList.add("hidden");
   btnMenuRotina?.classList.add("hidden");
   btnFrequenciaRotina?.classList.add("hidden");
 
+  fixarAcoesDoCalendarioNaTela();
   btnHojeCalendario?.classList.remove("hidden");
   btnAdicionarEventoCalendario?.classList.remove("hidden");
+  mesAnterior?.classList.remove("hidden");
+  proximoMes?.classList.remove("hidden");
 
   renderizarCalendario();
 }
@@ -7715,6 +8679,7 @@ async function inicializarDashboard() {
   mostrarCalendarioDashboard();
 
   mostrarResumoDiario();
+  iniciarOnboardingPrimeiroAcesso();
 
   verificarLembretesComAntecedencia();
   verificarTarefasComAntecedencia();

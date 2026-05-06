@@ -52,6 +52,8 @@ formCadastro.addEventListener("submit", async (event) => {
 
     localStorage.setItem("usuarioLogado", JSON.stringify(dados.user));
     localStorage.setItem("token", dados.token);
+    localStorage.setItem(`mynote_onboarding_pendente_${dados.user.id}`, "true");
+    localStorage.removeItem(`mynote_onboarding_concluido_${dados.user.id}`);
 
     window.location.href = "dashboard.html";
   } catch (erro) {

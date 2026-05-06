@@ -1,10 +1,11 @@
 // Usuário autenticado
+const LOGIN_PAGE = "index.html";
 const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 const token = localStorage.getItem("token");
 
 if (!usuario || !token) {
   alert(MyNotePrefs.t("Você precisa fazer login primeiro."));
-  window.location.href = "login.html";
+  window.location.href = LOGIN_PAGE;
   throw new Error("Usuário não autenticado.");
 }
 
@@ -13,6 +14,22 @@ function headersAuth() {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   };
+}
+
+async function lerRespostaJsonSegura(resposta) {
+  try {
+    return await resposta.json();
+  } catch {
+    return {};
+  }
+}
+
+function mensagemErroConfiguracoes(erro) {
+  if (erro instanceof TypeError) {
+    return "Nao foi possivel conectar ao backend em http://localhost:3000. Verifique se o servidor esta rodando.";
+  }
+
+  return "Erro ao salvar configuracoes.";
 }
 
 // Elementos da tela
@@ -44,6 +61,22 @@ const limparSomNotificacao = document.getElementById("limparSomNotificacao");
 const btnLogoutConta = document.getElementById("btnLogoutConta");
 const btnAlterarSenha = document.getElementById("btnAlterarSenha");
 const btnExcluirConta = document.getElementById("btnExcluirConta");
+const modalAlterarSenha = document.getElementById("modalAlterarSenha");
+const modalExcluirConta = document.getElementById("modalExcluirConta");
+const btnFecharModalExcluirConta = document.getElementById("btnFecharModalExcluirConta");
+const btnCancelarExcluirConta = document.getElementById("btnCancelarExcluirConta");
+const btnConfirmarExcluirConta = document.getElementById("btnConfirmarExcluirConta");
+const mensagemExcluirConta = document.getElementById("mensagemExcluirConta");
+const formAlterarSenha = document.getElementById("formAlterarSenha");
+const btnFecharModalSenha = document.getElementById("btnFecharModalSenha");
+const btnCancelarSenha = document.getElementById("btnCancelarSenha");
+const btnSalvarSenha = document.getElementById("btnSalvarSenha");
+const senhaAtualConta = document.getElementById("senhaAtualConta");
+const novaSenhaConta = document.getElementById("novaSenhaConta");
+const confirmarNovaSenhaConta = document.getElementById(
+  "confirmarNovaSenhaConta",
+);
+const mensagemSenhaConta = document.getElementById("mensagemSenhaConta");
 const btnExportarPDF = document.getElementById("btnExportarPDF");
 const btnExportarExcel = document.getElementById("btnExportarExcel");
 const btnSincronizarBackup = document.getElementById("btnSincronizarBackup");
@@ -68,6 +101,10 @@ function chavePadroesNotificacaoUsuario() {
   return `padroesNotificacaoHora24Aplicados_${usuario.id}`;
 }
 
+function chavePadraoBackupUsuario() {
+  return `padraoBackupAutomaticoAplicado_${usuario.id}`;
+}
+
 function aplicarPadroesIniciais(config = {}) {
   if (localStorage.getItem(chavePadroesNotificacaoUsuario()) === "true") {
     return { config, alterado: false };
@@ -85,6 +122,26 @@ function aplicarPadroesIniciais(config = {}) {
 
   localStorage.setItem(chavePadroesNotificacaoUsuario(), "true");
   return { config: configComPadroes, alterado: true };
+}
+
+function aplicarPadraoBackupAutomatico(config = {}) {
+  if (localStorage.getItem(chavePadraoBackupUsuario()) === "true") {
+    return { config, alterado: false };
+  }
+
+  localStorage.setItem(chavePadraoBackupUsuario(), "true");
+
+  if (valorConfigAtivo(config.backup_automatico, true)) {
+    return { config, alterado: false };
+  }
+
+  return {
+    config: {
+      ...config,
+      backup_automatico: true,
+    },
+    alterado: true,
+  };
 }
 
 function obterSomNotificacaoConfigurado() {
@@ -223,7 +280,10 @@ async function carregarConfiguracoes() {
 });
     const respostaConfig = await res.json();
     const migracaoPadroes = aplicarPadroesIniciais(respostaConfig);
-    const config = MyNotePrefs.normalize(migracaoPadroes.config);
+    const migracaoBackup = aplicarPadraoBackupAutomatico(
+      migracaoPadroes.config,
+    );
+    const config = MyNotePrefs.normalize(migracaoBackup.config);
 
     aplicarCamposGerais(config);
 
@@ -249,7 +309,7 @@ async function carregarConfiguracoes() {
     tamanhoFonte.value = config.tamanho_fonte || "Médio";
     ordenacaoTarefas.value = config.ordenacao_tarefas || "Por horário";
     mostrarColunas.checked = config.mostrar_colunas !== false;
-    backupAutomatico.checked = !!config.backup_automatico;
+    backupAutomatico.checked = valorConfigAtivo(config.backup_automatico, true);
     modoFoco.checked = !!config.modo_foco;
     atualizarNomeSomNotificacao();
 
@@ -257,7 +317,7 @@ async function carregarConfiguracoes() {
       btn.classList.toggle("ativa", btn.dataset.fundo === temaFundoSelecionado);
     });
 
-    if (migracaoPadroes.alterado) {
+    if (migracaoPadroes.alterado || migracaoBackup.alterado) {
       await fetch("http://localhost:3000/configuracoes", {
         method: "PUT",
         headers: headersAuth(),
@@ -272,7 +332,11 @@ async function carregarConfiguracoes() {
 
 async function salvarConfiguracoes() {
   try {
-    const payload = montarPayloadConfiguracoes();
+    const payload = {
+      ...montarPayloadConfiguracoes(),
+      preferencias_salvas_em: Date.now(),
+    };
+    preferenciasGerais = MyNotePrefs.saveLocal(payload);
     MyNotePrefs.translateDOM(document);
 
     const resposta = await fetch("http://localhost:3000/configuracoes", {
@@ -281,17 +345,18 @@ async function salvarConfiguracoes() {
       body: JSON.stringify(payload),
     });
 
-    const dados = await resposta.json();
+    const dados = await lerRespostaJsonSegura(resposta);
 
     if (!resposta.ok) {
-      alert(dados.msg || MyNotePrefs.t("Erro ao salvar configurações."));
+      console.error("Erro ao salvar configuracoes:", dados);
+      alert(dados.msg || MyNotePrefs.t("Erro ao salvar configuracoes."));
       return;
     }
 
     alert(MyNotePrefs.t("Configurações salvas com sucesso!"));
   } catch (erro) {
     console.error("Erro ao salvar configurações:", erro);
-    alert(MyNotePrefs.t("Erro ao salvar configurações."));
+    alert(MyNotePrefs.t(mensagemErroConfiguracoes(erro)));
   }
 }
 
@@ -345,77 +410,165 @@ btnVoltarDashboard.addEventListener("click", () => {
 
 btnLogoutConta?.addEventListener("click", () => {
   localStorage.clear();
-window.location.href = "login.html";
+  window.location.href = LOGIN_PAGE;
 });
 
-btnAlterarSenha?.addEventListener("click", async () => {
-  const senhaAtual = prompt("Digite sua senha atual:");
-  if (!senhaAtual) return;
+function mostrarMensagemSenha(mensagem, tipo = "erro") {
+  if (!mensagemSenhaConta) return;
+  mensagemSenhaConta.textContent = mensagem;
+  mensagemSenhaConta.classList.toggle("sucesso", tipo === "sucesso");
+}
 
-  const novaSenha = prompt("Digite a nova senha:");
-  if (!novaSenha) return;
+function limparFormularioSenha() {
+  formAlterarSenha?.reset();
+  mostrarMensagemSenha("");
+}
 
-  if (novaSenha.length < 6) {
-    alert("A nova senha precisa ter pelo menos 6 caracteres.");
+function abrirModalSenha() {
+  if (!modalAlterarSenha) return;
+  limparFormularioSenha();
+  modalAlterarSenha.classList.remove("hidden");
+  modalAlterarSenha.setAttribute("aria-hidden", "false");
+  setTimeout(() => senhaAtualConta?.focus(), 0);
+}
+
+function fecharModalSenha() {
+  if (!modalAlterarSenha) return;
+  modalAlterarSenha.classList.add("hidden");
+  modalAlterarSenha.setAttribute("aria-hidden", "true");
+  limparFormularioSenha();
+}
+
+btnAlterarSenha?.addEventListener("click", abrirModalSenha);
+btnFecharModalSenha?.addEventListener("click", fecharModalSenha);
+btnCancelarSenha?.addEventListener("click", fecharModalSenha);
+
+modalAlterarSenha
+  ?.querySelector("[data-fechar-modal-senha]")
+  ?.addEventListener("click", fecharModalSenha);
+
+document.addEventListener("keydown", (evento) => {
+  if (evento.key !== "Escape") return;
+
+  if (
+    modalAlterarSenha &&
+    !modalAlterarSenha.classList.contains("hidden")
+  ) {
+    fecharModalSenha();
+  }
+
+  if (
+    modalExcluirConta &&
+    !modalExcluirConta.classList.contains("hidden")
+  ) {
+    fecharModalExcluirConta();
+  }
+});
+
+formAlterarSenha?.addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+
+  const senhaAtual = senhaAtualConta?.value.trim();
+  const novaSenha = novaSenhaConta?.value.trim();
+  const confirmarNovaSenha = confirmarNovaSenhaConta?.value.trim();
+
+  if (!senhaAtual || !novaSenha || !confirmarNovaSenha) {
+    mostrarMensagemSenha("Preencha todos os campos.");
     return;
   }
 
+  if (novaSenha.length < 6) {
+    mostrarMensagemSenha("A nova senha precisa ter pelo menos 6 caracteres.");
+    return;
+  }
+
+  if (novaSenha !== confirmarNovaSenha) {
+    mostrarMensagemSenha("A confirmacao precisa ser igual a nova senha.");
+    return;
+  }
+
+  btnSalvarSenha.disabled = true;
+  btnSalvarSenha.textContent = "Salvando...";
+  mostrarMensagemSenha("");
+
   try {
     const resposta = await fetch("http://localhost:3000/auth/alterar-senha", {
-  method: "PUT",
-  headers: headersAuth(),
-  body: JSON.stringify({
-    senhaAtual,
-    novaSenha,
-  }),
-});
+      method: "PUT",
+      headers: headersAuth(),
+      body: JSON.stringify({
+        senhaAtual,
+        novaSenha,
+      }),
+    });
 
-    const dados = await resposta.json();
+    const dados = await lerRespostaJsonSegura(resposta);
 
     if (!resposta.ok) {
-      alert(dados.msg || "Erro ao alterar senha.");
+      mostrarMensagemSenha(dados.msg || "Erro ao alterar senha.");
       return;
     }
 
-    alert("Senha alterada com sucesso!");
+    mostrarMensagemSenha("Senha alterada com sucesso!", "sucesso");
+    setTimeout(fecharModalSenha, 900);
   } catch (erro) {
     console.error("Erro ao alterar senha:", erro);
-    alert("Não foi possível alterar a senha.");
+    mostrarMensagemSenha("Nao foi possivel alterar a senha.");
+  } finally {
+    btnSalvarSenha.disabled = false;
+    btnSalvarSenha.textContent = "Salvar senha";
   }
 });
 
-btnExcluirConta?.addEventListener("click", async () => {
-  const confirmar = confirm(
-    "Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.",
-  );
+function abrirModalExcluirConta() {
+  if (!modalExcluirConta) return;
+  mensagemExcluirConta.textContent = "";
+  modalExcluirConta.classList.remove("hidden");
+  modalExcluirConta.setAttribute("aria-hidden", "false");
+  setTimeout(() => btnCancelarExcluirConta?.focus(), 0);
+}
 
-  if (!confirmar) return;
+function fecharModalExcluirConta() {
+  if (!modalExcluirConta) return;
+  modalExcluirConta.classList.add("hidden");
+  modalExcluirConta.setAttribute("aria-hidden", "true");
+}
+
+btnExcluirConta?.addEventListener("click", abrirModalExcluirConta);
+btnFecharModalExcluirConta?.addEventListener("click", fecharModalExcluirConta);
+btnCancelarExcluirConta?.addEventListener("click", fecharModalExcluirConta);
+modalExcluirConta
+  ?.querySelector("[data-fechar-modal-excluir-conta]")
+  ?.addEventListener("click", fecharModalExcluirConta);
+
+btnConfirmarExcluirConta?.addEventListener("click", async () => {
+  mensagemExcluirConta.textContent = "";
+  btnConfirmarExcluirConta.disabled = true;
+  btnConfirmarExcluirConta.textContent = "Excluindo...";
 
   try {
     const resposta = await fetch("http://localhost:3000/auth/excluir-conta", {
       method: "DELETE",
       headers: headersAuth(),
+      body: JSON.stringify({ usuario_id: usuario.id }),
     });
 
-    const dados = await resposta.json();
+    const dados = await lerRespostaJsonSegura(resposta);
 
     if (!resposta.ok) {
-      alert(dados.msg || "Erro ao excluir conta.");
+      mensagemExcluirConta.textContent = dados.msg || "Erro ao excluir conta.";
       return;
     }
 
-    // Limpar tudo do usuário
     localStorage.clear();
-
-    alert("Conta excluída com sucesso!");
-
-    window.location.href = "login.html";
+    window.location.href = LOGIN_PAGE;
   } catch (erro) {
     console.error("Erro ao excluir conta:", erro);
-    alert("Não foi possível excluir a conta.");
+    mensagemExcluirConta.textContent = "Nao foi possivel excluir a conta.";
+  } finally {
+    btnConfirmarExcluirConta.disabled = false;
+    btnConfirmarExcluirConta.textContent = "Excluir conta";
   }
 });
-
 btnExportarPDF?.addEventListener("click", async () => {
   try {
     const respostaRotinas = await fetch(
@@ -643,7 +796,7 @@ btnSincronizarBackup?.addEventListener("click", async () => {
 
     const backup = {
       app: "MyNote",
-      versao: "2.5.1",
+      versao: "2.6.0",
       exportado_em: new Date().toISOString(),
       usuario: {
         id: usuario.id,
@@ -711,7 +864,7 @@ body: JSON.stringify({
         },
       );
 
-      const dados = await resposta.json();
+      const dados = await lerRespostaJsonSegura(resposta);
 
       if (!resposta.ok) {
         alert(dados.msg || "Erro ao restaurar backup.");
@@ -732,3 +885,4 @@ body: JSON.stringify({
 });
 
 carregarConfiguracoes();
+

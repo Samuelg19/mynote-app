@@ -11,6 +11,23 @@ if (emailSalvo) {
   lembrarUsuario.checked = true;
 }
 
+async function sincronizarPreferenciasDaConta(token) {
+  try {
+    const resposta = await fetch("http://localhost:3000/configuracoes", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!resposta.ok) return;
+
+    const configuracoes = await resposta.json();
+    MyNotePrefs.saveLocal(configuracoes);
+  } catch (erro) {
+    console.warn("Nao foi possivel sincronizar preferencias no login:", erro);
+  }
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -35,6 +52,7 @@ form.addEventListener("submit", async (event) => {
 
     localStorage.setItem("usuarioLogado", JSON.stringify(dados.user));
     localStorage.setItem("token", dados.token);
+    await sincronizarPreferenciasDaConta(dados.token);
 
     if (lembrarUsuario.checked) {
       localStorage.setItem("emailLembrado", email);
@@ -64,7 +82,7 @@ function loginComGoogle(response) {
       const dados = await res.json();
       return { ok: res.ok, dados };
     })
-    .then(({ ok, dados }) => {
+    .then(async ({ ok, dados }) => {
       if (!ok) {
         alert(dados.msg || "Erro ao fazer login com Google.");
         return;
@@ -73,6 +91,18 @@ function loginComGoogle(response) {
       // 👉 SALVA USUÁRIO
       localStorage.setItem("usuarioLogado", JSON.stringify(dados.user));
       localStorage.setItem("token", dados.token);
+
+      if (String(dados.msg || "").toLowerCase().includes("criado")) {
+        localStorage.setItem(
+          `mynote_onboarding_pendente_${dados.user.id}`,
+          "true",
+        );
+        localStorage.removeItem(
+          `mynote_onboarding_concluido_${dados.user.id}`,
+        );
+      }
+
+      await sincronizarPreferenciasDaConta(dados.token);
 
       // 👉 REDIRECIONA
       window.location.href = "dashboard.html";
