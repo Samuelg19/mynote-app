@@ -429,41 +429,57 @@ exports.redefinirSenha = (req, res) => {
 };
 
 exports.googleLogin = async (req, res) => {
-  const { credential } = req.body;
-
-  if (!credential) {
-    return res.status(400).json({ msg: "Token do Google n√£o enviado." });
-  }
-
   try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ msg: "Credential do Google n„o recebida." });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ msg: "GOOGLE_CLIENT_ID n„o configurado no backend." });
+    }
+
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-
     const nome = payload.name;
     const email = payload.email;
+    const foto = payload.picture;
+
+    if (!email) {
+      return res.status(400).json({ msg: "Email do Google n„o recebido." });
+    }
 
     db.query(
       "SELECT * FROM usuarios WHERE email = ?",
       [email],
       (err, results) => {
-        if (err) return res.status(500).json(err);
+        if (err) {
+          console.error("Erro ao buscar usu·rio Google:", err);
+          return res.status(500).json({
+            msg: "Erro ao buscar usu·rio Google.",
+            erro: err.message || err,
+          });
+        }
 
         if (results.length > 0) {
           const user = results[0];
-          const usuarioLogado = {
+          const usuario = {
             id: user.id,
             nome: user.nome,
             email: user.email,
+            foto: user.foto || foto,
           };
 
           return res.json({
             msg: "Login Google ok",
-            token: gerarTokenUsuario(usuarioLogado),
-            user: usuarioLogado,
+            token: gerarTokenUsuario(usuario),
+            usuario,
+            user: usuario,
           });
         }
 
@@ -471,27 +487,36 @@ exports.googleLogin = async (req, res) => {
           "INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)",
           [nome, email, "GOOGLE_LOGIN"],
           (err, result) => {
-            if (err) return res.status(500).json(err);
+            if (err) {
+              console.error("Erro ao criar usu·rio Google:", err);
+              return res.status(500).json({
+                msg: "Erro ao criar usu·rio Google.",
+                erro: err.message || err,
+              });
+            }
 
-            const novoUsuario = {
+            const usuario = {
               id: result.insertId,
               nome,
               email,
+              foto,
             };
 
             res.json({
-              msg: "Usu√°rio Google criado",
-              token: gerarTokenUsuario(novoUsuario),
-              user: novoUsuario,
+              msg: "Usu·rio Google criado",
+              token: gerarTokenUsuario(usuario),
+              usuario,
+              user: usuario,
             });
           },
         );
       },
     );
-  } catch (erro) {
-    console.error("Erro no login Google:", erro);
-    res.status(401).json({ msg: "Login com Google inv√°lido." });
+  } catch (err) {
+    console.error("Erro geral no login Google:", err);
+    res.status(500).json({
+      msg: "Erro ao fazer login com Google.",
+      erro: err.message,
+    });
   }
 };
-
-

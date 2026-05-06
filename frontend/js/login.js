@@ -112,47 +112,44 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-function loginComGoogle(response) {
-  fetch("https://mynote-app-production.up.railway.app/auth/google", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      credential: response.credential,
-    }),
-  })
-    .then(async (res) => {
-      const dados = await res.json();
-      return { ok: res.ok, dados };
-    })
-    .then(async ({ ok, dados }) => {
-      if (!ok) {
-        mostrarModalLoginErro(dados.msg || "Erro ao fazer login com Google.");
-        return;
-      }
+async function loginComGoogle(response) {
+  try {
+    if (!response?.credential) {
+      mostrarModalLoginErro("Erro ao fazer login com Google.");
+      return;
+    }
 
-      // 👉 SALVA USUÁRIO
-      localStorage.setItem("usuarioLogado", JSON.stringify(dados.user));
-      localStorage.setItem("token", dados.token);
-
-      if (String(dados.msg || "").toLowerCase().includes("criado")) {
-        localStorage.setItem(
-          `mynote_onboarding_pendente_${dados.user.id}`,
-          "true",
-        );
-        localStorage.removeItem(
-          `mynote_onboarding_concluido_${dados.user.id}`,
-        );
-      }
-
-      await sincronizarPreferenciasDaConta(dados.token);
-
-      // 👉 REDIRECIONA
-      window.location.href = "dashboard.html";
-    })
-    .catch((erro) => {
-      console.error("Erro no login com Google:", erro);
-      mostrarModalLoginErro("Não foi possível fazer login com Google.");
+    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/google", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        credential: response.credential,
+      }),
     });
+
+    const dados = await resposta.json();
+    const usuario = dados.user || dados.usuario;
+
+    if (!resposta.ok || !usuario || !dados.token) {
+      mostrarModalLoginErro(dados.msg || "Erro ao fazer login com Google.");
+      return;
+    }
+
+    localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+    localStorage.setItem("token", dados.token);
+
+    if (String(dados.msg || "").toLowerCase().includes("criado")) {
+      localStorage.setItem(`mynote_onboarding_pendente_${usuario.id}`, "true");
+      localStorage.removeItem(`mynote_onboarding_concluido_${usuario.id}`);
+    }
+
+    await sincronizarPreferenciasDaConta(dados.token);
+
+    window.location.href = "dashboard.html";
+  } catch (erro) {
+    console.error("Erro no login com Google:", erro);
+    mostrarModalLoginErro("N�o foi poss�vel fazer login com Google.");
+  }
 }

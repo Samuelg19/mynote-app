@@ -93,6 +93,16 @@ body {
   gap: 14px;
 }
 
+.g_id_signin {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+iframe {
+  border: none !important;
+}
 .login-card label {
   font-weight: bold;
   font-size: 0.95rem;
@@ -6963,7 +6973,10 @@ body.tema-escuro .modal .btn-secundario {
 
 /* ================= BOTÕES PROFISSIONAIS ================= */
 
-button {
+.login-body button,
+.dashboard-body button,
+.cadastro-body button,
+.configuracoes-body button {
   transition: all 0.2s ease;
 }
 
@@ -7113,11 +7126,17 @@ textarea:focus {
 }
 
 /* botões */
-button {
+.login-body button,
+.dashboard-body button,
+.cadastro-body button,
+.configuracoes-body button {
   user-select: none;
 }
 
-button:active {
+.login-body button:active,
+.dashboard-body button:active,
+.cadastro-body button:active,
+.configuracoes-body button:active {
   transform: scale(0.98);
 }
 
