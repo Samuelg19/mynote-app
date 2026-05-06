@@ -119,15 +119,13 @@ async function loginComGoogle(response) {
       return;
     }
 
-    const resposta = await fetch("https://https://mynote-app-production-cb61.up.railway.app/auth/google", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        credential: response.credential,
-      }),
-    });
+    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/google", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ credential: response.credential })
+});
 
     const dados = await resposta.json();
     const usuario = dados.user || dados.usuario;
