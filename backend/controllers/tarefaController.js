@@ -1,8 +1,40 @@
 const db = require("../config/db");
 
+const CALORIAS_MAXIMAS = 5000;
+
+function normalizarCalorias(valor) {
+  if (valor === undefined || valor === null || valor === "") return valor;
+
+  const calorias = Number(valor);
+
+  if (!Number.isFinite(calorias) || calorias < 0 || calorias > CALORIAS_MAXIMAS) {
+    return null;
+  }
+
+  return Math.round(calorias);
+}
+
+function validarCalorias(dados, res) {
+  if (!Object.prototype.hasOwnProperty.call(dados, "calorias")) return true;
+
+  const calorias = normalizarCalorias(dados.calorias);
+
+  if (calorias === null) {
+    res.status(400).json({
+      msg: `Calorias devem ficar entre 0 e ${CALORIAS_MAXIMAS}.`,
+    });
+    return false;
+  }
+
+  dados.calorias = calorias;
+  return true;
+}
+
 exports.criar = (req, res) => {
   const tarefa = req.body;
   const usuario_id = req.usuario.id;
+
+  if (!validarCalorias(tarefa, res)) return;
 
   // 🔐 Verifica se a rotina pertence ao usuário
   db.query(
@@ -148,6 +180,8 @@ exports.atualizarStatus = (req, res) => {
       camposPermitidos.includes(campo),
     ),
   );
+
+  if (!validarCalorias(dados, res)) return;
 
   if (!Object.keys(dados).length) {
     return res.status(400).json({ msg: "Nenhum campo valido para atualizar." });

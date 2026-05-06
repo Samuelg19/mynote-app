@@ -54,7 +54,7 @@ exports.buscar = (req, res) => {
           "Médio",
           "Por horário",
           true,
-          false,
+          true,
           false,
           "15 minutos"
         ],
@@ -95,7 +95,7 @@ exports.salvar = (req, res) => {
     tamanho_fonte = "Médio",
     ordenacao_tarefas = "Por horário",
     mostrar_colunas = true,
-    backup_automatico = false,
+    backup_automatico = true,
     modo_foco = false,
     tempo_padrao_tarefas = "15 minutos"
   } = req.body;

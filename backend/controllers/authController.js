@@ -96,7 +96,8 @@ exports.login = (req, res) => {
 };
 
 exports.alterarSenha = (req, res) => {
-  const { usuario_id, senhaAtual, novaSenha } = req.body;
+  const { senhaAtual, novaSenha } = req.body;
+  const usuario_id = req.usuario?.id || req.body.usuario_id;
 
   if (!usuario_id || !senhaAtual || !novaSenha) {
     return res.status(400).json({ msg: "Preencha todos os campos." });
@@ -135,7 +136,7 @@ exports.alterarSenha = (req, res) => {
 };
 
 exports.excluirConta = (req, res) => {
-  const { usuario_id } = req.body;
+  const usuario_id = req.usuario?.id || req.body.usuario_id;
 
   if (!usuario_id) {
     return res.status(400).json({ msg: "Usuário inválido." });
@@ -492,3 +493,5 @@ exports.googleLogin = async (req, res) => {
     res.status(401).json({ msg: "Login com Google inválido." });
   }
 };
+
+

@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../controllers/authController");
+const autenticarToken = require("../middlewares/authMiddleware");
 
 router.post("/cadastro", auth.cadastro);
 router.post("/login", auth.login);
-router.put("/alterar-senha", auth.alterarSenha);
-router.delete("/excluir-conta", auth.excluirConta);
+router.put("/alterar-senha", autenticarToken, auth.alterarSenha);
+router.delete("/excluir-conta", autenticarToken, auth.excluirConta);
 router.post("/restaurar-backup", auth.restaurarBackup);
 router.post("/esqueci-senha", auth.esqueciSenha);
 router.post("/redefinir-senha", auth.redefinirSenha);
