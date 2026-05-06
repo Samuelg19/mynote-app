@@ -192,6 +192,112 @@ body {
   transform: translateY(-1px);
 }
 
+
+.login-error-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(23, 50, 92, 0.36);
+  backdrop-filter: blur(6px);
+}
+
+.login-error-card {
+  position: relative;
+  width: min(100%, 380px);
+  border: 1px solid rgba(235, 215, 199, 0.95);
+  border-radius: 18px;
+  background: #fffaf4;
+  padding: 28px;
+  color: #17325c;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(23, 50, 92, 0.2);
+  animation: login-error-enter 0.18s ease-out;
+}
+
+.login-error-card::before {
+  content: "!";
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #ffe4d2;
+  color: #f97316;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.login-error-card h2 {
+  margin-bottom: 8px;
+  font-size: 1.3rem;
+  color: #17325c;
+}
+
+.login-error-card p {
+  margin-bottom: 22px;
+  color: #4f6688;
+  line-height: 1.45;
+}
+
+.login-error-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #4f6688;
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.login-error-close:hover {
+  background: #f4efe4;
+  color: #17325c;
+}
+
+.login-error-ok {
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  color: #17325c;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.22);
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.login-error-ok:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.login-error-close:focus-visible,
+.login-error-ok:focus-visible {
+  outline: 3px solid rgba(249, 115, 22, 0.32);
+  outline-offset: 3px;
+}
+
+@keyframes login-error-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
 .btn-reset,
 .btn-esqueci {
   width: 100%;

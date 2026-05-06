@@ -65,6 +65,28 @@
       </p>
     </main>
 
+    <div
+      id="modalLoginErro"
+      class="login-error-modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalLoginErroTitulo"
+      aria-describedby="modalLoginErroMensagem"
+    >
+      <div class="login-error-card">
+        <button
+          id="fecharModalLoginErro"
+          class="login-error-close"
+          type="button"
+          aria-label="Fechar aviso"
+        >
+          &times;
+        </button>
+        <h2 id="modalLoginErroTitulo">Erro ao fazer login</h2>
+        <p id="modalLoginErroMensagem">Verifique seus dados e tente novamente.</p>
+        <button id="okModalLoginErro" class="login-error-ok" type="button">OK</button>
+      </div>
+    </div>
     <script src="js/app-preferences.js"></script>
     <script src="js/login.js"></script>
   </body>

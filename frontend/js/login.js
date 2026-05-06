@@ -3,6 +3,50 @@ const form = document.getElementById("loginForm");
 const lembrarUsuario = document.getElementById("lembrarUsuario");
 const emailInput = document.getElementById("email");
 const senhaInput = document.getElementById("senha");
+const modalLoginErro = document.getElementById("modalLoginErro");
+const modalLoginErroMensagem = document.getElementById("modalLoginErroMensagem");
+const fecharModalLoginErro = document.getElementById("fecharModalLoginErro");
+const okModalLoginErro = document.getElementById("okModalLoginErro");
+let focoAntesDoModalLoginErro = null;
+
+function esconderModalLoginErro() {
+  if (!modalLoginErro) return;
+
+  modalLoginErro.classList.add("hidden");
+
+  if (focoAntesDoModalLoginErro) {
+    focoAntesDoModalLoginErro.focus();
+    focoAntesDoModalLoginErro = null;
+  }
+}
+
+function mostrarModalLoginErro(mensagem) {
+  if (!modalLoginErro || !modalLoginErroMensagem) {
+    alert(mensagem);
+    return;
+  }
+
+  focoAntesDoModalLoginErro = document.activeElement;
+  modalLoginErroMensagem.textContent =
+    mensagem || MyNotePrefs.t("Erro ao fazer login");
+  modalLoginErro.classList.remove("hidden");
+  okModalLoginErro?.focus();
+}
+
+fecharModalLoginErro?.addEventListener("click", esconderModalLoginErro);
+okModalLoginErro?.addEventListener("click", esconderModalLoginErro);
+
+modalLoginErro?.addEventListener("click", (event) => {
+  if (event.target === modalLoginErro) {
+    esconderModalLoginErro();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !modalLoginErro?.classList.contains("hidden")) {
+    esconderModalLoginErro();
+  }
+});
 
 const emailSalvo = localStorage.getItem("emailLembrado");
 
@@ -46,7 +90,7 @@ form.addEventListener("submit", async (event) => {
     const dados = await resposta.json();
 
     if (!resposta.ok) {
-      alert(dados.msg || MyNotePrefs.t("Erro ao fazer login"));
+      mostrarModalLoginErro(dados.msg || MyNotePrefs.t("Erro ao fazer login"));
       return;
     }
 
@@ -64,7 +108,7 @@ form.addEventListener("submit", async (event) => {
     window.location.href = "dashboard.html";
   } catch (erro) {
     console.error("Erro no login:", erro);
-    alert(MyNotePrefs.t("Não foi possível conectar ao servidor."));
+    mostrarModalLoginErro(MyNotePrefs.t("Não foi possível conectar ao servidor."));
   }
 });
 
@@ -84,7 +128,7 @@ function loginComGoogle(response) {
     })
     .then(async ({ ok, dados }) => {
       if (!ok) {
-        alert(dados.msg || "Erro ao fazer login com Google.");
+        mostrarModalLoginErro(dados.msg || "Erro ao fazer login com Google.");
         return;
       }
 
@@ -109,6 +153,6 @@ function loginComGoogle(response) {
     })
     .catch((erro) => {
       console.error("Erro no login com Google:", erro);
-      alert("Não foi possível fazer login com Google.");
+      mostrarModalLoginErro("Não foi possível fazer login com Google.");
     });
 }
