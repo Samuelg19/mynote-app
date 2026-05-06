@@ -238,7 +238,7 @@ async function lerListaJson(resposta) {
 }
 
 async function atualizarTarefa(id, dados) {
-  return fetch(`http://localhost:3000/tarefas/${id}`, {
+  return fetch(`https://mynote-app-production.up.railway.app/tarefas/${id}`, {
     method: "PUT",
     headers: headersAuth(),
     body: JSON.stringify(dados),
@@ -389,7 +389,7 @@ async function verificarResetTarefas() {
 
   try {
     const respostaRotinas = await fetch(
-      `http://localhost:3000/rotinas`,
+      `https://mynote-app-production.up.railway.app/rotinas`,
       {
         headers: headersAuth(),
       },
@@ -398,7 +398,7 @@ async function verificarResetTarefas() {
 
     for (const rotina of rotinas) {
       const respostaTarefas = await fetch(
-        `http://localhost:3000/tarefas?rotina_id=${rotina.id}`,
+        `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotina.id}`,
         {
           headers: headersAuth(),
         },
@@ -685,7 +685,7 @@ function renderizarSemanal(tarefas) {
 
       btnCheck?.addEventListener("click", async () => {
         if (tarefa.repeticao === "Único") {
-          await fetch(`http://localhost:3000/tarefas/${tarefa.id}`, {
+          await fetch(`https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`, {
             method: "DELETE",
             headers: headersAuth(),
           });
@@ -720,7 +720,7 @@ function renderizarSemanal(tarefas) {
         mostrarConfirmacao(
           `Deseja excluir a tarefa "${tarefa.titulo}"?`,
           async () => {
-            await fetch(`http://localhost:3000/tarefas/${tarefa.id}`, {
+            await fetch(`https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`, {
               method: "DELETE",
               headers: headersAuth(),
             });
@@ -979,7 +979,7 @@ function renderizarTreino(tarefas) {
           `Deseja excluir o exercício "${ex.titulo}"?`,
           async () => {
             const resposta = await fetch(
-              `http://localhost:3000/tarefas/${ex.id}`,
+              `https://mynote-app-production.up.railway.app/tarefas/${ex.id}`,
               {
                 method: "DELETE",
                 headers: headersAuth(),
@@ -1106,7 +1106,7 @@ async function salvarEdicaoAlimentacao() {
 
   try {
     const resposta = await fetch(
-      `http://localhost:3000/tarefas/${alimentacaoEmEdicao.id}`,
+      `https://mynote-app-production.up.railway.app/tarefas/${alimentacaoEmEdicao.id}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -1299,7 +1299,7 @@ async function salvarEdicaoTreino() {
 
   try {
     const res = await fetch(
-      `http://localhost:3000/tarefas/${treinoEmEdicao.id}`,
+      `https://mynote-app-production.up.railway.app/tarefas/${treinoEmEdicao.id}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -1375,7 +1375,7 @@ async function alternarSilencioRotina() {
 
   try {
     const resposta = await fetch(
-      `http://localhost:3000/tarefas?rotina_id=${rotinaSelecionadaId}`,
+      `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotinaSelecionadaId}`,
       {
         headers: headersAuth(),
       },
@@ -1395,7 +1395,7 @@ async function alternarSilencioRotina() {
 
       await Promise.all(
         tarefas.map((tarefa) =>
-          fetch(`http://localhost:3000/tarefas/${tarefa.id}`, {
+          fetch(`https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`, {
             method: "PUT",
             headers: headersAuth(),
             body: JSON.stringify({
@@ -1415,7 +1415,7 @@ async function alternarSilencioRotina() {
 
       await Promise.all(
         backup.map((item) =>
-          fetch(`http://localhost:3000/tarefas/${item.id}`, {
+          fetch(`https://mynote-app-production.up.railway.app/tarefas/${item.id}`, {
             method: "PUT",
             headers: headersAuth(),
             body: JSON.stringify({
@@ -1536,7 +1536,7 @@ async function apagarLembretesVencidos(lembretes) {
 
   await Promise.all(
     vencidos.map((lembrete) =>
-      fetch(`http://localhost:3000/lembretes/${lembrete.id}`, {
+      fetch(`https://mynote-app-production.up.railway.app/lembretes/${lembrete.id}`, {
         method: "DELETE",
         headers: headersAuth(),
       }),
@@ -2140,7 +2140,7 @@ async function salvarCustomizacaoOnboarding() {
   aplicarEstadoOnboardingNoDashboard();
 
   try {
-    const resposta = await fetch("http://localhost:3000/configuracoes", {
+    const resposta = await fetch("https://mynote-app-production.up.railway.app/configuracoes", {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify(payload),
@@ -2322,7 +2322,7 @@ async function carregarTemaDashboard() {
   let config = configLocal;
 
   try {
-    const res = await fetch("http://localhost:3000/configuracoes", {
+    const res = await fetch("https://mynote-app-production.up.railway.app/configuracoes", {
       headers: headersAuth(),
     });
     if (!res.ok) throw new Error(`Erro ao buscar configuracoes: ${res.status}`);
@@ -2402,7 +2402,7 @@ async function salvarCampoEditado() {
 
   try {
     const resposta = await fetch(
-      `http://localhost:3000/tarefas/${edicaoCampoAtual.tarefaId}`,
+      `https://mynote-app-production.up.railway.app/tarefas/${edicaoCampoAtual.tarefaId}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -3115,7 +3115,7 @@ async function abrirModalFrequenciaRotina(manterAberto = false) {
 
   try {
     const resposta = await fetch(
-      `http://localhost:3000/tarefas?rotina_id=${rotinaSelecionadaId}`,
+      `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotinaSelecionadaId}`,
       {
         headers: headersAuth(),
       },
@@ -4273,7 +4273,7 @@ function verificarFeriadosComAntecedencia() {
 async function carregarTarefasUsuarioParaNotificacoes() {
   const tarefasUsuario = [];
   const respostaRotinas = await fetch(
-    `http://localhost:3000/rotinas`,
+    `https://mynote-app-production.up.railway.app/rotinas`,
     {
       headers: headersAuth(),
     },
@@ -4282,7 +4282,7 @@ async function carregarTarefasUsuarioParaNotificacoes() {
 
   for (const rotina of rotinas) {
     const respostaTarefas = await fetch(
-      `http://localhost:3000/tarefas?rotina_id=${rotina.id}`,
+      `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotina.id}`,
       {
         headers: headersAuth(),
       },
@@ -4384,7 +4384,7 @@ async function verificarLembretesComAntecedencia() {
 
   try {
     const resposta = await fetch(
-      `http://localhost:3000/lembretes`,
+      `https://mynote-app-production.up.railway.app/lembretes`,
       {
         headers: headersAuth(),
       },
@@ -4602,7 +4602,7 @@ async function mostrarResumoDiario() {
     ).filter((feriado) => feriado.data === dataHojeISO());
 
     const resRotinas = await fetch(
-      `http://localhost:3000/rotinas`,
+      `https://mynote-app-production.up.railway.app/rotinas`,
       {
         headers: headersAuth(),
       },
@@ -4611,7 +4611,7 @@ async function mostrarResumoDiario() {
 
     for (const rotina of rotinas) {
       const resTarefas = await fetch(
-        `http://localhost:3000/tarefas?rotina_id=${rotina.id}`,
+        `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotina.id}`,
         {
           headers: headersAuth(),
         },
@@ -4624,7 +4624,7 @@ async function mostrarResumoDiario() {
     }
 
     const resLembretes = await fetch(
-      `http://localhost:3000/lembretes`,
+      `https://mynote-app-production.up.railway.app/lembretes`,
       {
         headers: headersAuth(),
       },
@@ -5131,7 +5131,7 @@ function fecharModalNovaRotina() {
 async function carregarRotinas() {
   try {
     const resposta = await fetch(
-      `http://localhost:3000/rotinas`,
+      `https://mynote-app-production.up.railway.app/rotinas`,
       {
         headers: headersAuth(),
       },
@@ -5238,7 +5238,7 @@ function excluirRotinaSelecionada() {
 async function excluirRotinaConfirmada() {
   try {
     const resposta = await fetch(
-      `http://localhost:3000/rotinas/${rotinaSelecionadaId}`,
+      `https://mynote-app-production.up.railway.app/rotinas/${rotinaSelecionadaId}`,
       {
         method: "DELETE",
         headers: headersAuth(),
@@ -5341,7 +5341,7 @@ async function salvarOrdemRotinas() {
   }));
 
   try {
-    await fetch("http://localhost:3000/rotinas/ordem/atualizar", {
+    await fetch("https://mynote-app-production.up.railway.app/rotinas/ordem/atualizar", {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify({
@@ -5619,7 +5619,7 @@ async function salvarOrdemTarefasTabela() {
   try {
     await Promise.all(
       linhas.map((linha, index) => {
-        return fetch(`http://localhost:3000/tarefas/${linha.dataset.id}`, {
+        return fetch(`https://mynote-app-production.up.railway.app/tarefas/${linha.dataset.id}`, {
           method: "PUT",
           headers: headersAuth(),
           body: JSON.stringify({
@@ -6408,7 +6408,7 @@ function ativarEventosCardsPersonalizados(tarefas) {
       const novoConcluida = !tarefa.concluida;
       const novoStatus = novoConcluida ? "Concluída" : "Pendente";
 
-      await fetch(`http://localhost:3000/tarefas/${tarefa.id}`, {
+      await fetch(`https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`, {
         method: "PUT",
         headers: headersAuth(),
         body: JSON.stringify({
@@ -6426,7 +6426,7 @@ function ativarEventosCardsPersonalizados(tarefas) {
       mostrarConfirmacao(
         `Deseja excluir a tarefa "${tarefa.titulo}"?`,
         async () => {
-          await fetch(`http://localhost:3000/tarefas/${tarefa.id}`, {
+          await fetch(`https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`, {
             method: "DELETE",
             headers: headersAuth(),
           });
@@ -6505,7 +6505,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
     }
 
     const rotinaResposta = await fetch(
-      `http://localhost:3000/rotinas/${rotinaId}`,
+      `https://mynote-app-production.up.railway.app/rotinas/${rotinaId}`,
       {
         headers: headersAuth(),
       },
@@ -6542,7 +6542,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
     atualizarBotaoSilenciarRotina();
 
     const resposta = await fetch(
-      `http://localhost:3000/tarefas?rotina_id=${rotinaId}`,
+      `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotinaId}`,
       {
         headers: headersAuth(),
       },
@@ -6696,7 +6696,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
           event.stopPropagation();
 
           try {
-            await fetch(`http://localhost:3000/tarefas/${tarefa.id}`, {
+            await fetch(`https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`, {
               method: "PUT",
               headers: headersAuth(),
               body: JSON.stringify({
@@ -6722,7 +6722,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
           async () => {
             try {
               const resposta = await fetch(
-                `http://localhost:3000/tarefas/${tarefa.id}`,
+                `https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`,
                 {
                   method: "DELETE",
                   headers: headersAuth(),
@@ -6745,7 +6745,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
 
         try {
           const resposta = await fetch(
-            `http://localhost:3000/tarefas/${tarefa.id}`,
+            `https://mynote-app-production.up.railway.app/tarefas/${tarefa.id}`,
             {
               method: "DELETE",
               headers: headersAuth(),
@@ -7021,7 +7021,7 @@ async function salvarNovaTarefa() {
   }
 
   try {
-    const resposta = await fetch("http://localhost:3000/tarefas", {
+    const resposta = await fetch("https://mynote-app-production.up.railway.app/tarefas", {
       method: "POST",
       headers: headersAuth(),
       body: JSON.stringify(dados),
@@ -7126,7 +7126,7 @@ async function salvarOrdemTreino() {
   try {
     await Promise.all(
       cards.map((card, index) => {
-        return fetch(`http://localhost:3000/tarefas/${card.dataset.id}`, {
+        return fetch(`https://mynote-app-production.up.railway.app/tarefas/${card.dataset.id}`, {
           method: "PUT",
           headers: headersAuth(),
           body: JSON.stringify({
@@ -7270,7 +7270,7 @@ async function excluirLembretesConcluidos() {
     async () => {
       try {
         const resposta = await fetch(
-          `http://localhost:3000/lembretes`,
+          `https://mynote-app-production.up.railway.app/lembretes`,
           {
             headers: headersAuth(),
           },
@@ -7288,7 +7288,7 @@ async function excluirLembretesConcluidos() {
 
         await Promise.all(
           concluidos.map((lembrete) =>
-            fetch(`http://localhost:3000/lembretes/${lembrete.id}`, {
+            fetch(`https://mynote-app-production.up.railway.app/lembretes/${lembrete.id}`, {
               method: "DELETE",
               headers: headersAuth(),
             }),
@@ -7312,7 +7312,7 @@ async function excluirTodosLembretes() {
   mostrarConfirmacao("Deseja excluir TODOS os lembretes?", async () => {
     try {
       const resposta = await fetch(
-        `http://localhost:3000/lembretes`,
+        `https://mynote-app-production.up.railway.app/lembretes`,
         {
           headers: headersAuth(),
         },
@@ -7321,7 +7321,7 @@ async function excluirTodosLembretes() {
 
       await Promise.all(
         lembretes.map((lembrete) =>
-          fetch(`http://localhost:3000/lembretes/${lembrete.id}`, {
+          fetch(`https://mynote-app-production.up.railway.app/lembretes/${lembrete.id}`, {
             method: "DELETE",
             headers: headersAuth(),
           }),
@@ -7454,7 +7454,7 @@ function abrirOpcoesAntecedenciaLembrete(lembrete) {
 async function carregarLembretes() {
   try {
     const resposta = await fetch(
-      `http://localhost:3000/lembretes`,
+      `https://mynote-app-production.up.railway.app/lembretes`,
       {
         headers: headersAuth(),
       },
@@ -7520,7 +7520,7 @@ async function carregarLembretes() {
             lembrete.status === "Concluído" ? "Pendente" : "Concluído";
 
           const resposta = await fetch(
-            `http://localhost:3000/lembretes/${lembrete.id}`,
+            `https://mynote-app-production.up.railway.app/lembretes/${lembrete.id}`,
             {
               method: "PUT",
               headers: headersAuth(),
@@ -7556,7 +7556,7 @@ async function carregarLembretes() {
       btnNotificacao.addEventListener("click", async (event) => {
         event.stopPropagation();
 
-        await fetch(`http://localhost:3000/lembretes/${lembrete.id}`, {
+        await fetch(`https://mynote-app-production.up.railway.app/lembretes/${lembrete.id}`, {
           method: "PUT",
           headers: headersAuth(),
           body: JSON.stringify({
@@ -7575,7 +7575,7 @@ async function carregarLembretes() {
           async () => {
             try {
               const resposta = await fetch(
-                `http://localhost:3000/lembretes/${lembrete.id}`,
+                `https://mynote-app-production.up.railway.app/lembretes/${lembrete.id}`,
                 {
                   method: "DELETE",
                   headers: headersAuth(),
@@ -7618,7 +7618,7 @@ async function salvarNovoLembrete() {
     };
 
     await fetch(
-      `http://localhost:3000/lembretes/${lembreteCalendarioEmEdicao.lembreteId}`,
+      `https://mynote-app-production.up.railway.app/lembretes/${lembreteCalendarioEmEdicao.lembreteId}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -7656,8 +7656,8 @@ async function salvarNovoLembrete() {
   try {
     const resposta = await fetch(
       lembreteEditandoId
-        ? `http://localhost:3000/lembretes/${lembreteEditandoId}`
-        : "http://localhost:3000/lembretes",
+        ? `https://mynote-app-production.up.railway.app/lembretes/${lembreteEditandoId}`
+        : "https://mynote-app-production.up.railway.app/lembretes",
       {
         method: lembreteEditandoId ? "PUT" : "POST",
         headers: headersAuth(),
@@ -7701,7 +7701,7 @@ corpoTabelaLembretes.addEventListener("click", async (event) => {
   const concluidaAtual = btnCheck.dataset.concluida === "true";
 
   try {
-    await fetch(`http://localhost:3000/lembretes/${lembreteId}`, {
+    await fetch(`https://mynote-app-production.up.railway.app/lembretes/${lembreteId}`, {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify({
@@ -7722,7 +7722,7 @@ campoNotas.addEventListener("blur", async () => {
 
   try {
     const resposta = await fetch(
-      `http://localhost:3000/rotinas/${rotinaSelecionadaId}/notas`,
+      `https://mynote-app-production.up.railway.app/rotinas/${rotinaSelecionadaId}/notas`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -7817,7 +7817,7 @@ salvarRotina.addEventListener("click", async () => {
   }
 
   try {
-    const resposta = await fetch("http://localhost:3000/rotinas", {
+    const resposta = await fetch("https://mynote-app-production.up.railway.app/rotinas", {
       method: "POST",
       headers: headersAuth(),
       body: JSON.stringify({
@@ -8173,7 +8173,7 @@ async function carregarEventosDasTarefas() {
 
   try {
     const respostaRotinas = await fetch(
-      `http://localhost:3000/rotinas`,
+      `https://mynote-app-production.up.railway.app/rotinas`,
       {
         headers: headersAuth(),
       },
@@ -8182,7 +8182,7 @@ async function carregarEventosDasTarefas() {
 
     for (const rotina of rotinas) {
       const respostaTarefas = await fetch(
-        `http://localhost:3000/tarefas?rotina_id=${rotina.id}`,
+        `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotina.id}`,
         {
           headers: headersAuth(),
         },
@@ -8232,7 +8232,7 @@ async function carregarEventosDosLembretes() {
 
   try {
     const resposta = await fetch(
-      `http://localhost:3000/lembretes`,
+      `https://mynote-app-production.up.railway.app/lembretes`,
       {
         headers: headersAuth(),
       },
@@ -8477,7 +8477,7 @@ function mostrarEventosDoDia(dataISO) {
         mostrarConfirmacao(`Excluir "${evento.titulo}"?`, async () => {
           if (evento.tipo === "lembrete") {
             await fetch(
-              `http://localhost:3000/lembretes/${evento.lembreteId}`,
+              `https://mynote-app-production.up.railway.app/lembretes/${evento.lembreteId}`,
               {
                 method: "DELETE",
                 headers: headersAuth(),
@@ -8642,7 +8642,7 @@ document.addEventListener(
     okModalAviso.onclick = async () => {
       try {
         const resposta = await fetch(
-          `http://localhost:3000/tarefas/${tarefaId}`,
+          `https://mynote-app-production.up.railway.app/tarefas/${tarefaId}`,
           {
             method: "DELETE",
             headers: headersAuth(),

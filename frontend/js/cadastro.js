@@ -31,7 +31,7 @@ formCadastro.addEventListener("submit", async (event) => {
   }
 
   try {
-    const resposta = await fetch("http://localhost:3000/auth/cadastro", {
+    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/cadastro", {
       method: "POST", // ← ESSENCIAL
       headers: {
         "Content-Type": "application/json",

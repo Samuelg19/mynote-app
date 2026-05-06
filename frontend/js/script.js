@@ -1,4 +1,4 @@
-const API = "http://localhost:3000/tarefas";
+const API = "https://mynote-app-production.up.railway.app/tarefas";
 
 let tarefas = [];
 

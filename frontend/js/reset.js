@@ -15,7 +15,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    const resposta = await fetch("http://localhost:3000/auth/redefinir-senha", {
+    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/redefinir-senha", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
