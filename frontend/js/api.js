@@ -1,4 +1,4 @@
-const API_URL = "https://mynote-app-production.up.railway.app";
+const API_URL = "https://mynote-app-production-cb61.up.railway.app";
 
 function getToken() {
   return localStorage.getItem("token");
