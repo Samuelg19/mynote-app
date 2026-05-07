@@ -1,4 +1,4 @@
-/* Reset geral */
+ï»¿/* Reset geral */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6663,7 +6663,7 @@ body.tema-escuro .modal .btn-secundario {
   margin-top: 12px;
 }
 
-/* ================= CALENDÁRIO PROFISSIONAL ================= */
+/* ================= CALENDï¿½RIO PROFISSIONAL ================= */
 
 .calendario-header {
   border-radius: 18px;
@@ -6696,7 +6696,7 @@ body.tema-escuro .modal .btn-secundario {
   padding: 8px;
 }
 
-/* células do calendário */
+/* cï¿½lulas do calendï¿½rio */
 .calendario-grid > div {
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -6712,7 +6712,7 @@ body.tema-escuro .modal .btn-secundario {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
 }
 
-/* número do dia */
+/* nï¿½mero do dia */
 .calendario-grid strong {
   font-size: 0.9rem;
   font-weight: 700;
@@ -6982,7 +6982,7 @@ body.tema-escuro .modal .btn-secundario {
   border-color: #64748b !important;
 }
 
-/* ================= BOTÕES PROFISSIONAIS ================= */
+/* ================= BOTï¿½ES PROFISSIONAIS ================= */
 
 .login-body button,
 .dashboard-body button,
@@ -6991,7 +6991,7 @@ body.tema-escuro .modal .btn-secundario {
   transition: all 0.2s ease;
 }
 
-/* botão principal */
+/* botï¿½o principal */
 .btn-primario,
 #btnNovaRotina,
 #btnNovaTarefa,
@@ -7007,7 +7007,7 @@ body.tema-escuro .modal .btn-secundario {
   filter: brightness(1.05);
 }
 
-/* botão secundário */
+/* botï¿½o secundï¿½rio */
 .btn-secundario {
   backdrop-filter: blur(4px);
 }
@@ -7016,7 +7016,7 @@ body.tema-escuro .modal .btn-secundario {
   transform: translateY(-1px);
 }
 
-/* botão perigo */
+/* botï¿½o perigo */
 .btn-danger:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
@@ -7093,7 +7093,7 @@ body.tema-escuro .modal .btn-secundario {
   padding-right: 4px;
 }
 
-/* cartões */
+/* cartï¿½es */
 .card,
 .card-calendario,
 .config-sidebar,
@@ -7136,7 +7136,7 @@ textarea:focus {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-/* botões */
+/* botï¿½es */
 .login-body button,
 .dashboard-body button,
 .cadastro-body button,
@@ -8440,5 +8440,146 @@ body.tema-escuro .config-modal-icon-danger {
 
   .preview-main {
     padding: 18px;
+  }
+}
+
+.fab-container {
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  display: flex;
+  gap: 12px;
+  z-index: 1000;
+}
+
+.fab,
+.btn-flutuante {
+  width: 58px;
+  height: 58px;
+}
+
+@media (max-width: 768px) {
+  .calendario-grid {
+    gap: 6px;
+  }
+
+  .dia-calendario {
+    min-height: 80px;
+    padding: 4px;
+  }
+
+  .nome-dia {
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== RESPONSIVIDADE MOBILE DASHBOARD ===== */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    padding: 24px 20px;
+  }
+
+  .dashboard-main {
+    width: 100%;
+    padding: 20px 14px 110px;
+    overflow-x: hidden;
+  }
+
+  .card,
+  .card-calendario {
+    width: 100%;
+    padding: 14px;
+    border-radius: 18px;
+    overflow-x: hidden;
+  }
+
+  .calendario-topo {
+    padding: 16px;
+    border-radius: 18px;
+    margin-bottom: 14px;
+  }
+
+  .calendario-topo h2 {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .calendario-topo button {
+    font-size: 2rem;
+  }
+
+  .calendario-semana,
+  .calendario-dias {
+    grid-template-columns: repeat(7, minmax(42px, 1fr));
+    gap: 5px;
+  }
+
+  .calendario-semana span {
+    padding: 8px 2px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+  }
+
+  .dia-calendario {
+    min-height: 88px;
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .numero-dia {
+    font-size: 1rem;
+  }
+
+  .evento-mini {
+    font-size: 0.7rem;
+    padding: 3px 4px;
+  }
+
+  .btn-evento-flutuante {
+    width: 58px;
+    height: 58px;
+    right: 22px;
+    bottom: 72px;
+    font-size: 2rem;
+    z-index: 3000;
+  }
+
+  .btn-hoje-calendario {
+    width: 58px;
+    height: 58px;
+    right: 94px;
+    bottom: 72px;
+    font-size: 1.4rem;
+    z-index: 3000;
+  }
+
+  .tabela-tarefas {
+    min-width: 680px;
+  }
+
+  .tabela-card,
+  #cardTabelaTarefas {
+    overflow-x: auto;
+  }
+
+  .lista-exercicios-dia {
+    grid-template-columns: 1fr;
+  }
+
+  .card-exercicio {
+    width: 100%;
+  }
+
+  .modal-content {
+    max-width: 94vw;
+    max-height: 86vh;
+    overflow-y: auto;
   }
 }

@@ -97,7 +97,7 @@ exports.login = (req, res) => {
 
 exports.alterarSenha = (req, res) => {
   const { senhaAtual, novaSenha } = req.body;
-  const usuario_id = req.usuario?.id || req.body.usuario_id;
+  const usuario_id = req.usuario?.id;
 
   if (!usuario_id || !senhaAtual || !novaSenha) {
     return res.status(400).json({ msg: "Preencha todos os campos." });
@@ -136,7 +136,7 @@ exports.alterarSenha = (req, res) => {
 };
 
 exports.excluirConta = (req, res) => {
-  const usuario_id = req.usuario?.id || req.body.usuario_id;
+  const usuario_id = req.usuario?.id;
 
   if (!usuario_id) {
     return res.status(400).json({ msg: "UsuÃ¡rio invÃ¡lido." });
@@ -186,7 +186,8 @@ exports.excluirConta = (req, res) => {
 };
 
 exports.restaurarBackup = (req, res) => {
-  const { usuario_id, backup } = req.body;
+  const { backup } = req.body;
+const usuario_id = req.usuario?.id;
 
   if (!usuario_id || !backup || !Array.isArray(backup.rotinas)) {
     return res.status(400).json({ msg: "Backup invÃ¡lido." });
@@ -433,11 +434,11 @@ exports.googleLogin = async (req, res) => {
     const { credential } = req.body;
 
     if (!credential) {
-      return res.status(400).json({ msg: "Credential do Google não recebida." });
+      return res.status(400).json({ msg: "Credential do Google nï¿½o recebida." });
     }
 
     if (!process.env.GOOGLE_CLIENT_ID) {
-      return res.status(500).json({ msg: "GOOGLE_CLIENT_ID não configurado no backend." });
+      return res.status(500).json({ msg: "GOOGLE_CLIENT_ID nï¿½o configurado no backend." });
     }
 
     const ticket = await googleClient.verifyIdToken({
@@ -451,7 +452,7 @@ exports.googleLogin = async (req, res) => {
     const foto = payload.picture;
 
     if (!email) {
-      return res.status(400).json({ msg: "Email do Google não recebido." });
+      return res.status(400).json({ msg: "Email do Google nï¿½o recebido." });
     }
 
     db.query(
@@ -459,9 +460,9 @@ exports.googleLogin = async (req, res) => {
       [email],
       (err, results) => {
         if (err) {
-          console.error("Erro ao buscar usuário Google:", err);
+          console.error("Erro ao buscar usuï¿½rio Google:", err);
           return res.status(500).json({
-            msg: "Erro ao buscar usuário Google.",
+            msg: "Erro ao buscar usuï¿½rio Google.",
             erro: err.message || err,
           });
         }
@@ -488,9 +489,9 @@ exports.googleLogin = async (req, res) => {
           [nome, email, "GOOGLE_LOGIN"],
           (err, result) => {
             if (err) {
-              console.error("Erro ao criar usuário Google:", err);
+              console.error("Erro ao criar usuï¿½rio Google:", err);
               return res.status(500).json({
-                msg: "Erro ao criar usuário Google.",
+                msg: "Erro ao criar usuï¿½rio Google.",
                 erro: err.message || err,
               });
             }
@@ -503,7 +504,7 @@ exports.googleLogin = async (req, res) => {
             };
 
             res.json({
-              msg: "Usuário Google criado",
+              msg: "Usuï¿½rio Google criado",
               token: gerarTokenUsuario(usuario),
               usuario,
               user: usuario,
