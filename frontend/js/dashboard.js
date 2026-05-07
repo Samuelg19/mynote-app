@@ -506,6 +506,8 @@ let configuracoesNotificacao = {
   modoFoco: false,
 };
 
+let cacheTarefasPorRotina = {};
+
 function valorConfigAtivo(valor, padrao = true) {
   if (valor === undefined || valor === null || valor === "") return padrao;
   return valor !== false && valor !== 0 && valor !== "0";
@@ -619,7 +621,8 @@ function renderizarSemanal(tarefas) {
 
         await salvarOrdemSemanal();
 
-        carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       } catch (erro) {
         console.error("Erro ao mover tarefa semanal:", erro);
         mostrarAviso("erro", "Não foi possível mover a tarefa.");
@@ -696,7 +699,8 @@ function renderizarSemanal(tarefas) {
           });
         }
 
-        carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       });
 
       btnNotificacao?.addEventListener("click", async () => {
@@ -704,7 +708,8 @@ function renderizarSemanal(tarefas) {
           notificacao: !tarefa.notificacao,
         });
 
-        carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       });
 
       btnEditar?.addEventListener("click", () => {
@@ -725,7 +730,8 @@ function renderizarSemanal(tarefas) {
               headers: headersAuth(),
             });
 
-            carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+            delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
           },
         );
       });
@@ -878,7 +884,8 @@ function renderizarTreino(tarefas) {
           dia_semana: dia.valor,
         });
 
-        carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       } catch (erro) {
         console.error("Erro ao mover exercício:", erro);
         mostrarAviso("erro", "Não foi possível mover o exercício.");
@@ -958,7 +965,8 @@ function renderizarTreino(tarefas) {
             status: novoStatus,
           });
 
-          carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+          delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         } catch (erro) {
           console.error("Erro ao concluir exercício:", erro);
           mostrarAviso("erro", "Não foi possível atualizar o exercício.");
@@ -991,7 +999,8 @@ function renderizarTreino(tarefas) {
               return;
             }
 
-            carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+            delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
             mostrarMensagem("Tarefa excluída com sucesso!");
           },
         );
@@ -1124,7 +1133,8 @@ async function salvarEdicaoAlimentacao() {
     }
 
     fecharModalEditarAlimentacaoFunc();
-    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     mostrarMensagem("Refeição atualizada com sucesso!");
   } catch (erro) {
     console.error("Erro ao editar refeição:", erro);
@@ -1317,7 +1327,8 @@ async function salvarEdicaoTreino() {
     }
 
     fecharModalEditarTreinoFunc();
-    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     mostrarMensagem("Exercício atualizado 💪");
   } catch (erro) {
     console.error(erro);
@@ -1432,7 +1443,8 @@ async function alternarSilencioRotina() {
 
     atualizarBotaoSilenciarRotina();
     carregarRotinas();
-    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro ao silenciar rotina:", erro);
     mostrarAviso("Erro", "Não foi possível alterar as notificações da rotina.");
@@ -2418,7 +2430,8 @@ async function salvarCampoEditado() {
     }
 
     fecharModalEditarCampoFunc();
-    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     mostrarMensagem("Informação salva com sucesso!");
   } catch (erro) {
     console.error("Erro ao editar campo:", erro);
@@ -6417,7 +6430,8 @@ function ativarEventosCardsPersonalizados(tarefas) {
         }),
       });
 
-      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+      delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     });
 
     btnExcluir?.addEventListener("click", async (event) => {
@@ -6431,7 +6445,8 @@ function ativarEventosCardsPersonalizados(tarefas) {
             headers: headersAuth(),
           });
 
-          carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+          delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         },
       );
     });
@@ -6497,6 +6512,24 @@ async function carregarTarefas(rotinaId, nomeRotina) {
     rotinaSelecionadaNome = nomeRotina;
     tituloRotina.textContent = nomeRotina;
 
+    if (cacheTarefasPorRotina[rotinaId]) {
+  const tarefas = cacheTarefasPorRotina[rotinaId];
+
+  if (obterTipoRotina(nomeRotina) === "treino") {
+    tabelaCard.classList.add("hidden");
+    areaTreino.classList.remove("hidden");
+    renderizarTreino(tarefas);
+    return;
+  }
+
+  if (obterTipoRotina(nomeRotina) === "semanal") {
+    tabelaCard.classList.add("hidden");
+    areaTreino.classList.remove("hidden");
+    renderizarSemanal(tarefas);
+    return;
+  }
+}
+
     const tipoRotina = obterTipoRotina(nomeRotina);
     atualizarVisibilidadeBotaoFrequenciaRotina(tipoRotina);
 
@@ -6551,6 +6584,8 @@ async function carregarTarefas(rotinaId, nomeRotina) {
       await resposta.json(),
       preferenciasSite?.ordenacao_tarefas,
     );
+
+    cacheTarefasPorRotina[rotinaId] = tarefas;
 
     if (tipoRotina === "treino") {
       tabelaCard.classList.add("hidden");
@@ -6657,7 +6692,8 @@ async function carregarTarefas(rotinaId, nomeRotina) {
             status: novoStatus,
           });
 
-          carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+          delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         } catch (erro) {
           console.error("Erro ao atualizar tarefa:", erro);
         }
@@ -6706,7 +6742,8 @@ async function carregarTarefas(rotinaId, nomeRotina) {
               }),
             });
 
-            carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+            delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
           } catch (erro) {
             console.error("Erro ao alterar notificação:", erro);
             mostrarAviso("erro", "Não foi possível alterar a notificação.");
@@ -6734,7 +6771,8 @@ async function carregarTarefas(rotinaId, nomeRotina) {
                 return;
               }
 
-              carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+              delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
               mostrarMensagem("Tarefa excluída com sucesso!");
             } catch (erro) {
               console.error("Erro ao excluir tarefa:", erro);
@@ -6760,7 +6798,8 @@ async function carregarTarefas(rotinaId, nomeRotina) {
           }
 
           mostrarAviso("sucesso", "Tarefa excluída com sucesso!");
-          carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+          delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         } catch (erro) {
           console.error("Erro ao excluir tarefa:", erro);
           mostrarAviso("erro", "Não foi possível excluir a tarefa.");
@@ -7036,7 +7075,8 @@ async function salvarNovaTarefa() {
 
     mostrarAviso("sucesso", "Tarefa criada com sucesso!");
     fecharModalNovaTarefa();
-    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro completo ao criar tarefa:", erro);
     mostrarAviso(
@@ -7137,7 +7177,8 @@ async function salvarOrdemTreino() {
       }),
     );
 
-    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro ao salvar ordem do treino:", erro);
     mostrarAviso("erro", "Não foi possível salvar a ordem dos exercícios.");
@@ -7897,7 +7938,8 @@ btnEditarTabela.addEventListener("click", () => {
 
   opcoesRotina.classList.add("hidden");
 
-  carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+  delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
 });
 
 btnExcluirRotina.addEventListener("click", excluirRotinaSelecionada);
@@ -7924,7 +7966,8 @@ corpoTabelaTarefas.addEventListener("click", async (event) => {
       status: !concluidaAtual ? "Concluída" : "Pendente",
     });
 
-    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro ao concluir tarefa:", erro);
     mostrarAviso("erro", "Não foi possível atualizar a tarefa.");
@@ -8657,7 +8700,8 @@ document.addEventListener(
         modalAviso.classList.add("hidden");
         okModalAviso.textContent = "OK";
 
-        carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        delete cacheTarefasPorRotina[rotinaSelecionadaId];
+carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         mostrarMensagem("Tarefa excluída com sucesso!");
       } catch (erro) {
         console.error("Erro ao excluir tarefa:", erro);
@@ -8673,8 +8717,12 @@ async function inicializarDashboard() {
   await carregarTemaDashboard();
   await inicializarPermissaoNotificacao();
   await carregarRotinas();
-  await verificarResetTarefas();
   await carregarLembretes();
+
+  // Roda o reset depois que a tela já carregou, sem travar o usuário
+  setTimeout(() => {
+    verificarResetTarefas();
+  }, 3000);
 
   mostrarCalendarioDashboard();
 
@@ -8686,10 +8734,10 @@ async function inicializarDashboard() {
   verificarEventosCalendarioComAntecedencia();
   verificarFeriadosComAntecedencia();
 
-  setInterval(verificarLembretesComAntecedencia, 10000);
-  setInterval(verificarTarefasComAntecedencia, 10000);
-  setInterval(verificarEventosCalendarioComAntecedencia, 10000);
-  setInterval(verificarFeriadosComAntecedencia, 10000);
+  setInterval(verificarLembretesComAntecedencia, 30000);
+  setInterval(verificarTarefasComAntecedencia, 30000);
+  setInterval(verificarEventosCalendarioComAntecedencia, 30000);
+  setInterval(verificarFeriadosComAntecedencia, 30000);
 }
 
 inicializarDashboard();
