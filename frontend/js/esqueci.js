@@ -6,7 +6,7 @@ form.addEventListener("submit", async (e) => {
   const email = document.getElementById("email").value;
 
   try {
-    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/esqueci-senha", {
+    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/esqueci-senha", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

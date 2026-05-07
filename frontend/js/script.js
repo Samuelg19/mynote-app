@@ -1,4 +1,4 @@
-const API = "https://mynote-app-production.up.railway.app/tarefas";
+const API = "https://mynote-app-production-cb61.up.railway.app/tarefas";
 
 let tarefas = [];
 

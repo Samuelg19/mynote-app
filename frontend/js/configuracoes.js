@@ -1,4 +1,4 @@
-// Usuário autenticado
+﻿// Usuário autenticado
 const LOGIN_PAGE = "index.html";
 const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 const token = localStorage.getItem("token");
@@ -26,7 +26,7 @@ async function lerRespostaJsonSegura(resposta) {
 
 function mensagemErroConfiguracoes(erro) {
   if (erro instanceof TypeError) {
-    return "Nao foi possivel conectar ao backend em https://mynote-app-production.up.railway.app. Verifique se o servidor esta rodando.";
+    return "Nao foi possivel conectar ao backend em https://mynote-app-production-cb61.up.railway.app. Verifique se o servidor esta rodando.";
   }
 
   return "Erro ao salvar configuracoes.";
@@ -275,7 +275,7 @@ opcoesFundo.forEach((btn) => {
 
 async function carregarConfiguracoes() {
   try {
-    const res = await fetch("https://mynote-app-production.up.railway.app/configuracoes", {
+    const res = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
   headers: headersAuth(),
 });
     const respostaConfig = await res.json();
@@ -318,7 +318,7 @@ async function carregarConfiguracoes() {
     });
 
     if (migracaoPadroes.alterado || migracaoBackup.alterado) {
-      await fetch("https://mynote-app-production.up.railway.app/configuracoes", {
+      await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
         method: "PUT",
         headers: headersAuth(),
         body: JSON.stringify(montarPayloadConfiguracoes()),
@@ -339,7 +339,7 @@ async function salvarConfiguracoes() {
     preferenciasGerais = MyNotePrefs.saveLocal(payload);
     MyNotePrefs.translateDOM(document);
 
-    const resposta = await fetch("https://mynote-app-production.up.railway.app/configuracoes", {
+    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify(payload),
@@ -492,7 +492,7 @@ formAlterarSenha?.addEventListener("submit", async (evento) => {
   mostrarMensagemSenha("");
 
   try {
-    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/alterar-senha", {
+    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/alterar-senha", {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify({
@@ -546,7 +546,7 @@ btnConfirmarExcluirConta?.addEventListener("click", async () => {
   btnConfirmarExcluirConta.textContent = "Excluindo...";
 
   try {
-    const resposta = await fetch("https://mynote-app-production.up.railway.app/auth/excluir-conta", {
+    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/excluir-conta", {
       method: "DELETE",
       headers: headersAuth(),
       body: JSON.stringify({ usuario_id: usuario.id }),
@@ -572,7 +572,7 @@ btnConfirmarExcluirConta?.addEventListener("click", async () => {
 btnExportarPDF?.addEventListener("click", async () => {
   try {
     const respostaRotinas = await fetch(
-      `https://mynote-app-production.up.railway.app/rotinas`,
+      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
       {
         headers: headersAuth(),
       },
@@ -636,7 +636,7 @@ btnExportarPDF?.addEventListener("click", async () => {
 
     for (const rotina of rotinas) {
       const respostaTarefas = await fetch(
-        `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotina.id}`,
+        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
         {
           headers: headersAuth(),
         },
@@ -705,7 +705,7 @@ btnExportarPDF?.addEventListener("click", async () => {
 btnExportarExcel?.addEventListener("click", async () => {
   try {
     const respostaRotinas = await fetch(
-      `https://mynote-app-production.up.railway.app/rotinas`,
+      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
       {
         headers: headersAuth(),
       },
@@ -717,7 +717,7 @@ btnExportarExcel?.addEventListener("click", async () => {
 
     for (const rotina of rotinas) {
       const respostaTarefas = await fetch(
-        `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotina.id}`,
+        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
         {
           headers: headersAuth(),
         },
@@ -760,19 +760,19 @@ btnExportarExcel?.addEventListener("click", async () => {
 btnSincronizarBackup?.addEventListener("click", async () => {
   try {
     const respostaRotinas = await fetch(
-      `https://mynote-app-production.up.railway.app/rotinas`,
+      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
       {
         headers: headersAuth(),
       },
     );
     const rotinas = await respostaRotinas.json();
 
-    const respostaLembretes = await fetch("https://mynote-app-production.up.railway.app/lembretes", {
+    const respostaLembretes = await fetch("https://mynote-app-production-cb61.up.railway.app/lembretes", {
   headers: headersAuth(),
 });
     const lembretes = await respostaLembretes.json();
 
-    const respostaConfig = await fetch("https://mynote-app-production.up.railway.app/configuracoes", {
+    const respostaConfig = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
   headers: headersAuth(),
 });
     const configuracoes = await respostaConfig.json();
@@ -781,7 +781,7 @@ btnSincronizarBackup?.addEventListener("click", async () => {
 
     for (const rotina of rotinas) {
       const respostaTarefas = await fetch(
-        `https://mynote-app-production.up.railway.app/tarefas?rotina_id=${rotina.id}`,
+        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
         {
           headers: headersAuth(),
         },
@@ -854,7 +854,7 @@ inputRestaurarBackup?.addEventListener("change", () => {
       }
 
       const resposta = await fetch(
-        "https://mynote-app-production.up.railway.app/auth/restaurar-backup",
+        "https://mynote-app-production-cb61.up.railway.app/auth/restaurar-backup",
         {
           method: "POST",
           headers: headersAuth(),
