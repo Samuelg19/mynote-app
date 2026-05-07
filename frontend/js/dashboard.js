@@ -687,39 +687,35 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       const btnExcluir = item.querySelector(".btn-excluir");
 
       btnCheck?.addEventListener("click", async () => {
-        if (tarefa.repeticao === "Único") {
-          await fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
-            method: "DELETE",
-            headers: headersAuth(),
-          });
-        } else {
-          await atualizarTarefa(tarefa.id, {
-            concluida: !tarefa.concluida,
-            status: !tarefa.concluida ? "Concluída" : "Pendente",
-          });
-        }
+  if (tarefa.repeticao === "Único") {
+    await fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
+      method: "DELETE",
+      headers: headersAuth(),
+    });
 
-        delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
-      });
+    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    return;
+  }
 
-      btnNotificacao?.addEventListener("click", async () => {
-        await atualizarTarefa(tarefa.id, {
-          notificacao: !tarefa.notificacao,
-        });
+  const novaConclusao = !tarefa.concluida;
 
-        delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
-      });
+  await atualizarTarefa(tarefa.id, {
+    concluida: novaConclusao,
+    status: novaConclusao ? "Concluída" : "Pendente",
+  });
 
-      btnEditar?.addEventListener("click", () => {
-        abrirModalEditarCampo(
-          tarefa.id,
-          "titulo",
-          tarefa.titulo,
-          "Editar tarefa semanal",
-        );
-      });
+  tarefa.concluida = novaConclusao;
+  tarefa.status = novaConclusao ? "Concluída" : "Pendente";
+
+  item.classList.toggle("concluido", novaConclusao);
+
+  if (btnCheck) {
+    btnCheck.innerHTML = novaConclusao ? "✅" : "⬜";
+  }
+
+  delete cacheTarefasPorRotina[rotinaSelecionadaId];
+});
 
       btnExcluir?.addEventListener("click", async () => {
         mostrarConfirmacao(
@@ -960,13 +956,19 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         const novoStatus = novoConcluida ? "Concluída" : "Pendente";
 
         try {
-          await atualizarTarefa(ex.id, {
-            concluida: novoConcluida,
-            status: novoStatus,
-          });
+         await atualizarTarefa(ex.id, {
+  concluida: novoConcluida,
+  status: novoStatus,
+});
 
-          delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+ex.concluida = novoConcluida;
+ex.status = novoStatus;
+
+card.classList.toggle("concluido", novoConcluida);
+
+btnConcluir.innerHTML = novoConcluida ? "✅" : "⭕";
+
+delete cacheTarefasPorRotina[rotinaSelecionadaId];
         } catch (erro) {
           console.error("Erro ao concluir exercício:", erro);
           mostrarAviso("erro", "Não foi possível atualizar o exercício.");
@@ -6688,12 +6690,21 @@ async function carregarTarefas(rotinaId, nomeRotina) {
 
         try {
           await atualizarTarefa(tarefa.id, {
-            concluida: novoConcluida,
-            status: novoStatus,
-          });
+  concluida: novoConcluida,
+  status: novoStatus,
+});
 
-          delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+tarefa.concluida = novoConcluida;
+tarefa.status = novoStatus;
+
+tr.classList.toggle("tarefa-concluida", novoConcluida);
+
+if (btnCheckTarefa) {
+  btnCheckTarefa.innerHTML = novoConcluida ? "✅" : "⬜";
+  btnCheckTarefa.dataset.concluida = String(novoConcluida);
+}
+
+delete cacheTarefasPorRotina[rotinaSelecionadaId];
         } catch (erro) {
           console.error("Erro ao atualizar tarefa:", erro);
         }
@@ -6757,27 +6768,6 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         mostrarConfirmacao(
           `Deseja excluir a tarefa "${tarefa.titulo}"?`,
           async () => {
-            try {
-              const resposta = await fetch(
-                `https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`,
-                {
-                  method: "DELETE",
-                  headers: headersAuth(),
-                },
-              );
-
-              if (!resposta.ok) {
-                mostrarAviso("erro", "Erro ao excluir tarefa.");
-                return;
-              }
-
-              delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
-              mostrarMensagem("Tarefa excluída com sucesso!");
-            } catch (erro) {
-              console.error("Erro ao excluir tarefa:", erro);
-              mostrarAviso("erro", "Não foi possível excluir a tarefa.");
-            }
           },
         );
 
