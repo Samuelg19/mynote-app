@@ -1,19 +1,24 @@
 const mysql = require("mysql2");
 
-const db = mysql.createConnection({
-  host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
-  user: process.env.MYSQLUSER || process.env.DB_USER || "root",
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "33044270s",
-  database: process.env.MYSQLDATABASE || process.env.DB_NAME || "rotina_app",
-  port: Number(process.env.MYSQLPORT || process.env.DB_PORT || 3306),
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-db.connect((err) => {
+db.getConnection((err, connection) => {
   if (err) {
-    console.error("Erro ao conectar no MySQL:", err.message);
-  } else {
-    console.log("MySQL conectado!");
+    console.error("Erro ao conectar no MySQL:", err);
+    return;
   }
+
+  console.log("Conectado ao MySQL com pool!");
+  connection.release();
 });
 
 module.exports = db;
