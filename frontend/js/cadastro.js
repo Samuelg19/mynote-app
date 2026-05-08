@@ -1,3 +1,4 @@
+const API_URL = "https://mynote-app-production-cb61.up.railway.app";
 const formCadastro = document.getElementById("formCadastro");
 
 const nomeCadastro = document.getElementById("nomeCadastro");
@@ -31,7 +32,7 @@ formCadastro.addEventListener("submit", async (event) => {
   }
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/cadastro", {
+    const resposta = await fetch(`${API_URL}/auth/cadastro`, {
       method: "POST", // ← ESSENCIAL
       headers: {
         "Content-Type": "application/json",

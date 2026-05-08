@@ -7,6 +7,7 @@ const modalLoginErro = document.getElementById("modalLoginErro");
 const modalLoginErroMensagem = document.getElementById("modalLoginErroMensagem");
 const fecharModalLoginErro = document.getElementById("fecharModalLoginErro");
 const okModalLoginErro = document.getElementById("okModalLoginErro");
+const API_URL = "https://mynote-app-production-cb61.up.railway.app";
 let focoAntesDoModalLoginErro = null;
 
 function esconderModalLoginErro() {
@@ -57,7 +58,7 @@ if (emailSalvo) {
 
 async function sincronizarPreferenciasDaConta(token) {
   try {
-    const resposta = await fetch("https://https://mynote-app-production-cb61.up.railway.app/configuracoes", {
+    const resposta = await fetch(`${API_URL}/configuracoes`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -79,7 +80,7 @@ form.addEventListener("submit", async (event) => {
   const senha = senhaInput.value.trim();
 
   try {
-    const resposta = await fetch("https://https://mynote-app-production-cb61.up.railway.app/auth/login", {
+    const resposta = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +120,7 @@ async function loginComGoogle(response) {
       return;
     }
 
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/google", {
+    const resposta = await fetch(`${API_URL}/auth/google`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json"

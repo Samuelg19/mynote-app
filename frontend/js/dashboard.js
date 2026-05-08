@@ -3,6 +3,7 @@ const LOGIN_PAGE = "index.html";
 const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 const token = localStorage.getItem("token");
 const CALORIAS_MAXIMAS = 5000;
+const API_BASE_URL = "https://mynote-app-production-cb61.up.railway.app";
 
 if (!usuario || !token) {
   window.location.href = LOGIN_PAGE;
@@ -238,7 +239,7 @@ async function lerListaJson(resposta) {
 }
 
 async function atualizarTarefa(id, dados) {
-  return fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${id}`, {
+  return fetch(`${API_BASE_URL}/tarefas/${id}`, {
     method: "PUT",
     headers: headersAuth(),
     body: JSON.stringify(dados),
@@ -384,27 +385,19 @@ function deveResetarDiaria(tarefa, tipoRotina, camposRotina) {
 async function verificarResetTarefas() {
   const hoje = dataHojeISO();
   const chaveResetDiario = `resetDiarioTarefas_${usuario.id}`;
-
   const jaResetouHoje = localStorage.getItem(chaveResetDiario) === hoje;
 
   try {
-    const respostaRotinas = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-      {
-        headers: headersAuth(),
-      },
+    const rotinas = await buscarRotinas();
+    const tarefasPorRotina = await Promise.all(
+      rotinas.map(async (rotina) => ({
+        rotina,
+        tarefas: await buscarTarefasDaRotina(rotina.id),
+      })),
     );
-    const rotinas = await lerListaJson(respostaRotinas);
+    const atualizacoes = [];
 
-    for (const rotina of rotinas) {
-      const respostaTarefas = await fetch(
-        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
-        {
-          headers: headersAuth(),
-        },
-      );
-      const tarefas = await lerListaJson(respostaTarefas);
-
+    for (const { rotina, tarefas } of tarefasPorRotina) {
       let camposRotina = [];
 
       try {
@@ -413,37 +406,17 @@ async function verificarResetTarefas() {
         camposRotina = [];
       }
 
-      const tipoRotina = (() => {
-        const modelo = rotina.tipo_modelo;
-
-        if (modelo === "treino_card") return "treino";
-        if (modelo === "tabela_por_dia") return "semanal";
-
-        const nome = (rotina.nome || "").toLowerCase();
-
-        if (
-          nome.includes("matut") ||
-          nome.includes("diaria") ||
-          nome.includes("diária")
-        )
-          return "matinal";
-        if (nome.includes("estud")) return "estudos";
-        if (nome.includes("treino")) return "treino";
-        if (nome.includes("trabalho")) return "trabalho";
-        if (nome.includes("semanal")) return "semanal";
-        if (nome.includes("alimenta")) return "alimentacao";
-
-        return "personalizada";
-      })();
+      const tipoRotina = obterTipoRotina(rotina.nome, rotina);
 
       for (const tarefa of tarefas) {
         if (deveResetarSemanal(tarefa)) {
-          await atualizarTarefa(tarefa.id, {
-            concluida: false,
-            status: "Pendente",
-            ultima_semana_reset: obterInicioSemanaISO(),
-          });
-
+          atualizacoes.push(
+            atualizarTarefa(tarefa.id, {
+              concluida: false,
+              status: "Pendente",
+              ultima_semana_reset: obterInicioSemanaISO(),
+            }),
+          );
           continue;
         }
 
@@ -451,12 +424,19 @@ async function verificarResetTarefas() {
           !jaResetouHoje &&
           deveResetarDiaria(tarefa, tipoRotina, camposRotina)
         ) {
-          await atualizarTarefa(tarefa.id, {
-            concluida: false,
-            status: "Pendente",
-          });
+          atualizacoes.push(
+            atualizarTarefa(tarefa.id, {
+              concluida: false,
+              status: "Pendente",
+            }),
+          );
         }
       }
+    }
+
+    if (atualizacoes.length) {
+      await Promise.all(atualizacoes);
+      tarefasPorRotina.forEach(({ rotina }) => invalidarCacheTarefas(rotina.id));
     }
 
     localStorage.setItem(chaveResetDiario, hoje);
@@ -507,6 +487,75 @@ let configuracoesNotificacao = {
 };
 
 let cacheTarefasPorRotina = {};
+let cacheRotinas = null;
+let cacheLembretes = null;
+let eventosPorDataCalendario = new Map();
+let verificacoesNotificacaoEmExecucao = false;
+
+function limparAgrupamentoEventosCalendario() {
+  eventosPorDataCalendario = new Map();
+}
+
+function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
+  if (rotinaId) {
+    delete cacheTarefasPorRotina[rotinaId];
+  }
+  limparAgrupamentoEventosCalendario();
+}
+
+function invalidarCacheRotinas() {
+  cacheRotinas = null;
+  limparAgrupamentoEventosCalendario();
+}
+
+function invalidarCacheLembretes() {
+  cacheLembretes = null;
+  limparAgrupamentoEventosCalendario();
+}
+
+async function buscarRotinas({ force = false } = {}) {
+  if (!force && Array.isArray(cacheRotinas)) {
+    return cacheRotinas;
+  }
+
+  const resposta = await fetch(`${API_BASE_URL}/rotinas`, {
+    headers: headersAuth(),
+  });
+  cacheRotinas = await lerListaJson(resposta);
+  limparAgrupamentoEventosCalendario();
+  return cacheRotinas;
+}
+
+async function buscarTarefasDaRotina(rotinaId, { force = false } = {}) {
+  if (!force && cacheTarefasPorRotina[rotinaId]) {
+    return cacheTarefasPorRotina[rotinaId];
+  }
+
+  const resposta = await fetch(`${API_BASE_URL}/tarefas?rotina_id=${rotinaId}`, {
+    headers: headersAuth(),
+  });
+  const tarefas = ordenarTarefasPorPreferencia(
+    await lerListaJson(resposta),
+    preferenciasSite?.ordenacao_tarefas,
+  );
+
+  cacheTarefasPorRotina[rotinaId] = tarefas;
+  return tarefas;
+}
+
+async function buscarLembretes({ force = false } = {}) {
+  if (!force && Array.isArray(cacheLembretes)) {
+    return cacheLembretes;
+  }
+
+  const resposta = await fetch(`${API_BASE_URL}/lembretes`, {
+    headers: headersAuth(),
+  });
+  cacheLembretes = await apagarLembretesVencidos(await lerListaJson(resposta));
+  limparAgrupamentoEventosCalendario();
+  return cacheLembretes;
+}
+
 
 function valorConfigAtivo(valor, padrao = true) {
   if (valor === undefined || valor === null || valor === "") return padrao;
@@ -534,8 +583,8 @@ function atualizarTextoNotificacaoModal() {
 }
 
 //Utilitários gerais
-function obterTipoRotina(nome) {
-  const modelo = rotinaAtual?.tipo_modelo;
+function obterTipoRotina(nome, rotina = rotinaAtual) {
+  const modelo = rotina?.tipo_modelo;
 
   if (modelo === "treino_card") return "treino";
   if (modelo === "tabela_por_dia") return "semanal";
@@ -621,8 +670,8 @@ function renderizarSemanal(tarefas) {
 
         await salvarOrdemSemanal();
 
-        delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       } catch (erro) {
         console.error("Erro ao mover tarefa semanal:", erro);
         mostrarAviso("erro", "Não foi possível mover a tarefa.");
@@ -688,12 +737,12 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
 
       btnCheck?.addEventListener("click", async () => {
   if (tarefa.repeticao === "Único") {
-    await fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
+    await fetch(`${API_BASE_URL}/tarefas/${tarefa.id}`, {
       method: "DELETE",
       headers: headersAuth(),
     });
 
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
+    invalidarCacheTarefas(rotinaSelecionadaId);
     carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     return;
   }
@@ -714,20 +763,20 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     btnCheck.innerHTML = novaConclusao ? "✅" : "⬜";
   }
 
-  delete cacheTarefasPorRotina[rotinaSelecionadaId];
+  invalidarCacheTarefas(rotinaSelecionadaId);
 });
 
       btnExcluir?.addEventListener("click", async () => {
         mostrarConfirmacao(
           `Deseja excluir a tarefa "${tarefa.titulo}"?`,
           async () => {
-            await fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
+            await fetch(`${API_BASE_URL}/tarefas/${tarefa.id}`, {
               method: "DELETE",
               headers: headersAuth(),
             });
 
-            delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+            invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
           },
         );
       });
@@ -880,8 +929,8 @@ function renderizarTreino(tarefas) {
           dia_semana: dia.valor,
         });
 
-        delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       } catch (erro) {
         console.error("Erro ao mover exercício:", erro);
         mostrarAviso("erro", "Não foi possível mover o exercício.");
@@ -968,7 +1017,7 @@ card.classList.toggle("concluido", novoConcluida);
 
 btnConcluir.innerHTML = novoConcluida ? "✅" : "⭕";
 
-delete cacheTarefasPorRotina[rotinaSelecionadaId];
+invalidarCacheTarefas(rotinaSelecionadaId);
         } catch (erro) {
           console.error("Erro ao concluir exercício:", erro);
           mostrarAviso("erro", "Não foi possível atualizar o exercício.");
@@ -989,7 +1038,7 @@ delete cacheTarefasPorRotina[rotinaSelecionadaId];
           `Deseja excluir o exercício "${ex.titulo}"?`,
           async () => {
             const resposta = await fetch(
-              `https://mynote-app-production-cb61.up.railway.app/tarefas/${ex.id}`,
+              `${API_BASE_URL}/tarefas/${ex.id}`,
               {
                 method: "DELETE",
                 headers: headersAuth(),
@@ -1001,8 +1050,8 @@ delete cacheTarefasPorRotina[rotinaSelecionadaId];
               return;
             }
 
-            delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+            invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
             mostrarMensagem("Tarefa excluída com sucesso!");
           },
         );
@@ -1117,7 +1166,7 @@ async function salvarEdicaoAlimentacao() {
 
   try {
     const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/tarefas/${alimentacaoEmEdicao.id}`,
+      `${API_BASE_URL}/tarefas/${alimentacaoEmEdicao.id}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -1135,8 +1184,8 @@ async function salvarEdicaoAlimentacao() {
     }
 
     fecharModalEditarAlimentacaoFunc();
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     mostrarMensagem("Refeição atualizada com sucesso!");
   } catch (erro) {
     console.error("Erro ao editar refeição:", erro);
@@ -1311,7 +1360,7 @@ async function salvarEdicaoTreino() {
 
   try {
     const res = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/tarefas/${treinoEmEdicao.id}`,
+      `${API_BASE_URL}/tarefas/${treinoEmEdicao.id}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -1329,8 +1378,8 @@ async function salvarEdicaoTreino() {
     }
 
     fecharModalEditarTreinoFunc();
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     mostrarMensagem("Exercício atualizado 💪");
   } catch (erro) {
     console.error(erro);
@@ -1388,7 +1437,7 @@ async function alternarSilencioRotina() {
 
   try {
     const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotinaSelecionadaId}`,
+      `${API_BASE_URL}/tarefas?rotina_id=${rotinaSelecionadaId}`,
       {
         headers: headersAuth(),
       },
@@ -1408,7 +1457,7 @@ async function alternarSilencioRotina() {
 
       await Promise.all(
         tarefas.map((tarefa) =>
-          fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
+          fetch(`${API_BASE_URL}/tarefas/${tarefa.id}`, {
             method: "PUT",
             headers: headersAuth(),
             body: JSON.stringify({
@@ -1428,7 +1477,7 @@ async function alternarSilencioRotina() {
 
       await Promise.all(
         backup.map((item) =>
-          fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${item.id}`, {
+          fetch(`${API_BASE_URL}/tarefas/${item.id}`, {
             method: "PUT",
             headers: headersAuth(),
             body: JSON.stringify({
@@ -1445,8 +1494,8 @@ async function alternarSilencioRotina() {
 
     atualizarBotaoSilenciarRotina();
     carregarRotinas();
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro ao silenciar rotina:", erro);
     mostrarAviso("Erro", "Não foi possível alterar as notificações da rotina.");
@@ -1550,7 +1599,7 @@ async function apagarLembretesVencidos(lembretes) {
 
   await Promise.all(
     vencidos.map((lembrete) =>
-      fetch(`https://mynote-app-production-cb61.up.railway.app/lembretes/${lembrete.id}`, {
+      fetch(`${API_BASE_URL}/lembretes/${lembrete.id}`, {
         method: "DELETE",
         headers: headersAuth(),
       }),
@@ -2154,7 +2203,7 @@ async function salvarCustomizacaoOnboarding() {
   aplicarEstadoOnboardingNoDashboard();
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
+    const resposta = await fetch(`${API_BASE_URL}/configuracoes`, {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify(payload),
@@ -2336,7 +2385,7 @@ async function carregarTemaDashboard() {
   let config = configLocal;
 
   try {
-    const res = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
+    const res = await fetch(`${API_BASE_URL}/configuracoes`, {
       headers: headersAuth(),
     });
     if (!res.ok) throw new Error(`Erro ao buscar configuracoes: ${res.status}`);
@@ -2416,7 +2465,7 @@ async function salvarCampoEditado() {
 
   try {
     const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/tarefas/${edicaoCampoAtual.tarefaId}`,
+      `${API_BASE_URL}/tarefas/${edicaoCampoAtual.tarefaId}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -2432,8 +2481,8 @@ async function salvarCampoEditado() {
     }
 
     fecharModalEditarCampoFunc();
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     mostrarMensagem("Informação salva com sucesso!");
   } catch (erro) {
     console.error("Erro ao editar campo:", erro);
@@ -3130,7 +3179,7 @@ async function abrirModalFrequenciaRotina(manterAberto = false) {
 
   try {
     const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotinaSelecionadaId}`,
+      `${API_BASE_URL}/tarefas?rotina_id=${rotinaSelecionadaId}`,
       {
         headers: headersAuth(),
       },
@@ -4286,33 +4335,20 @@ function verificarFeriadosComAntecedencia() {
 }
 
 async function carregarTarefasUsuarioParaNotificacoes() {
-  const tarefasUsuario = [];
-  const respostaRotinas = await fetch(
-    `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-    {
-      headers: headersAuth(),
-    },
+  const rotinas = await buscarRotinas();
+  const tarefasPorRotina = await Promise.all(
+    rotinas.map(async (rotina) => ({
+      rotina,
+      tarefas: await buscarTarefasDaRotina(rotina.id),
+    })),
   );
-  const rotinas = await lerListaJson(respostaRotinas);
 
-  for (const rotina of rotinas) {
-    const respostaTarefas = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const tarefas = await lerListaJson(respostaTarefas);
-
-    tarefas.forEach((tarefa) => {
-      tarefasUsuario.push({
-        ...tarefa,
-        rotinaNome: rotina.nome,
-      });
-    });
-  }
-
-  return tarefasUsuario;
+  return tarefasPorRotina.flatMap(({ rotina, tarefas }) =>
+    tarefas.map((tarefa) => ({
+      ...tarefa,
+      rotinaNome: rotina.nome,
+    })),
+  );
 }
 
 async function verificarTarefasComAntecedencia() {
@@ -4399,7 +4435,7 @@ async function verificarLembretesComAntecedencia() {
 
   try {
     const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/lembretes`,
+      `${API_BASE_URL}/lembretes`,
       {
         headers: headersAuth(),
       },
@@ -4610,43 +4646,18 @@ async function mostrarResumoDiario() {
       return;
     if (localStorage.getItem("resumoMostrado") === resumoHoje) return;
 
-    let totalTarefas = 0;
-    let totalLembretes = 0;
-    const feriadosHoje = obterFeriadosBrasileiros(
-      new Date().getFullYear(),
-    ).filter((feriado) => feriado.data === dataHojeISO());
+    const rotinas = await buscarRotinas();
+    const [tarefasPorRotina, lembretes] = await Promise.all([
+      Promise.all(rotinas.map((rotina) => buscarTarefasDaRotina(rotina.id))),
+      buscarLembretes(),
+    ]);
 
-    const resRotinas = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const rotinas = await lerListaJson(resRotinas);
+    const totalTarefas = tarefasPorRotina
+      .flat()
+      .filter((t) => !String(t.status).toLowerCase().includes("conclu"))
+      .length;
 
-    for (const rotina of rotinas) {
-      const resTarefas = await fetch(
-        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
-        {
-          headers: headersAuth(),
-        },
-      );
-      const tarefas = await lerListaJson(resTarefas);
-
-      totalTarefas += tarefas.filter(
-        (t) => !String(t.status).toLowerCase().includes("conclu"),
-      ).length;
-    }
-
-    const resLembretes = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/lembretes`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const lembretes = await lerListaJson(resLembretes);
-
-    totalLembretes = lembretes.filter(
+    const totalLembretes = lembretes.filter(
       (l) => !String(l.status).toLowerCase().includes("conclu"),
     ).length;
 
@@ -5145,13 +5156,7 @@ function fecharModalNovaRotina() {
 
 async function carregarRotinas() {
   try {
-    const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const rotinas = await lerListaJson(resposta);
+    const rotinas = await buscarRotinas({ force: true });
 
     listaRotinas.innerHTML = "";
 
@@ -5253,7 +5258,7 @@ function excluirRotinaSelecionada() {
 async function excluirRotinaConfirmada() {
   try {
     const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas/${rotinaSelecionadaId}`,
+      `${API_BASE_URL}/rotinas/${rotinaSelecionadaId}`,
       {
         method: "DELETE",
         headers: headersAuth(),
@@ -5268,6 +5273,8 @@ async function excluirRotinaConfirmada() {
     }
 
     mostrarAviso("Aviso", "Rotina excluída com sucesso!");
+    invalidarCacheTarefas(rotinaSelecionadaId);
+    invalidarCacheRotinas();
 
     rotinaSelecionadaId = null;
     rotinaSelecionadaNome = "";
@@ -5356,13 +5363,15 @@ async function salvarOrdemRotinas() {
   }));
 
   try {
-    await fetch("https://mynote-app-production-cb61.up.railway.app/rotinas/ordem/atualizar", {
+    await fetch(`${API_BASE_URL}/rotinas/ordem/atualizar`, {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify({
         rotinas: rotinasOrdenadas,
       }),
     });
+    invalidarCacheRotinas();
+    invalidarCacheRotinas();
   } catch (erro) {
     console.error("Erro ao salvar ordem das rotinas:", erro);
   }
@@ -5634,7 +5643,7 @@ async function salvarOrdemTarefasTabela() {
   try {
     await Promise.all(
       linhas.map((linha, index) => {
-        return fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${linha.dataset.id}`, {
+        return fetch(`${API_BASE_URL}/tarefas/${linha.dataset.id}`, {
           method: "PUT",
           headers: headersAuth(),
           body: JSON.stringify({
@@ -6423,7 +6432,7 @@ function ativarEventosCardsPersonalizados(tarefas) {
       const novoConcluida = !tarefa.concluida;
       const novoStatus = novoConcluida ? "Concluída" : "Pendente";
 
-      await fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
+      await fetch(`${API_BASE_URL}/tarefas/${tarefa.id}`, {
         method: "PUT",
         headers: headersAuth(),
         body: JSON.stringify({
@@ -6432,8 +6441,8 @@ function ativarEventosCardsPersonalizados(tarefas) {
         }),
       });
 
-      delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+      invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     });
 
     btnExcluir?.addEventListener("click", async (event) => {
@@ -6442,13 +6451,13 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
       mostrarConfirmacao(
         `Deseja excluir a tarefa "${tarefa.titulo}"?`,
         async () => {
-          await fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
+          await fetch(`${API_BASE_URL}/tarefas/${tarefa.id}`, {
             method: "DELETE",
             headers: headersAuth(),
           });
 
-          delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+          invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         },
       );
     });
@@ -6465,9 +6474,9 @@ function renderizarCardsPersonalizados(tarefas, campos) {
     return;
   }
 
-  tarefas.forEach((tarefa) => {
-    areaTreino.innerHTML += montarCardPersonalizado(tarefa, campos);
-  });
+  areaTreino.innerHTML = tarefas
+    .map((tarefa) => montarCardPersonalizado(tarefa, campos))
+    .join("");
 
   ativarEventosCardsPersonalizados(tarefas);
 }
@@ -6513,25 +6522,6 @@ async function carregarTarefas(rotinaId, nomeRotina) {
     rotinaSelecionadaId = rotinaId;
     rotinaSelecionadaNome = nomeRotina;
     tituloRotina.textContent = nomeRotina;
-
-    if (cacheTarefasPorRotina[rotinaId]) {
-  const tarefas = cacheTarefasPorRotina[rotinaId];
-
-  if (obterTipoRotina(nomeRotina) === "treino") {
-    tabelaCard.classList.add("hidden");
-    areaTreino.classList.remove("hidden");
-    renderizarTreino(tarefas);
-    return;
-  }
-
-  if (obterTipoRotina(nomeRotina) === "semanal") {
-    tabelaCard.classList.add("hidden");
-    areaTreino.classList.remove("hidden");
-    renderizarSemanal(tarefas);
-    return;
-  }
-}
-
     const tipoRotina = obterTipoRotina(nomeRotina);
     atualizarVisibilidadeBotaoFrequenciaRotina(tipoRotina);
 
@@ -6540,7 +6530,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
     }
 
     const rotinaResposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas/${rotinaId}`,
+      `${API_BASE_URL}/rotinas/${rotinaId}`,
       {
         headers: headersAuth(),
       },
@@ -6576,18 +6566,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
 
     atualizarBotaoSilenciarRotina();
 
-    const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotinaId}`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const tarefas = ordenarTarefasPorPreferencia(
-      await resposta.json(),
-      preferenciasSite?.ordenacao_tarefas,
-    );
-
-    cacheTarefasPorRotina[rotinaId] = tarefas;
+    const tarefas = await buscarTarefasDaRotina(rotinaId);
 
     if (tipoRotina === "treino") {
       tabelaCard.classList.add("hidden");
@@ -6704,7 +6683,7 @@ if (btnCheckTarefa) {
   btnCheckTarefa.dataset.concluida = String(novoConcluida);
 }
 
-delete cacheTarefasPorRotina[rotinaSelecionadaId];
+invalidarCacheTarefas(rotinaSelecionadaId);
         } catch (erro) {
           console.error("Erro ao atualizar tarefa:", erro);
         }
@@ -6743,7 +6722,7 @@ delete cacheTarefasPorRotina[rotinaSelecionadaId];
           event.stopPropagation();
 
           try {
-            await fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`, {
+            await fetch(`${API_BASE_URL}/tarefas/${tarefa.id}`, {
               method: "PUT",
               headers: headersAuth(),
               body: JSON.stringify({
@@ -6753,8 +6732,8 @@ delete cacheTarefasPorRotina[rotinaSelecionadaId];
               }),
             });
 
-            delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+            invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
           } catch (erro) {
             console.error("Erro ao alterar notificação:", erro);
             mostrarAviso("erro", "Não foi possível alterar a notificação.");
@@ -6773,7 +6752,7 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
 
         try {
           const resposta = await fetch(
-            `https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefa.id}`,
+            `${API_BASE_URL}/tarefas/${tarefa.id}`,
             {
               method: "DELETE",
               headers: headersAuth(),
@@ -6788,8 +6767,8 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
           }
 
           mostrarAviso("sucesso", "Tarefa excluída com sucesso!");
-          delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+          invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         } catch (erro) {
           console.error("Erro ao excluir tarefa:", erro);
           mostrarAviso("erro", "Não foi possível excluir a tarefa.");
@@ -7050,7 +7029,7 @@ async function salvarNovaTarefa() {
   }
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/tarefas", {
+    const resposta = await fetch(`${API_BASE_URL}/tarefas`, {
       method: "POST",
       headers: headersAuth(),
       body: JSON.stringify(dados),
@@ -7065,8 +7044,8 @@ async function salvarNovaTarefa() {
 
     mostrarAviso("sucesso", "Tarefa criada com sucesso!");
     fecharModalNovaTarefa();
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro completo ao criar tarefa:", erro);
     mostrarAviso(
@@ -7156,7 +7135,7 @@ async function salvarOrdemTreino() {
   try {
     await Promise.all(
       cards.map((card, index) => {
-        return fetch(`https://mynote-app-production-cb61.up.railway.app/tarefas/${card.dataset.id}`, {
+        return fetch(`${API_BASE_URL}/tarefas/${card.dataset.id}`, {
           method: "PUT",
           headers: headersAuth(),
           body: JSON.stringify({
@@ -7167,8 +7146,8 @@ async function salvarOrdemTreino() {
       }),
     );
 
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro ao salvar ordem do treino:", erro);
     mostrarAviso("erro", "Não foi possível salvar a ordem dos exercícios.");
@@ -7265,20 +7244,23 @@ function renderizarVisaoAnual() {
       7;
     const totalDias = new Date(ano, indexMes + 1, 0).getDate();
 
-    for (let i = 0; i < primeiroDia; i++) {
-      grade.innerHTML += `<span class="mini-dia vazio"></span>`;
-    }
-
-    for (let dia = 1; dia <= totalDias; dia++) {
+    const diasVazios = Array.from(
+      { length: primeiroDia },
+      () => `<span class="mini-dia vazio"></span>`,
+    );
+    const diasDoMes = Array.from({ length: totalDias }, (_, indice) => {
+      const dia = indice + 1;
       const ehHoje =
         ano === anoHoje && indexMes === mesHoje - 1 && dia === diaHoje;
 
-      grade.innerHTML += `
-  <span class="mini-dia ${ehHoje ? "mini-dia-hoje" : ""}">
-    ${dia}
-  </span>
-`;
-    }
+      return `
+        <span class="mini-dia ${ehHoje ? "mini-dia-hoje" : ""}">
+          ${dia}
+        </span>
+      `;
+    });
+
+    grade.innerHTML = [...diasVazios, ...diasDoMes].join("");
 
     cardMes.addEventListener("click", () => {
       voltarParaMes(indexMes);
@@ -7301,7 +7283,7 @@ async function excluirLembretesConcluidos() {
     async () => {
       try {
         const resposta = await fetch(
-          `https://mynote-app-production-cb61.up.railway.app/lembretes`,
+          `${API_BASE_URL}/lembretes`,
           {
             headers: headersAuth(),
           },
@@ -7319,7 +7301,7 @@ async function excluirLembretesConcluidos() {
 
         await Promise.all(
           concluidos.map((lembrete) =>
-            fetch(`https://mynote-app-production-cb61.up.railway.app/lembretes/${lembrete.id}`, {
+            fetch(`${API_BASE_URL}/lembretes/${lembrete.id}`, {
               method: "DELETE",
               headers: headersAuth(),
             }),
@@ -7343,7 +7325,7 @@ async function excluirTodosLembretes() {
   mostrarConfirmacao("Deseja excluir TODOS os lembretes?", async () => {
     try {
       const resposta = await fetch(
-        `https://mynote-app-production-cb61.up.railway.app/lembretes`,
+        `${API_BASE_URL}/lembretes`,
         {
           headers: headersAuth(),
         },
@@ -7352,7 +7334,7 @@ async function excluirTodosLembretes() {
 
       await Promise.all(
         lembretes.map((lembrete) =>
-          fetch(`https://mynote-app-production-cb61.up.railway.app/lembretes/${lembrete.id}`, {
+          fetch(`${API_BASE_URL}/lembretes/${lembrete.id}`, {
             method: "DELETE",
             headers: headersAuth(),
           }),
@@ -7484,14 +7466,7 @@ function abrirOpcoesAntecedenciaLembrete(lembrete) {
 
 async function carregarLembretes() {
   try {
-    const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/lembretes`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    let lembretes = await lerListaJson(resposta);
-    lembretes = await apagarLembretesVencidos(lembretes);
+    const lembretes = await buscarLembretes({ force: true });
 
     corpoTabelaLembretes.innerHTML = "";
 
@@ -7551,7 +7526,7 @@ async function carregarLembretes() {
             lembrete.status === "Concluído" ? "Pendente" : "Concluído";
 
           const resposta = await fetch(
-            `https://mynote-app-production-cb61.up.railway.app/lembretes/${lembrete.id}`,
+            `${API_BASE_URL}/lembretes/${lembrete.id}`,
             {
               method: "PUT",
               headers: headersAuth(),
@@ -7587,7 +7562,7 @@ async function carregarLembretes() {
       btnNotificacao.addEventListener("click", async (event) => {
         event.stopPropagation();
 
-        await fetch(`https://mynote-app-production-cb61.up.railway.app/lembretes/${lembrete.id}`, {
+        await fetch(`${API_BASE_URL}/lembretes/${lembrete.id}`, {
           method: "PUT",
           headers: headersAuth(),
           body: JSON.stringify({
@@ -7606,7 +7581,7 @@ async function carregarLembretes() {
           async () => {
             try {
               const resposta = await fetch(
-                `https://mynote-app-production-cb61.up.railway.app/lembretes/${lembrete.id}`,
+                `${API_BASE_URL}/lembretes/${lembrete.id}`,
                 {
                   method: "DELETE",
                   headers: headersAuth(),
@@ -7649,7 +7624,7 @@ async function salvarNovoLembrete() {
     };
 
     await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/lembretes/${lembreteCalendarioEmEdicao.lembreteId}`,
+      `${API_BASE_URL}/lembretes/${lembreteCalendarioEmEdicao.lembreteId}`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -7687,8 +7662,8 @@ async function salvarNovoLembrete() {
   try {
     const resposta = await fetch(
       lembreteEditandoId
-        ? `https://mynote-app-production-cb61.up.railway.app/lembretes/${lembreteEditandoId}`
-        : "https://mynote-app-production-cb61.up.railway.app/lembretes",
+        ? `${API_BASE_URL}/lembretes/${lembreteEditandoId}`
+        : `${API_BASE_URL}/lembretes`,
       {
         method: lembreteEditandoId ? "PUT" : "POST",
         headers: headersAuth(),
@@ -7732,7 +7707,7 @@ corpoTabelaLembretes.addEventListener("click", async (event) => {
   const concluidaAtual = btnCheck.dataset.concluida === "true";
 
   try {
-    await fetch(`https://mynote-app-production-cb61.up.railway.app/lembretes/${lembreteId}`, {
+    await fetch(`${API_BASE_URL}/lembretes/${lembreteId}`, {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify({
@@ -7753,7 +7728,7 @@ campoNotas.addEventListener("blur", async () => {
 
   try {
     const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas/${rotinaSelecionadaId}/notas`,
+      `${API_BASE_URL}/rotinas/${rotinaSelecionadaId}/notas`,
       {
         method: "PUT",
         headers: headersAuth(),
@@ -7848,11 +7823,10 @@ salvarRotina.addEventListener("click", async () => {
   }
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/rotinas", {
+    const resposta = await fetch(`${API_BASE_URL}/rotinas`, {
       method: "POST",
       headers: headersAuth(),
       body: JSON.stringify({
-        headers: headersAuth(),
         nome,
         tipo_modelo: tipoModeloRotina,
         campos_config: camposSelecionados,
@@ -7877,6 +7851,7 @@ salvarRotina.addEventListener("click", async () => {
 
     mostrarAviso("sucesso", "Rotina criada com sucesso!");
     fecharModalNovaRotina();
+    invalidarCacheRotinas();
     carregarRotinas();
   } catch (erro) {
     console.error("Erro ao criar rotina:", erro);
@@ -7928,8 +7903,8 @@ btnEditarTabela.addEventListener("click", () => {
 
   opcoesRotina.classList.add("hidden");
 
-  delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+  invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
 });
 
 btnExcluirRotina.addEventListener("click", excluirRotinaSelecionada);
@@ -7956,8 +7931,8 @@ corpoTabelaTarefas.addEventListener("click", async (event) => {
       status: !concluidaAtual ? "Concluída" : "Pendente",
     });
 
-    delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro ao concluir tarefa:", erro);
     mostrarAviso("erro", "Não foi possível atualizar a tarefa.");
@@ -8153,6 +8128,20 @@ function chaveEventosCalendario() {
   return `eventosCalendario_${usuario.id}`;
 }
 
+function agruparEventosPorData(eventos) {
+  return eventos.reduce((mapa, evento) => {
+    if (!mapa.has(evento.data)) {
+      mapa.set(evento.data, []);
+    }
+    mapa.get(evento.data).push(evento);
+    return mapa;
+  }, new Map());
+}
+
+function obterEventosDoDiaCalendario(dataISO) {
+  return eventosPorDataCalendario.get(dataISO) || [];
+}
+
 function carregarEventosManuais() {
   const eventos =
     JSON.parse(localStorage.getItem(chaveEventosCalendario())) || [];
@@ -8205,23 +8194,15 @@ async function carregarEventosDasTarefas() {
   const anoAtual = dataCalendarioAtual.getFullYear();
 
   try {
-    const respostaRotinas = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-      {
-        headers: headersAuth(),
-      },
+    const rotinas = await buscarRotinas();
+    const tarefasPorRotina = await Promise.all(
+      rotinas.map(async (rotina) => ({
+        rotina,
+        tarefas: await buscarTarefasDaRotina(rotina.id),
+      })),
     );
-    const rotinas = await lerListaJson(respostaRotinas);
 
-    for (const rotina of rotinas) {
-      const respostaTarefas = await fetch(
-        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
-        {
-          headers: headersAuth(),
-        },
-      );
-      const tarefas = await lerListaJson(respostaTarefas);
-
+    tarefasPorRotina.forEach(({ rotina, tarefas }) => {
       tarefas.forEach((tarefa) => {
         if (!tarefa.prazo) return;
 
@@ -8240,7 +8221,7 @@ async function carregarEventosDasTarefas() {
           prazo: tarefa.prazo,
         });
       });
-    }
+    });
   } catch (erro) {
     console.error("Erro ao carregar tarefas para o calendário:", erro);
   }
@@ -8264,15 +8245,7 @@ async function carregarEventosDosLembretes() {
   const anoAtual = dataCalendarioAtual.getFullYear();
 
   try {
-    const resposta = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/lembretes`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    let lembretes = await lerListaJson(resposta);
-
-    lembretes = await apagarLembretesVencidos(lembretes);
+    const lembretes = await buscarLembretes();
 
     lembretes.forEach((lembrete) => {
       if (!lembrete.dia_mes) return;
@@ -8317,9 +8290,10 @@ async function atualizarEventosCalendario() {
     ...eventosLembretes,
     ...eventosFeriados,
   ];
+  eventosPorDataCalendario = agruparEventosPorData(eventosCalendario);
 }
 
-async function renderizarCalendario() {
+async function renderizarCalendario({ atualizarEventos = true } = {}) {
   const hojeISO = dataHojeISO();
 
   if (btnHojeCalendario) {
@@ -8328,9 +8302,12 @@ async function renderizarCalendario() {
 
   if (!areaCalendario) return;
 
-  await atualizarEventosCalendario();
+  if (atualizarEventos) {
+    await atualizarEventosCalendario();
+  }
 
   diasCalendario.innerHTML = "";
+  const fragmentoDias = document.createDocumentFragment();
 
   const ano = dataCalendarioAtual.getFullYear();
   const mes = dataCalendarioAtual.getMonth();
@@ -8362,16 +8339,14 @@ async function renderizarCalendario() {
   for (let i = 0; i < diaSemanaInicio; i++) {
     const vazio = document.createElement("div");
     vazio.classList.add("dia-calendario", "dia-vazio");
-    diasCalendario.appendChild(vazio);
+    fragmentoDias.appendChild(vazio);
   }
 
   for (let dia = 1; dia <= totalDias; dia++) {
     const data = new Date(ano, mes, dia);
     const dataISO = formatarDataISO(data);
 
-    const eventosDoDia = eventosCalendario.filter(
-      (evento) => evento.data === dataISO,
-    );
+    const eventosDoDia = obterEventosDoDiaCalendario(dataISO);
 
     const cardDia = document.createElement("div");
     cardDia.classList.add("dia-calendario");
@@ -8431,17 +8406,19 @@ async function renderizarCalendario() {
     cardDia.addEventListener("click", () => {
       dataSelecionadaCalendario = dataISO;
       mostrarEventosDoDia(dataISO);
-      renderizarCalendario();
+      renderizarCalendario({ atualizarEventos: false });
     });
 
-    diasCalendario.appendChild(cardDia);
+    fragmentoDias.appendChild(cardDia);
   }
+
+  diasCalendario.appendChild(fragmentoDias);
 }
 
 function mostrarEventosDoDia(dataISO) {
-  const eventosDoDia = eventosCalendario
-    .filter((evento) => evento.data === dataISO)
-    .sort((a, b) => (a.horario || "").localeCompare(b.horario || ""));
+  const eventosDoDia = [...obterEventosDoDiaCalendario(dataISO)].sort((a, b) =>
+    (a.horario || "").localeCompare(b.horario || ""),
+  );
 
   painelEventosDia.classList.remove("hidden");
   tituloEventosDia.textContent = `${MyNotePrefs.t("Eventos de")} ${formatarDataBR(dataISO)}`;
@@ -8510,12 +8487,13 @@ function mostrarEventosDoDia(dataISO) {
         mostrarConfirmacao(`Excluir "${evento.titulo}"?`, async () => {
           if (evento.tipo === "lembrete") {
             await fetch(
-              `https://mynote-app-production-cb61.up.railway.app/lembretes/${evento.lembreteId}`,
+              `${API_BASE_URL}/lembretes/${evento.lembreteId}`,
               {
                 method: "DELETE",
                 headers: headersAuth(),
               },
             );
+            invalidarCacheLembretes();
           } else if (evento.tipo === "manual") {
             const eventos = carregarEventosManuais().filter(
               (ev) => String(ev.id) !== String(evento.id),
@@ -8646,6 +8624,7 @@ document.addEventListener(
     const btn = event.target.closest(".btn-excluir");
 
     if (!btn) return;
+    if (btn.dataset.tipo === "lembrete") return;
 
     const item = btn.closest("[data-id]");
     const tarefaId = btn.dataset.id || item?.dataset.id;
@@ -8675,7 +8654,7 @@ document.addEventListener(
     okModalAviso.onclick = async () => {
       try {
         const resposta = await fetch(
-          `https://mynote-app-production-cb61.up.railway.app/tarefas/${tarefaId}`,
+          `${API_BASE_URL}/tarefas/${tarefaId}`,
           {
             method: "DELETE",
             headers: headersAuth(),
@@ -8690,8 +8669,8 @@ document.addEventListener(
         modalAviso.classList.add("hidden");
         okModalAviso.textContent = "OK";
 
-        delete cacheTarefasPorRotina[rotinaSelecionadaId];
-carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+        invalidarCacheTarefas(rotinaSelecionadaId);
+      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
         mostrarMensagem("Tarefa excluída com sucesso!");
       } catch (erro) {
         console.error("Erro ao excluir tarefa:", erro);
@@ -8703,11 +8682,28 @@ carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
 );
 
 //Inicialização
+async function executarVerificacoesNotificacao() {
+  if (verificacoesNotificacaoEmExecucao) return;
+
+  verificacoesNotificacaoEmExecucao = true;
+  try {
+    await Promise.all([
+      verificarLembretesComAntecedencia(),
+      verificarTarefasComAntecedencia(),
+    ]);
+    verificarEventosCalendarioComAntecedencia();
+    verificarFeriadosComAntecedencia();
+  } finally {
+    verificacoesNotificacaoEmExecucao = false;
+  }
+}
+
 async function inicializarDashboard() {
   await carregarTemaDashboard();
-  await inicializarPermissaoNotificacao();
-  await carregarRotinas();
-  await carregarLembretes();
+  inicializarPermissaoNotificacao().catch((erro) => {
+    console.warn("Nao foi possivel inicializar notificacoes:", erro);
+  });
+  await Promise.all([carregarRotinas(), carregarLembretes()]);
 
   // Roda o reset depois que a tela já carregou, sem travar o usuário
   setTimeout(() => {
@@ -8716,18 +8712,11 @@ async function inicializarDashboard() {
 
   mostrarCalendarioDashboard();
 
-  mostrarResumoDiario();
+  setTimeout(mostrarResumoDiario, 1500);
   iniciarOnboardingPrimeiroAcesso();
 
-  verificarLembretesComAntecedencia();
-  verificarTarefasComAntecedencia();
-  verificarEventosCalendarioComAntecedencia();
-  verificarFeriadosComAntecedencia();
-
-  setInterval(verificarLembretesComAntecedencia, 30000);
-  setInterval(verificarTarefasComAntecedencia, 30000);
-  setInterval(verificarEventosCalendarioComAntecedencia, 30000);
-  setInterval(verificarFeriadosComAntecedencia, 30000);
+  setTimeout(executarVerificacoesNotificacao, 2000);
+  setInterval(executarVerificacoesNotificacao, 30000);
 }
 
 inicializarDashboard();

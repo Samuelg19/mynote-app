@@ -1,3 +1,4 @@
+const API_URL = "https://mynote-app-production-cb61.up.railway.app";
 const form = document.getElementById("formReset");
 
 const params = new URLSearchParams(window.location.search);
@@ -15,7 +16,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/redefinir-senha", {
+    const resposta = await fetch(`${API_URL}/auth/redefinir-senha`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

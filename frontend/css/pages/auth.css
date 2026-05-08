@@ -1,0 +1,510 @@
+/* Login, cadastro e recuperação */
+
+/* Login */
+.login-body {
+  min-height: 100vh;
+  background: #f4efe4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #17325c;
+}
+
+.login-page {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  text-align: center;
+}
+
+.login-header {
+  margin-bottom: 24px;
+}
+
+.logo-circle {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: #f3b083;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-circle img {
+  width: 135%;
+  height: 135%;
+  object-fit: contain;
+  transform: translate(-2px, -2px);
+}
+
+.login-header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.login-header p {
+  font-size: 1rem;
+  color: #33527f;
+}
+
+.login-card {
+  background: #f8f8f8;
+  border: 1px solid #ebd7c7;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  text-align: left;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.g_id_signin {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.g_id_signin > div {
+  width: 100% !important;
+  max-width: 360px;
+}
+
+.g_id_signin iframe {
+  width: 100% !important;
+  max-width: 360px !important;
+}
+
+.login-card label {
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.login-card input[type="email"],
+.login-card input[type="password"] {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d7dce3;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: #eef1f5;
+}
+
+.login-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+}
+
+.login-footer-text {
+  text-align: center;
+  margin-top: 10px;
+  color: #33527f;
+}
+
+.bottom-text {
+  margin-top: 22px;
+  color: #4f6688;
+  font-size: 0.95rem;
+}
+
+/* Botões do login */
+.btn-login {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-login:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.login-card .btn-primary {
+  width: 100%;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: bold;
+  background: linear-gradient(90deg, #ffb45c, #ff8a00);
+  color: #172b4d;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.login-card .btn-primary:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+
+.login-error-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(23, 50, 92, 0.36);
+  backdrop-filter: blur(6px);
+}
+
+.login-error-card {
+  position: relative;
+  width: min(100%, 380px);
+  border: 1px solid rgba(235, 215, 199, 0.95);
+  border-radius: 18px;
+  background: #fffaf4;
+  padding: 28px;
+  color: #17325c;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(23, 50, 92, 0.2);
+  animation: login-error-enter 0.18s ease-out;
+}
+
+.login-error-card::before {
+  content: "!";
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #ffe4d2;
+  color: #f97316;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.login-error-card h2 {
+  margin-bottom: 8px;
+  font-size: 1.3rem;
+  color: #17325c;
+}
+
+.login-error-card p {
+  margin-bottom: 22px;
+  color: #4f6688;
+  line-height: 1.45;
+}
+
+.login-error-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #4f6688;
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.login-error-close:hover {
+  background: #f4efe4;
+  color: #17325c;
+}
+
+.login-error-ok {
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  color: #17325c;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.22);
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.login-error-ok:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.login-error-close:focus-visible,
+.login-error-ok:focus-visible {
+  outline: 3px solid rgba(249, 115, 22, 0.32);
+  outline-offset: 3px;
+}
+
+@keyframes login-error-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+.btn-reset,
+.btn-esqueci {
+  width: 100%;
+  margin-top: 6px;
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  color: #17325c;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.22);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.btn-reset:hover,
+.btn-esqueci:hover {
+  filter: brightness(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px rgba(249, 115, 22, 0.28);
+}
+
+.btn-reset:active,
+.btn-esqueci:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 16px rgba(249, 115, 22, 0.2);
+}
+
+.btn-reset:focus-visible,
+.btn-esqueci:focus-visible {
+  outline: 3px solid rgba(251, 146, 60, 0.35);
+  outline-offset: 3px;
+}
+
+.cadastro-body {
+  min-height: 100vh;
+  background: #f4efe4;
+  color: #17325c;
+}
+
+.cadastro-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: 24px;
+  position: relative;
+}
+
+.cadastro-header {
+  text-align: center;
+}
+
+.cadastro-logo {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 24px;
+
+  border-radius: 50%;
+  background: #fb923c;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+}
+
+/* imagem dentro do círculo */
+.cadastro-logo img {
+  width: 58%;
+  height: 58%;
+  object-fit: contain;
+  display: block;
+}
+
+.cadastro-header h1 {
+  font-size: 1.7rem;
+  margin-bottom: 14px;
+}
+
+.cadastro-header p {
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.cadastro-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #eadfd2;
+  border-radius: 16px;
+  padding: 34px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.cadastro-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cadastro-card label {
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #17325c;
+  margin-top: 8px;
+}
+
+.cadastro-card input {
+  width: 100%;
+  padding: 15px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #f2f4f7;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.cadastro-card input:focus {
+  outline: 2px solid #fb923c;
+  background: #ffffff;
+}
+
+.btn-cadastro {
+  margin-top: 14px;
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  background: #fb923c;
+  color: #111827;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-cadastro:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+
+.cadastro-login {
+  margin-top: 18px;
+  text-align: center;
+  color: #64748b;
+}
+
+.cadastro-login a {
+  color: #f97316;
+  text-decoration: none;
+}
+
+.cadastro-login a:hover {
+  text-decoration: underline;
+}
+
+.cadastro-footer {
+  color: #64748b;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.btn-ajuda {
+  position: fixed;
+  right: 26px;
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: #17325c;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+}
+
+.social-cadastro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.divisor-cadastro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 12px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.divisor-cadastro::before,
+.divisor-cadastro::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* ================= BOT�ES PROFISSIONAIS ================= */
+
+.login-body button,
+.dashboard-body button,
+.cadastro-body button,
+.configuracoes-body button {
+  transition: all 0.2s ease;
+}
+
+/* bot�es */
+.login-body button,
+.dashboard-body button,
+.cadastro-body button,
+.configuracoes-body button {
+  user-select: none;
+}
+
+.login-body button:active,
+.dashboard-body button:active,
+.cadastro-body button:active,
+.configuracoes-body button:active {
+  transform: scale(0.98);
+}
+
+body.dashboard-body :is(.login-footer-text, .bottom-text, small, .cadastro-footer),
+body.dashboard-body .dashboard-main .tabela-tarefas th {
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted) !important;
+}

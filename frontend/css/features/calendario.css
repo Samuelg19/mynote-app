@@ -1,0 +1,1315 @@
+/* Calendário */
+
+.card-calendario {
+  background: #1f2937;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.calendario-topo {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  border-radius: 14px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.calendario-topo h2 {
+  color: white;
+  font-size: 28px;
+  margin: 0;
+}
+
+.calendario-topo button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 34px;
+  cursor: pointer;
+}
+
+.calendario-semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.calendario-semana span {
+  background: #2d3748;
+  color: #c084fc;
+  text-align: center;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.calendario-dias {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.dia-calendario {
+  min-height: 115px;
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+  overflow: hidden;
+}
+
+.dia-calendario:hover {
+  border-color: #a855f7;
+  transform: translateY(-2px);
+}
+
+.dia-vazio {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.dia-vazio:hover {
+  transform: none;
+  border: none;
+}
+
+.numero-dia {
+  color: white;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.dia-hoje .numero-dia {
+  background: #a855f7;
+  color: white;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.eventos-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.evento-mini {
+  background: #8b5cf6;
+  color: white;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.evento-tarefa {
+  background: #ec4899;
+}
+
+.evento-mais {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.painel-eventos-dia {
+  margin-top: 22px;
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.painel-eventos-dia h3 {
+  margin-bottom: 12px;
+  color: white;
+}
+
+.evento-dia-item {
+  background: #1f2937;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.evento-dia-item strong {
+  color: white;
+}
+
+.evento-dia-item span {
+  color: #c084fc;
+}
+
+.evento-dia-item small {
+  color: #94a3b8;
+}
+
+.btn-evento-flutuante {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: none;
+  background: #a855f7;
+  color: white;
+  font-size: 32px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  z-index: 2001;
+}
+
+.btn-evento-flutuante:hover {
+  transform: scale(1.05);
+}
+
+.btn-calendario-sidebar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 17px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.65);
+  transition: 0.2s ease;
+}
+
+.btn-calendario-sidebar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.95);
+}
+
+.btn-calendario-sidebar:active {
+  transform: scale(0.95);
+}
+
+#modalEventoCalendario .modal-content {
+  width: 430px;
+  max-width: 92%;
+  padding: 26px;
+  border-radius: 18px;
+  background: #1f2937;
+  border: 1px solid #334155;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+#modalEventoCalendario h2 {
+  margin: 0 0 18px;
+  color: white;
+  font-size: 26px;
+}
+
+#modalEventoCalendario label {
+  display: block;
+  margin: 14px 0 6px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+#modalEventoCalendario input {
+  width: 100%;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #111827;
+  color: white;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+#modalEventoCalendario input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+#modalEventoCalendario .btn-fechar {
+  float: right;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+#modalEventoCalendario .btn-primario {
+  margin-top: 18px;
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+}
+
+#modalEventoCalendario select {
+  width: 100%;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #111827;
+  color: white;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+#modalEventoCalendario select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+.evento-unico {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+}
+
+.evento-permanente {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+}
+
+.evento-aniversario {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+}
+
+#modalEventoCalendario .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 0;
+  color: #cbd5e1;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#modalEventoCalendario .checkbox-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.visao-anual-calendario.hidden,
+.calendario-dias.hidden,
+.calendario-semana.hidden {
+  display: none;
+}
+
+.ano-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 0;
+}
+
+.ano-topo h2 {
+  font-size: 34px;
+  color: white;
+}
+
+.ano-topo button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 34px;
+  cursor: pointer;
+}
+
+.meses-ano-calendario {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.mini-mes {
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.mini-mes:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.mini-mes h3 {
+  color: white;
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.mini-dia {
+  color: #cbd5e1;
+  font-size: 13px;
+  text-align: center;
+}
+
+.mini-dia.vazio {
+  opacity: 0;
+}
+
+.mini-dia.hoje {
+  background: var(--accent);
+  color: white;
+  border-radius: 999px;
+}
+
+.visao-anual-calendario {
+  margin-top: 24px;
+}
+
+.visao-anual-calendario.hidden {
+  display: none;
+}
+
+.meses-ano-calendario {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.mini-mes {
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.mini-mes h3 {
+  color: white;
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.mini-dia {
+  color: #cbd5e1;
+  font-size: 12px;
+  text-align: center;
+  padding: 2px 0;
+}
+
+.btn-hoje-calendario {
+  position: fixed;
+  right: 96px;
+  bottom: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: #0ea5e9;
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(14, 165, 233, 0.75);
+  transition: 0.2s;
+  z-index: 2000;
+}
+
+.btn-hoje-calendario:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 24px rgba(14, 165, 233, 1);
+}
+
+.mini-mes-atual {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 18px rgba(14, 165, 233, 0.45);
+}
+
+.mini-mes-atual h3 {
+  color: #38bdf8;
+}
+
+.mini-dia-hoje {
+  background: #0ea5e9;
+  color: white;
+  border-radius: 999px;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.8);
+}
+
+.evento-lembrete-alta {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+.evento-lembrete-media {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+}
+
+.evento-lembrete-baixa {
+  background: linear-gradient(135deg, #22c55e, #15803d);
+}
+
+.evento-dia-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.evento-dia-acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-editar-evento-dia,
+.btn-excluir-evento-dia {
+  border: none;
+  background: transparent;
+  font-size: 26px;
+  cursor: pointer;
+}
+
+.btn-editar-evento-dia {
+  color: #f97316;
+}
+
+.btn-excluir-evento-dia {
+  color: #94a3b8;
+}
+
+.evento-dia-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  text-align: left !important;
+}
+
+.evento-dia-info {
+  flex: 1 !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+}
+
+.evento-dia-acoes {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 14px !important;
+}
+
+/* Corrigir ícones de data e hora no modal de evento */
+#modalEventoCalendario input[type="date"],
+#modalEventoCalendario input[type="time"] {
+  color-scheme: dark !important;
+}
+
+#modalEventoCalendario input[type="date"]::-webkit-calendar-picker-indicator,
+#modalEventoCalendario input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(2) !important;
+  opacity: 1 !important;
+  cursor: pointer;
+}
+
+/* ===== Correção geral dos modais no modo escuro ===== */
+
+body.tema-escuro .modal,
+body.tema-escuro .modal-content,
+body.tema-escuro .modal-rotina,
+body.tema-escuro #modalEventoCalendario .modal-content {
+  color: #f8fafc !important;
+}
+
+body.tema-escuro .modal input[type="date"]::-webkit-calendar-picker-indicator,
+body.tema-escuro .modal input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(2) !important;
+  opacity: 1 !important;
+}
+
+.btn-frequencia-evento-dia {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+  color: #38bdf8;
+}
+
+.btn-frequencia-evento-dia:hover {
+  transform: scale(1.08);
+}
+
+.evento-feriado {
+  background: linear-gradient(135deg, #16a34a, #0f766e) !important;
+  color: white !important;
+}
+
+.btn-frequencia-evento-dia {
+  color: #38bdf8;
+}
+
+body.calendario-claro {
+  --calendar-bg: #ffffff;
+  --calendar-panel: #f8fafc;
+  --calendar-day: #ffffff;
+  --calendar-week: #eef2ff;
+  --calendar-text: #0f172a;
+  --calendar-muted: #475569;
+  --calendar-border: #cbd5e1;
+}
+
+body.calendario-escuro {
+  --calendar-bg: #1f2937;
+  --calendar-panel: #111827;
+  --calendar-day: #111827;
+  --calendar-week: #2d3748;
+  --calendar-text: #ffffff;
+  --calendar-muted: #94a3b8;
+  --calendar-border: #334155;
+}
+
+.card-calendario {
+  background: var(--calendar-bg) !important;
+  border-color: var(--calendar-border) !important;
+  color: var(--calendar-text) !important;
+}
+
+.calendario-topo {
+  background: linear-gradient(
+    135deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 72%, #111827)
+  ) !important;
+}
+
+.calendario-semana span {
+  background: var(--calendar-week) !important;
+  color: var(--accent) !important;
+}
+
+.dia-calendario {
+  background: var(--calendar-day) !important;
+  border-color: var(--calendar-border) !important;
+  color: var(--calendar-text) !important;
+}
+
+.dia-calendario:hover {
+  border-color: var(--accent) !important;
+}
+
+.numero-dia,
+.painel-eventos-dia h3,
+.evento-dia-item strong {
+  color: var(--calendar-text) !important;
+}
+
+.painel-eventos-dia,
+.evento-dia-item {
+  background: var(--calendar-panel) !important;
+  border-color: var(--calendar-border) !important;
+}
+
+.evento-dia-item span {
+  color: var(--accent) !important;
+}
+
+.evento-dia-item small,
+.evento-mais {
+  color: var(--calendar-muted) !important;
+}
+
+.btn-evento-flutuante {
+  background: var(--accent) !important;
+}
+
+/* Escala de fonte aplicada nas áreas principais do dashboard */
+body.fonte-pequena .dashboard-main,
+body.fonte-pequena .sidebar,
+body.fonte-pequena .tabela-tarefas,
+body.fonte-pequena .card-calendario {
+  font-size: 14px;
+}
+
+body.fonte-media .dashboard-main,
+body.fonte-media .sidebar,
+body.fonte-media .tabela-tarefas,
+body.fonte-media .card-calendario {
+  font-size: 16px;
+}
+
+body.fonte-grande .dashboard-main,
+body.fonte-grande .sidebar,
+body.fonte-grande .tabela-tarefas,
+body.fonte-grande .card-calendario {
+  font-size: 18px;
+}
+
+/* A cor de destaque afeta o dia atual, mas eventos mantêm suas cores próprias */
+.dia-hoje .numero-dia {
+  background: linear-gradient(
+    135deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 72%, #111827)
+  ) !important;
+  color: white !important;
+}
+
+#modalEventoCalendario select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent) !important;
+}
+
+.ano-topo h2 {
+  color: var(--calendar-text) !important;
+}
+
+body[data-fundo="marrom"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal,
+    .modal-content,
+    .modal-rotina,
+    .tabela-card,
+    .area-treino,
+    .card-rotina,
+    .rotina-header,
+    .config-rotina-personalizada,
+    #modalRotina,
+    #modalTarefa,
+    #modalEventoCalendario
+  )
+  :is(h1, h2, h3, h4, p, span, small, strong, label, th, td, button),
+body[data-fundo="grafite"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal,
+    .modal-content,
+    .modal-rotina,
+    .tabela-card,
+    .area-treino,
+    .card-rotina,
+    .rotina-header,
+    .config-rotina-personalizada,
+    #modalRotina,
+    #modalTarefa,
+    #modalEventoCalendario
+  )
+  :is(h1, h2, h3, h4, p, span, small, strong, label, th, td, button),
+body[data-fundo="azul-noite"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal,
+    .modal-content,
+    .modal-rotina,
+    .tabela-card,
+    .area-treino,
+    .card-rotina,
+    .rotina-header,
+    .config-rotina-personalizada,
+    #modalRotina,
+    #modalTarefa,
+    #modalEventoCalendario
+  )
+  :is(h1, h2, h3, h4, p, span, small, strong, label, th, td, button),
+body[data-fundo="verde-escuro"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal,
+    .modal-content,
+    .modal-rotina,
+    .tabela-card,
+    .area-treino,
+    .card-rotina,
+    .rotina-header,
+    .config-rotina-personalizada,
+    #modalRotina,
+    #modalTarefa,
+    #modalEventoCalendario
+  )
+  :is(h1, h2, h3, h4, p, span, small, strong, label, th, td, button),
+body[data-fundo="vinho"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal,
+    .modal-content,
+    .modal-rotina,
+    .tabela-card,
+    .area-treino,
+    .card-rotina,
+    .rotina-header,
+    .config-rotina-personalizada,
+    #modalRotina,
+    #modalTarefa,
+    #modalEventoCalendario
+  )
+  :is(h1, h2, h3, h4, p, span, small, strong, label, th, td, button),
+body[data-fundo="roxo-profundo"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal,
+    .modal-content,
+    .modal-rotina,
+    .tabela-card,
+    .area-treino,
+    .card-rotina,
+    .rotina-header,
+    .config-rotina-personalizada,
+    #modalRotina,
+    #modalTarefa,
+    #modalEventoCalendario
+  )
+  :is(h1, h2, h3, h4, p, span, small, strong, label, th, td, button),
+body[data-fundo="uva"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal,
+    .modal-content,
+    .modal-rotina,
+    .tabela-card,
+    .area-treino,
+    .card-rotina,
+    .config-rotina-personalizada,
+    #modalRotina,
+    #modalTarefa,
+    #modalEventoCalendario
+  )
+  :is(h1, h2, h3, h4, p, span, small, strong, label, th, td, button) {
+  color: var(--text) !important;
+}
+
+body[data-fundo="padrao"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal-content,
+    .tabela-card,
+    .card-calendario
+  ),
+body[data-fundo="azul-claro"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal-content,
+    .tabela-card,
+    .card-calendario
+  ),
+body[data-fundo="menta"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal-content,
+    .tabela-card,
+    .card-calendario
+  ),
+body[data-fundo="rosa-claro"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal-content,
+    .tabela-card,
+    .card-calendario
+  ),
+body[data-fundo="cinza-claro"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal-content,
+    .tabela-card,
+    .card-calendario
+  ),
+body[data-fundo="coral"]
+  :is(
+    .dashboard-main,
+    .sidebar,
+    .modal-content,
+    .tabela-card,
+    .card-calendario
+  ) {
+  color: var(--text) !important;
+}
+
+body[data-fundo="padrao"]
+  :is(.dashboard-main, .sidebar, .modal-content, .tabela-card, .card-calendario)
+  :is(h1, h2, h3, p, span, small, strong, label, th, td, button),
+body[data-fundo="azul-claro"]
+  :is(.dashboard-main, .sidebar, .modal-content, .tabela-card, .card-calendario)
+  :is(h1, h2, h3, p, span, small, strong, label, th, td, button),
+body[data-fundo="menta"]
+  :is(.dashboard-main, .sidebar, .modal-content, .tabela-card, .card-calendario)
+  :is(h1, h2, h3, p, span, small, strong, label, th, td, button),
+body[data-fundo="rosa-claro"]
+  :is(.dashboard-main, .sidebar, .modal-content, .tabela-card, .card-calendario)
+  :is(h1, h2, h3, p, span, small, strong, label, th, td, button),
+body[data-fundo="cinza-claro"]
+  :is(.dashboard-main, .sidebar, .modal-content, .tabela-card, .card-calendario)
+  :is(h1, h2, h3, p, span, small, strong, label, th, td, button),
+body[data-fundo="coral"]
+  :is(.dashboard-main, .sidebar, .modal-content, .tabela-card, .card-calendario)
+  :is(h1, h2, h3, p, span, small, strong, label, th, td, button) {
+  color: var(--text) !important;
+}
+
+/* Cores fixas dos eventos, lembretes e feriados do calendário */
+.evento-mini {
+  background: #8b5cf6 !important;
+  color: white !important;
+}
+
+.evento-tarefa {
+  background: #ec4899 !important;
+}
+
+.evento-unico {
+  background: linear-gradient(135deg, #a855f7, #7c3aed) !important;
+}
+
+.evento-permanente {
+  background: linear-gradient(135deg, #f59e0b, #f97316) !important;
+}
+
+.evento-aniversario {
+  background: linear-gradient(135deg, #ec4899, #db2777) !important;
+}
+
+.evento-lembrete-alta {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+}
+
+.evento-lembrete-media {
+  background: linear-gradient(135deg, #f59e0b, #f97316) !important;
+}
+
+.evento-lembrete-baixa {
+  background: linear-gradient(135deg, #22c55e, #15803d) !important;
+}
+
+.evento-dia-item span {
+  color: #c084fc !important;
+}
+
+body[data-fundo="padrao"] {
+  --bg: #f3f4f6;
+  --main: #ffffff;
+  --sidebar: #eef2f7;
+  --card: #f8fafc;
+  --card-2: #eef2f7;
+  --input-bg: #ffffff;
+  --text: #111827;
+  --muted: #4b5563;
+  --border: #cbd5e1;
+  --button-bg: #e5e7eb;
+  --button-hover: #dbe3ee;
+  --calendar-bg: #f8fafc;
+  --calendar-panel: #eef2f7;
+  --calendar-day: #ffffff;
+  --calendar-week: #e5eaf3;
+  --calendar-text: #111827;
+  --calendar-muted: #4b5563;
+  --calendar-border: #cbd5e1;
+}
+
+body[data-fundo="padrao"] .card-calendario,
+body[data-fundo="padrao"] .tabela-card,
+body[data-fundo="padrao"] .card-lembretes,
+body[data-fundo="padrao"] .notas-card {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #111827 !important;
+}
+
+body[data-fundo="padrao"] .dia-calendario {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #111827 !important;
+}
+
+body[data-fundo="padrao"] .calendario-semana span,
+body[data-fundo="padrao"] .tabela-tarefas th {
+  background: #e5eaf3 !important;
+  color: #111827 !important;
+}
+
+body[data-fundo="padrao"] .tabela-tarefas td,
+body[data-fundo="padrao"] .tabela-tarefas td *,
+body[data-fundo="padrao"] .numero-dia {
+  color: #111827 !important;
+}
+
+body[data-fundo="marrom"]
+  :is(.tabela-card, .card-lembretes, .notas-card, .card-calendario),
+body[data-fundo="oceano"]
+  :is(.tabela-card, .card-lembretes, .notas-card, .card-calendario),
+body[data-fundo="azul-noite"]
+  :is(.tabela-card, .card-lembretes, .notas-card, .card-calendario),
+body[data-fundo="verde-escuro"]
+  :is(.tabela-card, .card-lembretes, .notas-card, .card-calendario),
+body[data-fundo="vinho"]
+  :is(.tabela-card, .card-lembretes, .notas-card, .card-calendario),
+body[data-fundo="roxo-profundo"]
+  :is(.tabela-card, .card-lembretes, .notas-card, .card-calendario),
+body[data-fundo="uva"]
+  :is(.tabela-card, .card-lembretes, .notas-card, .card-calendario) {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+.card,
+.card-calendario {
+  border-radius: 20px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.07);
+}
+
+/* ================= CALEND�RIO PROFISSIONAL ================= */
+
+.calendario-header {
+  border-radius: 18px;
+  padding: 16px 20px;
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -0.03em;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.calendario-header button {
+  font-size: 1.2rem;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: 0.2s;
+}
+
+.calendario-header button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* dias da semana */
+.calendario-grid .dia-semana {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--card-2);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+/* c�lulas do calend�rio */
+.calendario-grid > div {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  min-height: 95px;
+  padding: 10px;
+  background: var(--card);
+  transition: 0.2s;
+  position: relative;
+}
+
+.calendario-grid > div:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}
+
+/* n�mero do dia */
+.calendario-grid strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* eventos */
+.evento {
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* hoje */
+.calendario-grid .hoje {
+  border: 2px solid var(--accent);
+}
+
+/* dia selecionado */
+.calendario-grid .selecionado {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* cart�es */
+.card,
+.card-calendario,
+.config-sidebar,
+.config-content,
+.section-card {
+  backdrop-filter: blur(10px);
+}
+
+.card,
+.card-calendario {
+  border: 1px solid color-mix(in srgb, var(--border) 80%, var(--accent));
+}
+
+/* Calendario legivel nos temas de fundo claros/coloridos */
+body.dashboard-body:not(.tema-escuro) {
+  --calendar-bg: var(--card);
+  --calendar-panel: color-mix(in srgb, var(--card-2) 70%, #ffffff);
+  --calendar-day: #ffffff;
+  --calendar-week: color-mix(in srgb, var(--button-bg) 78%, #ffffff);
+  --calendar-text: var(--text);
+  --calendar-muted: var(--muted);
+  --calendar-border: var(--border);
+}
+
+body.dashboard-body:not(.tema-escuro) .card-calendario {
+  background: var(--calendar-bg) !important;
+  border-color: var(--calendar-border) !important;
+  color: var(--calendar-text) !important;
+}
+
+body.dashboard-body:not(.tema-escuro) .calendario-semana span {
+  background: var(--calendar-week) !important;
+  color: var(--calendar-text) !important;
+  -webkit-text-fill-color: var(--calendar-text) !important;
+  font-weight: 800;
+}
+
+body.dashboard-body:not(.tema-escuro) .dia-calendario,
+body.dashboard-body:not(.tema-escuro) .mini-mes {
+  background: var(--calendar-day) !important;
+  border-color: var(--calendar-border) !important;
+  color: var(--calendar-text) !important;
+}
+
+body.dashboard-body:not(.tema-escuro) .numero-dia,
+body.dashboard-body:not(.tema-escuro) .mini-mes h3,
+body.dashboard-body:not(.tema-escuro) .mini-dia,
+body.dashboard-body:not(.tema-escuro) .mini-semana span,
+body.dashboard-body:not(.tema-escuro) .ano-topo h2,
+body.dashboard-body:not(.tema-escuro) .ano-topo button {
+  color: var(--calendar-text) !important;
+  -webkit-text-fill-color: var(--calendar-text) !important;
+}
+
+body.dashboard-body:not(.tema-escuro) .mini-semana span,
+body.dashboard-body:not(.tema-escuro) .evento-mais {
+  color: var(--calendar-muted) !important;
+  -webkit-text-fill-color: var(--calendar-muted) !important;
+}
+
+body.dashboard-body:not(.tema-escuro) .dia-hoje .numero-dia,
+body.dashboard-body:not(.tema-escuro) .mini-dia.hoje {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+body.dashboard-body:not(.tema-escuro) .dia-vazio {
+  background: color-mix(in srgb, var(--calendar-day) 55%, transparent) !important;
+}
+
+.tutorial-calendar-head {
+  height: 34px;
+  margin: 16px 16px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #111827));
+}
+
+.tutorial-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.tutorial-calendar-grid span {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.tutorial-calendar-grid span.active {
+  background: var(--accent);
+}
+
+.preview-calendar,
+.preview-card-row {
+  border: 1px solid var(--preview-border);
+  background: var(--preview-card);
+  border-radius: 16px;
+}
+
+.preview-calendar {
+  padding: 16px;
+}
+
+.preview-calendar-head {
+  height: 42px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, var(--preview-accent), color-mix(in srgb, var(--preview-accent) 70%, #111827));
+}
+
+.preview-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.preview-calendar-grid span {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--preview-card-2);
+  border: 1px solid var(--preview-border);
+}
+
+.preview-calendar-grid span.today,
+.preview-calendar-grid span.accent {
+  background: var(--preview-accent);
+  border-color: var(--preview-accent);
+}
+
+@media (max-width: 768px) {
+  .calendario-grid {
+    gap: 6px;
+  }
+
+  .dia-calendario {
+    min-height: 80px;
+    padding: 4px;
+  }
+
+  .nome-dia {
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== RESPONSIVIDADE MOBILE DASHBOARD ===== */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    padding: 24px 20px;
+  }
+
+  .dashboard-main {
+    width: 100%;
+    padding: 20px 14px 110px;
+    overflow-x: hidden;
+  }
+
+  .card,
+  .card-calendario {
+    width: 100%;
+    padding: 14px;
+    border-radius: 18px;
+    overflow-x: hidden;
+  }
+
+  .calendario-topo {
+    padding: 16px;
+    border-radius: 18px;
+    margin-bottom: 14px;
+  }
+
+  .calendario-topo h2 {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .calendario-topo button {
+    font-size: 2rem;
+  }
+
+  .calendario-semana,
+  .calendario-dias {
+    grid-template-columns: repeat(7, minmax(42px, 1fr));
+    gap: 5px;
+  }
+
+  .calendario-semana span {
+    padding: 8px 2px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+  }
+
+  .dia-calendario {
+    min-height: 88px;
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .numero-dia {
+    font-size: 1rem;
+  }
+
+  .evento-mini {
+    font-size: 0.7rem;
+    padding: 3px 4px;
+  }
+
+  .btn-evento-flutuante {
+    width: 58px;
+    height: 58px;
+    right: 22px;
+    bottom: 72px;
+    font-size: 2rem;
+    z-index: 3000;
+  }
+
+  .btn-hoje-calendario {
+    width: 58px;
+    height: 58px;
+    right: 94px;
+    bottom: 72px;
+    font-size: 1.4rem;
+    z-index: 3000;
+  }
+
+  .tabela-tarefas {
+    min-width: 680px;
+  }
+
+  .tabela-card,
+  #cardTabelaTarefas {
+    overflow-x: auto;
+  }
+
+  .lista-exercicios-dia {
+    grid-template-columns: 1fr;
+  }
+
+  .card-exercicio {
+    width: 100%;
+  }
+
+  .modal-content {
+    max-width: 94vw;
+    max-height: 86vh;
+    overflow-y: auto;
+  }
+}

@@ -2,6 +2,7 @@
 const LOGIN_PAGE = "index.html";
 const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 const token = localStorage.getItem("token");
+const API_BASE_URL = "https://mynote-app-production-cb61.up.railway.app";
 
 if (!usuario || !token) {
   alert(MyNotePrefs.t("Você precisa fazer login primeiro."));
@@ -24,9 +25,58 @@ async function lerRespostaJsonSegura(resposta) {
   }
 }
 
+async function fetchJson(endpoint, options = {}) {
+  const resposta = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...headersAuth(),
+      ...(options.headers || {}),
+    },
+  });
+  const dados = await lerRespostaJsonSegura(resposta);
+
+  if (!resposta.ok) {
+    const erro = new Error(dados.msg || "Erro na requisicao.");
+    erro.status = resposta.status;
+    erro.dados = dados;
+    throw erro;
+  }
+
+  return dados;
+}
+
+function garantirLista(valor) {
+  return Array.isArray(valor) ? valor : [];
+}
+
+function escaparHtml(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function carregarRotinasComTarefas() {
+  const rotinas = garantirLista(await fetchJson("/rotinas"));
+  const tarefasPorRotina = await Promise.all(
+    rotinas.map((rotina) =>
+      fetchJson(`/tarefas?rotina_id=${encodeURIComponent(rotina.id)}`).then(
+        garantirLista,
+      ),
+    ),
+  );
+
+  return rotinas.map((rotina, index) => ({
+    ...rotina,
+    tarefas: tarefasPorRotina[index] || [],
+  }));
+}
+
 function mensagemErroConfiguracoes(erro) {
   if (erro instanceof TypeError) {
-    return "Nao foi possivel conectar ao backend em https://mynote-app-production-cb61.up.railway.app. Verifique se o servidor esta rodando.";
+    return `Nao foi possivel conectar ao backend em ${API_BASE_URL}. Verifique se o servidor esta rodando.`;
   }
 
   return "Erro ao salvar configuracoes.";
@@ -275,10 +325,7 @@ opcoesFundo.forEach((btn) => {
 
 async function carregarConfiguracoes() {
   try {
-    const res = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
-  headers: headersAuth(),
-});
-    const respostaConfig = await res.json();
+    const respostaConfig = await fetchJson("/configuracoes");
     const migracaoPadroes = aplicarPadroesIniciais(respostaConfig);
     const migracaoBackup = aplicarPadraoBackupAutomatico(
       migracaoPadroes.config,
@@ -318,9 +365,8 @@ async function carregarConfiguracoes() {
     });
 
     if (migracaoPadroes.alterado || migracaoBackup.alterado) {
-      await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
+      await fetchJson("/configuracoes", {
         method: "PUT",
-        headers: headersAuth(),
         body: JSON.stringify(montarPayloadConfiguracoes()),
       });
     }
@@ -339,7 +385,7 @@ async function salvarConfiguracoes() {
     preferenciasGerais = MyNotePrefs.saveLocal(payload);
     MyNotePrefs.translateDOM(document);
 
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
+    const resposta = await fetch(`${API_BASE_URL}/configuracoes`, {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify(payload),
@@ -492,7 +538,7 @@ formAlterarSenha?.addEventListener("submit", async (evento) => {
   mostrarMensagemSenha("");
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/alterar-senha", {
+    const resposta = await fetch(`${API_BASE_URL}/auth/alterar-senha`, {
       method: "PUT",
       headers: headersAuth(),
       body: JSON.stringify({
@@ -546,7 +592,7 @@ btnConfirmarExcluirConta?.addEventListener("click", async () => {
   btnConfirmarExcluirConta.textContent = "Excluindo...";
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/excluir-conta", {
+    const resposta = await fetch(`${API_BASE_URL}/auth/excluir-conta`, {
       method: "DELETE",
       headers: headersAuth(),
       body: JSON.stringify({ usuario_id: usuario.id }),
@@ -571,13 +617,7 @@ btnConfirmarExcluirConta?.addEventListener("click", async () => {
 });
 btnExportarPDF?.addEventListener("click", async () => {
   try {
-    const respostaRotinas = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const rotinas = await respostaRotinas.json();
+    const rotinasComTarefas = await carregarRotinasComTarefas();
 
     let html = `
       <html>
@@ -634,18 +674,12 @@ btnExportarPDF?.addEventListener("click", async () => {
         <p class="subtitulo">Exportado pelo MyNote</p>
     `;
 
-    for (const rotina of rotinas) {
-      const respostaTarefas = await fetch(
-        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
-        {
-          headers: headersAuth(),
-        },
-      );
-      const tarefas = await respostaTarefas.json();
+    for (const rotina of rotinasComTarefas) {
+      const tarefas = rotina.tarefas || [];
 
       html += `
         <div class="rotina">
-          <h2>${rotina.nome}</h2>
+          <h2>${escaparHtml(rotina.nome)}</h2>
           <table>
             <thead>
               <tr>
@@ -669,11 +703,11 @@ btnExportarPDF?.addEventListener("click", async () => {
         tarefas.forEach((tarefa) => {
           html += `
             <tr>
-              <td>${tarefa.titulo || "-"}</td>
-              <td>${tarefa.tipo || "-"}</td>
-              <td>${tarefa.horario || "-"}</td>
-              <td>${tarefa.status || "Pendente"}</td>
-              <td>${tarefa.prioridade || "-"}</td>
+              <td>${escaparHtml(tarefa.titulo || "-")}</td>
+              <td>${escaparHtml(tarefa.tipo || "-")}</td>
+              <td>${escaparHtml(tarefa.horario || "-")}</td>
+              <td>${escaparHtml(tarefa.status || "Pendente")}</td>
+              <td>${escaparHtml(tarefa.prioridade || "-")}</td>
             </tr>
           `;
         });
@@ -704,25 +738,13 @@ btnExportarPDF?.addEventListener("click", async () => {
 
 btnExportarExcel?.addEventListener("click", async () => {
   try {
-    const respostaRotinas = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const rotinas = await respostaRotinas.json();
+    const rotinasComTarefas = await carregarRotinasComTarefas();
 
     let csv =
       "Rotina,Tarefa,Tipo,Status,Horário,Prioridade,Prazo,Data de criação\n";
 
-    for (const rotina of rotinas) {
-      const respostaTarefas = await fetch(
-        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
-        {
-          headers: headersAuth(),
-        },
-      );
-      const tarefas = await respostaTarefas.json();
+    for (const rotina of rotinasComTarefas) {
+      const tarefas = rotina.tarefas || [];
 
       tarefas.forEach((tarefa) => {
         csv +=
@@ -759,40 +781,11 @@ btnExportarExcel?.addEventListener("click", async () => {
 
 btnSincronizarBackup?.addEventListener("click", async () => {
   try {
-    const respostaRotinas = await fetch(
-      `https://mynote-app-production-cb61.up.railway.app/rotinas`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const rotinas = await respostaRotinas.json();
-
-    const respostaLembretes = await fetch("https://mynote-app-production-cb61.up.railway.app/lembretes", {
-  headers: headersAuth(),
-});
-    const lembretes = await respostaLembretes.json();
-
-    const respostaConfig = await fetch("https://mynote-app-production-cb61.up.railway.app/configuracoes", {
-  headers: headersAuth(),
-});
-    const configuracoes = await respostaConfig.json();
-
-    const rotinasComTarefas = [];
-
-    for (const rotina of rotinas) {
-      const respostaTarefas = await fetch(
-        `https://mynote-app-production-cb61.up.railway.app/tarefas?rotina_id=${rotina.id}`,
-        {
-          headers: headersAuth(),
-        },
-      );
-      const tarefas = await respostaTarefas.json();
-
-      rotinasComTarefas.push({
-  ...rotina,
-  tarefas,
-});
-    }
+    const [rotinasComTarefas, lembretes, configuracoes] = await Promise.all([
+      carregarRotinasComTarefas(),
+      fetchJson("/lembretes").then(garantirLista),
+      fetchJson("/configuracoes"),
+    ]);
 
     const backup = {
       app: "MyNote",
@@ -854,7 +847,7 @@ inputRestaurarBackup?.addEventListener("change", () => {
       }
 
       const resposta = await fetch(
-        "https://mynote-app-production-cb61.up.railway.app/auth/restaurar-backup",
+        `${API_BASE_URL}/auth/restaurar-backup`,
         {
           method: "POST",
           headers: headersAuth(),

@@ -1,0 +1,809 @@
+/* Treino */
+
+/* Treino */
+.area-treino {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bloco-dia-treino {
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--card));
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.lista-exercicios-dia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.card-exercicio {
+  width: 260px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.card-exercicio-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.card-exercicio p {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0;
+}
+
+.carga-exercicio {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Espaçamento entre treino e notas */
+.area-treino {
+  margin-bottom: 24px;
+}
+
+/* Card do dia de treino */
+.bloco-dia-treino {
+  position: relative;
+  min-height: 90px;
+}
+
+/* Dia marcado como descanso */
+.bloco-dia-treino.descanso {
+  background: #d1d5db;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+/* Card de exercício concluído */
+.card-exercicio.concluido {
+  position: relative;
+  opacity: 0.55;
+  filter: grayscale(0.5);
+}
+
+.card-exercicio.concluido::after {
+  content: "X";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  font-weight: bold;
+  color: rgba(239, 68, 68, 0.75);
+  pointer-events: none;
+}
+
+/* Botão de concluir exercício */
+.btn-concluir-exercicio {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.btn-concluir-exercicio:hover {
+  color: var(--accent);
+}
+
+/* Edição dos cards de treino */
+.acoes-card-treino {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rodape-card-treino {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.card-exercicio[draggable="true"] {
+  cursor: grab;
+}
+
+.card-exercicio.linha-arrastando {
+  opacity: 0.5;
+}
+
+.lista-exercicios-dia {
+  min-height: 120px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.bloco-dia-treino {
+  min-height: 160px;
+}
+
+body.tema-escuro .bloco-dia-treino.descanso {
+  background: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+body.tema-claro .bloco-dia-treino.descanso {
+  background: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #1f2937;
+}
+
+.bloco-dia-treino.descanso .card-em-descanso {
+  opacity: 0.58;
+  filter: brightness(0.75);
+}
+
+.bloco-dia-treino.descanso .btn-descanso {
+  opacity: 1;
+}
+
+.topo-treino {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.acoes-treino-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.area-treino-wrapper {
+  position: relative;
+}
+
+.menu-treino-area {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2000;
+}
+
+.area-treino {
+  position: relative;
+}
+
+.menu-treino-area {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 30;
+}
+
+.menu-treino-area .opcoes-rotina {
+  top: 42px;
+  right: 0;
+}
+
+.lista-exercicios-dia {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.card-exercicio.concluido {
+  opacity: 0.6;
+  border: 2px solid #22c55e;
+  transform: scale(0.98);
+}
+
+.card-exercicio.concluido strong {
+  text-decoration: line-through;
+}
+
+.card-exercicio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-exercicio.arrastando {
+  opacity: 0.5;
+  transform: scale(0.96);
+}
+
+.lista-exercicios-dia.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: 6px;
+  border-radius: 12px;
+  min-height: 120px;
+}
+
+#btnMenuRotinaTreino {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+.header-dia-treino {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bloco-dia-treino.descanso {
+  opacity: 0.6;
+}
+
+/* ===== Semanal sem rolagem horizontal ===== */
+
+.area-treino {
+  overflow-x: visible !important;
+}
+
+/* ===== MODAL DE TREINO FITNESS ===== */
+
+.campos-treino-fitness {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 18%, var(--card)),
+    var(--card)
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.treino-modal-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.treino-modal-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.treino-modal-banner h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  border-left: none;
+  padding-left: 0;
+}
+
+.treino-modal-banner p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.treino-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.campo-fitness {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.campo-fitness-full {
+  grid-column: 1 / -1;
+}
+
+.campo-fitness label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.campo-fitness input,
+.campo-fitness select {
+  min-height: 44px;
+  border-radius: 14px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border)) !important;
+  background: color-mix(in srgb, var(--input-bg) 88%, var(--accent)) !important;
+}
+
+.modal-treino-fitness {
+  max-width: 520px;
+  border-radius: 24px;
+  background: radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent 38%
+    ),
+    var(--card);
+}
+
+#modalEditarTreino .modal-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#modalEditarTreino .modal-body label {
+  font-weight: 700;
+}
+
+#modalEditarTreino .modal-body input {
+  border-radius: 14px;
+  min-height: 44px;
+}
+
+@media (max-width: 560px) {
+  .treino-grid,
+  #modalEditarTreino .modal-body {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-treino-fitness {
+    max-width: 430px;
+  }
+}
+
+/* Na rotina Semanal, mostra só o Dia da semana dentro do bloco de treino */
+#modalTarefa.modal-tarefa-semanal .treino-modal-banner,
+#modalTarefa.modal-tarefa-semanal .campo-fitness:not(:first-child) {
+  display: none !important;
+}
+
+#modalTarefa.modal-tarefa-semanal .campos-treino-fitness {
+  padding: 14px !important;
+}
+
+#modalTarefa.modal-tarefa-semanal .treino-grid {
+  display: block !important;
+}
+
+#modalTarefa.modal-tarefa-treino .campos-treino-fitness {
+  margin-top: 4px;
+  padding: 16px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--input-bg) 74%, var(--accent));
+}
+
+#modalTarefa.modal-tarefa-semanal #camposTreino {
+  margin-top: 4px;
+  padding: 16px !important;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--input-bg) 78%, var(--accent));
+}
+
+#modalTarefa.modal-tarefa-semanal #camposTreino .campo-fitness:first-child {
+  display: flex !important;
+  flex-direction: column;
+  gap: 9px;
+}
+
+#modalTarefa.modal-tarefa-treino .banner-modal-tarefa-icone {
+  background: #3b82f6;
+}
+
+body[data-fundo="marrom"]
+  :is(
+    .tabela-card,
+    .rotina-dia,
+    .dia-semana-card,
+    .card-treino,
+    .exercicio-card,
+    .modelo-rotina-card,
+    .preview-rotina-selecionada,
+    .banner-modal-tarefa,
+    .campos-treino-fitness,
+    .opcoes-rotina
+  ),
+body[data-fundo="grafite"]
+  :is(
+    .tabela-card,
+    .rotina-dia,
+    .dia-semana-card,
+    .card-treino,
+    .exercicio-card,
+    .modelo-rotina-card,
+    .preview-rotina-selecionada,
+    .banner-modal-tarefa,
+    .campos-treino-fitness,
+    .opcoes-rotina
+  ),
+body[data-fundo="azul-noite"]
+  :is(
+    .tabela-card,
+    .rotina-dia,
+    .dia-semana-card,
+    .card-treino,
+    .exercicio-card,
+    .modelo-rotina-card,
+    .preview-rotina-selecionada,
+    .banner-modal-tarefa,
+    .campos-treino-fitness,
+    .opcoes-rotina
+  ),
+body[data-fundo="verde-escuro"]
+  :is(
+    .tabela-card,
+    .rotina-dia,
+    .dia-semana-card,
+    .card-treino,
+    .exercicio-card,
+    .modelo-rotina-card,
+    .preview-rotina-selecionada,
+    .banner-modal-tarefa,
+    .campos-treino-fitness,
+    .opcoes-rotina
+  ),
+body[data-fundo="vinho"]
+  :is(
+    .tabela-card,
+    .rotina-dia,
+    .dia-semana-card,
+    .card-treino,
+    .exercicio-card,
+    .modelo-rotina-card,
+    .preview-rotina-selecionada,
+    .banner-modal-tarefa,
+    .campos-treino-fitness,
+    .opcoes-rotina
+  ),
+body[data-fundo="roxo-profundo"]
+  :is(
+    .tabela-card,
+    .rotina-dia,
+    .dia-semana-card,
+    .card-treino,
+    .exercicio-card,
+    .modelo-rotina-card,
+    .preview-rotina-selecionada,
+    .banner-modal-tarefa,
+    .campos-treino-fitness,
+    .opcoes-rotina
+  ),
+body[data-fundo="uva"]
+  :is(
+    .tabela-card,
+    .rotina-dia,
+    .dia-semana-card,
+    .card-treino,
+    .exercicio-card,
+    .modelo-rotina-card,
+    .preview-rotina-selecionada,
+    .banner-modal-tarefa,
+    .campos-treino-fitness,
+    .opcoes-rotina
+  ) {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+body[data-fundo="marrom"] .bloco-dia-treino,
+body[data-fundo="oceano"] .bloco-dia-treino,
+body[data-fundo="azul-noite"] .bloco-dia-treino,
+body[data-fundo="verde-escuro"] .bloco-dia-treino,
+body[data-fundo="vinho"] .bloco-dia-treino,
+body[data-fundo="roxo-profundo"] .bloco-dia-treino,
+body[data-fundo="uva"] .bloco-dia-treino {
+  background: color-mix(in srgb, var(--main) 74%, #000) !important;
+  border-color: color-mix(in srgb, var(--border) 72%, #ffffff) !important;
+  color: var(--text) !important;
+}
+
+body[data-fundo="marrom"] .card-exercicio,
+body[data-fundo="oceano"] .card-exercicio,
+body[data-fundo="azul-noite"] .card-exercicio,
+body[data-fundo="verde-escuro"] .card-exercicio,
+body[data-fundo="vinho"] .card-exercicio,
+body[data-fundo="roxo-profundo"] .card-exercicio,
+body[data-fundo="uva"] .card-exercicio {
+  background: color-mix(in srgb, var(--card) 78%, #000) !important;
+  border-color: color-mix(in srgb, var(--border) 70%, #ffffff) !important;
+  color: var(--text) !important;
+}
+
+body[data-fundo="marrom"] .card-exercicio :is(strong, p, span, button),
+body[data-fundo="oceano"] .card-exercicio :is(strong, p, span, button),
+body[data-fundo="azul-noite"] .card-exercicio :is(strong, p, span, button),
+body[data-fundo="verde-escuro"] .card-exercicio :is(strong, p, span, button),
+body[data-fundo="vinho"] .card-exercicio :is(strong, p, span, button),
+body[data-fundo="roxo-profundo"] .card-exercicio :is(strong, p, span, button),
+body[data-fundo="uva"] .card-exercicio :is(strong, p, span, button) {
+  color: var(--text) !important;
+}
+
+/* Ajustes finais do treino: cards e modais */
+.lista-exercicios-dia {
+  gap: 18px !important;
+  align-items: stretch;
+}
+
+.card-exercicio {
+  flex: 1 1 238px;
+  width: auto !important;
+  min-width: 230px;
+  max-width: 260px;
+  box-sizing: border-box;
+  margin: 0 !important;
+}
+
+.card-exercicio-header {
+  gap: 12px;
+}
+
+.acoes-card-treino {
+  gap: 14px !important;
+  flex-shrink: 0;
+}
+
+#modalTarefa.modal-tarefa-treino #camposTreino > .treino-modal-banner {
+  display: none !important;
+}
+
+#modalTarefa.modal-tarefa-treino .campos-treino-fitness {
+  margin-top: 4px;
+}
+
+#modalEditarTreino .modal-content {
+  width: min(92vw, 480px) !important;
+  max-width: 480px !important;
+  border-radius: 22px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border)) !important;
+  background: radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--accent) 18%, transparent),
+      transparent 40%
+    ),
+    var(--card) !important;
+}
+
+#modalEditarTreino .modal-header {
+  align-items: center;
+  padding-bottom: 10px;
+}
+
+#modalEditarTreino .modal-header h2 {
+  font-size: 1.35rem;
+}
+
+#modalEditarTreino .modal-body {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.editar-treino-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--input-bg) 74%, var(--accent));
+}
+
+.editar-treino-icone {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.4rem;
+}
+
+.editar-treino-banner strong {
+  display: block;
+  color: var(--text);
+  font-size: 1rem;
+  margin-bottom: 3px;
+}
+
+.editar-treino-banner small {
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.editar-treino-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.campo-editar-treino {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo-editar-treino-full {
+  grid-column: 1 / -1;
+}
+
+#modalEditarTreino .campo-editar-treino label {
+  margin: 0;
+  font-weight: 800;
+  color: var(--text);
+}
+
+#modalEditarTreino .campo-editar-treino input {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 14px !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border)) !important;
+  background: color-mix(in srgb, var(--input-bg) 90%, var(--accent)) !important;
+  color: var(--text) !important;
+}
+
+#modalEditarTreino .modal-footer {
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .card-exercicio {
+    max-width: none;
+  }
+
+  .editar-treino-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Contraste definitivo do botao Cancelar */
+.modal .btn-secundario,
+#modalTarefa .btn-secundario,
+#modalRotina .btn-secundario,
+#modalEditarCampo .btn-secundario,
+#modalEditarAlimentacao .btn-secundario,
+#modalEditarTreino .btn-secundario,
+#modalLembrete .btn-secundario {
+  background: #ffffff !important;
+  color: #17325c !important;
+  -webkit-text-fill-color: #17325c !important;
+  border: 1px solid #fb923c !important;
+  box-shadow: 0 6px 14px rgba(249, 115, 22, 0.14) !important;
+  opacity: 1 !important;
+}
+
+.modal .btn-secundario:hover,
+#modalTarefa .btn-secundario:hover,
+#modalRotina .btn-secundario:hover,
+#modalEditarCampo .btn-secundario:hover,
+#modalEditarAlimentacao .btn-secundario:hover,
+#modalEditarTreino .btn-secundario:hover,
+#modalLembrete .btn-secundario:hover {
+  background: #fff7ed !important;
+  color: #0f2a55 !important;
+  -webkit-text-fill-color: #0f2a55 !important;
+  border-color: #f97316 !important;
+}
+
+/* Treino mais legivel no fundo verde */
+body.dashboard-body[data-fundo="verde-escuro"] .bloco-dia-treino {
+  background: color-mix(in srgb, var(--card) 90%, #ffffff) !important;
+  border-color: color-mix(in srgb, var(--border) 78%, #ffffff) !important;
+}
+
+body.dashboard-body[data-fundo="verde-escuro"] .card-exercicio {
+  background: color-mix(in srgb, var(--card) 96%, #ffffff) !important;
+  border-color: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: 0 10px 24px rgba(15, 58, 35, 0.08);
+}
+
+/* Treino com contraste por cor de fundo */
+body.dashboard-body[data-fundo="marrom"] .bloco-dia-treino {
+  background: #f1e8e0 !important;
+  border-color: #e2cfc4 !important;
+}
+
+body.dashboard-body[data-fundo="marrom"] .card-exercicio {
+  background: #fffaf6 !important;
+  border-color: #ead6cb !important;
+  box-shadow: 0 10px 24px rgba(88, 61, 50, 0.08);
+}
+
+body.dashboard-body[data-fundo="oceano"] .bloco-dia-treino,
+body.dashboard-body[data-fundo="azul-noite"] .bloco-dia-treino {
+  background: #dff3f7 !important;
+  border-color: #b9dde6 !important;
+}
+
+body.dashboard-body[data-fundo="oceano"] .card-exercicio,
+body.dashboard-body[data-fundo="azul-noite"] .card-exercicio {
+  background: #f9fdff !important;
+  border-color: #c1e2ea !important;
+  box-shadow: 0 10px 24px rgba(30, 91, 107, 0.08);
+}
+
+body.dashboard-body[data-fundo="vinho"] .bloco-dia-treino {
+  background: #f7e4e8 !important;
+  border-color: #e8bcc6 !important;
+}
+
+body.dashboard-body[data-fundo="vinho"] .card-exercicio {
+  background: #fff9fa !important;
+  border-color: #edcbd3 !important;
+  box-shadow: 0 10px 24px rgba(111, 48, 62, 0.08);
+}
+
+body.dashboard-body[data-fundo="roxo-profundo"] .bloco-dia-treino {
+  background: #eee7f8 !important;
+  border-color: #d5c5ed !important;
+}
+
+body.dashboard-body[data-fundo="roxo-profundo"] .card-exercicio {
+  background: #fcf9ff !important;
+  border-color: #ddcef3 !important;
+  box-shadow: 0 10px 24px rgba(78, 52, 122, 0.08);
+}
+
+body.dashboard-body[data-fundo="uva"] .bloco-dia-treino {
+  background: #f8e5f4 !important;
+  border-color: #e7bddf !important;
+}
+
+body.dashboard-body[data-fundo="uva"] .card-exercicio {
+  background: #fff9fd !important;
+  border-color: #edcbe7 !important;
+  box-shadow: 0 10px 24px rgba(119, 57, 110, 0.08);
+}
+
+body.dashboard-body[data-fundo="coral"] .bloco-dia-treino {
+  background: #fff1e6 !important;
+  border-color: #ffc9a4 !important;
+}
+
+body.dashboard-body[data-fundo="coral"] .card-exercicio {
+  background: #fffaf6 !important;
+  border-color: #ffd8bc !important;
+  box-shadow: 0 10px 24px rgba(171, 83, 24, 0.08);
+}
+
+body.dashboard-body:is(
+    [data-fundo="marrom"],
+    [data-fundo="oceano"],
+    [data-fundo="azul-noite"],
+    [data-fundo="vinho"],
+    [data-fundo="roxo-profundo"],
+    [data-fundo="uva"],
+    [data-fundo="coral"]
+  ) .card-exercicio :is(strong, p, span, button),
+body.dashboard-body:is(
+    [data-fundo="marrom"],
+    [data-fundo="oceano"],
+    [data-fundo="azul-noite"],
+    [data-fundo="vinho"],
+    [data-fundo="roxo-profundo"],
+    [data-fundo="uva"],
+    [data-fundo="coral"]
+  ) .bloco-dia-treino :is(strong, p, span, button, h3) {
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text) !important;
+}

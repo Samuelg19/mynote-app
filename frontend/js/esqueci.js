@@ -1,3 +1,4 @@
+const API_URL = "https://mynote-app-production-cb61.up.railway.app";
 const form = document.getElementById("formEsqueci");
 
 form.addEventListener("submit", async (e) => {
@@ -6,7 +7,7 @@ form.addEventListener("submit", async (e) => {
   const email = document.getElementById("email").value;
 
   try {
-    const resposta = await fetch("https://mynote-app-production-cb61.up.railway.app/auth/esqueci-senha", {
+    const resposta = await fetch(`${API_URL}/auth/esqueci-senha`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

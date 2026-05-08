@@ -1,0 +1,51 @@
+/* Base global */
+
+/* Reset geral */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Variáveis globais */
+:root {
+  --accent: #a855f7;
+
+  --bg: #0b132b;
+  --sidebar: #0b1020;
+  --main: #0f172a;
+  --card: #1e293b;
+  --card-2: #1f2a44;
+
+  --text: #f8fafc;
+  --muted: #9ca3af;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --input-bg: #0f172a;
+  --button-bg: #1e293b;
+  --button-hover: #334155;
+}
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+body {
+  --calendar-bg: var(--card);
+  --calendar-panel: var(--input-bg);
+  --calendar-day: var(--input-bg);
+  --calendar-week: var(--button-bg);
+  --calendar-text: var(--text);
+  --calendar-muted: var(--muted);
+  --calendar-border: var(--border);
+}
+
+/* ================= REFINAMENTO FINAL APP ================= */
+
+:root {
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 22px 55px rgba(0, 0, 0, 0.12);
+}

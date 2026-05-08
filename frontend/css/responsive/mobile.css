@@ -1,0 +1,82 @@
+/* Responsividade mobile */
+
+@media (max-width: 760px) {
+  .frequencia-tarefa-item {
+    grid-template-columns: 1fr;
+  }
+
+  .frequencia-controles {
+    grid-template-columns: 1fr;
+  }
+
+  .grade-dia-mes-frequencia {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .semanal-container {
+    grid-template-columns: repeat(4, minmax(170px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .semanal-container {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .semanal-container {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* responsividade */
+@media (max-width: 900px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    border-radius: 0 0 24px 24px;
+  }
+
+  .dashboard-main {
+    padding: 22px;
+  }
+
+  .tabela-tarefas {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .acoes-topo-rotina {
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  body.dashboard-body .sidebar {
+    flex-basis: auto;
+    position: relative !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 0 24px 24px !important;
+  }
+}
+
+@media (max-width: 920px) {
+  .tutorial-grid,
+  .onboarding-custom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-miniatura {
+    min-height: 380px;
+  }
+}
