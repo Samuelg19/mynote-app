@@ -147,18 +147,20 @@ body[data-fundo="marrom"] {
 /* Sidebar */
 .sidebar {
   width: 280px;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: auto;
+  min-height: 100vh;
+  max-height: none;
 
   background: var(--sidebar);
-  padding: 24px 24px 36px;
+  padding: 24px;
+  padding-bottom: 110px;
 
   border-right: none;
 
   display: flex;
   flex-direction: column;
 
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
 
   scrollbar-width: none;
@@ -199,9 +201,8 @@ body[data-fundo="marrom"] {
 
 .sidebar-footer {
   margin-top: 16px;
-  margin-bottom: 32px;
   padding-top: 0;
-  padding-bottom: 8px;
+  padding-bottom: 0;
   flex-shrink: 0;
   background: transparent;
 }
