@@ -39,15 +39,17 @@
   }
 
     .sidebar {
-    width: 100%;
-    height: auto;
-    max-height: none;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  border-radius: 0 0 24px 24px;
+}
 
-    overflow-y: visible;
-    overflow-x: hidden;
-
-    border-radius: 0 0 24px 24px;
-  }
+.sidebar-top {
+  overflow: visible;
+  max-height: none;
+}
 
   .dashboard-main {
     padding: 22px;
