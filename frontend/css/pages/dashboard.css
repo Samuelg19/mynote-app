@@ -148,12 +148,19 @@ body[data-fundo="marrom"] {
 .sidebar {
   width: 280px;
   height: 100vh;
+  max-height: 100vh;
+
   background: var(--sidebar);
   padding: 24px;
   border-right: none;
+
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
 }
 
 .sidebar h2 {
