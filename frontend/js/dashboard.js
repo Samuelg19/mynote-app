@@ -7828,10 +7828,14 @@ salvarRotina.addEventListener("click", async () => {
       }),
     });
 
-    const dados = await resposta.json();
+    const dados = await lerRespostaJsonSegura(resposta);
 
     if (!resposta.ok) {
-      mostrarAviso("erro", dados.msg || "Erro ao criar rotina.");
+      console.error("Erro ao salvar rotina:", dados);
+      mostrarAviso(
+        "erro",
+        dados.detalhe || dados.msg || "Erro ao criar rotina.",
+      );
       return;
     }
 
