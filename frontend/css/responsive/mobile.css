@@ -71,12 +71,8 @@
   body.dashboard-body .sidebar {
     flex-basis: auto;
     position: relative !important;
-
     height: auto !important;
     max-height: none !important;
-
-    overflow: visible !important;
-
     border-radius: 0 0 24px 24px !important;
   }
 }

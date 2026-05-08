@@ -3692,13 +3692,20 @@ body.dashboard-body .sidebar {
   position: sticky !important;
   top: 0 !important;
   align-self: flex-start;
-  height: 100vh !important;
-  max-height: 100vh !important;
+
+  min-height: 100vh !important;
+  height: auto !important;
+  max-height: none !important;
+
+  padding-bottom: 90px !important;
+
   border-radius: 0 28px 28px 0 !important;
   background: var(--sidebar) !important;
   background-clip: padding-box;
+
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
+
   box-shadow: 10px 0 26px rgba(31, 41, 55, 0.12);
 }
 
