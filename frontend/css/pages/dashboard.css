@@ -151,7 +151,7 @@ body[data-fundo="marrom"] {
   max-height: 100dvh;
 
   background: var(--sidebar);
-  padding: 24px 24px 18px;
+  padding: 24px 24px 36px;
 
   border-right: none;
 
@@ -184,16 +184,6 @@ body[data-fundo="marrom"] {
   gap: 10px;
 }
 
-.sidebar-top::-webkit-scrollbar {
-  width: 0;
-  display: none;
-}
-
-.sidebar-top {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
 .sidebar-title {
   display: flex;
   align-items: center;
@@ -209,7 +199,9 @@ body[data-fundo="marrom"] {
 
 .sidebar-footer {
   margin-top: 16px;
+  margin-bottom: 32px;
   padding-top: 0;
+  padding-bottom: 8px;
   flex-shrink: 0;
   background: transparent;
 }
