@@ -507,6 +507,40 @@
       </div>
     </main>
 
+    <div id="modalFeedbackConfiguracoes" class="config-modal hidden" aria-hidden="true">
+      <div class="config-modal-backdrop" data-fechar-modal-feedback></div>
+      <div
+        class="config-modal-content config-feedback-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tituloModalFeedbackConfiguracoes"
+        aria-describedby="textoModalFeedbackConfiguracoes"
+      >
+        <button
+          id="btnFecharModalFeedback"
+          class="config-modal-close"
+          type="button"
+          aria-label="Fechar"
+        >
+          &times;
+        </button>
+
+        <div class="config-modal-header config-feedback-header">
+          <div id="iconeModalFeedbackConfiguracoes" class="config-modal-icon config-modal-icon-success">✓</div>
+          <div>
+            <h2 id="tituloModalFeedbackConfiguracoes">Tudo certo</h2>
+            <p id="textoModalFeedbackConfiguracoes">Configurações salvas com sucesso!</p>
+          </div>
+        </div>
+
+        <div class="config-modal-actions">
+          <button id="btnOkModalFeedback" class="btn btn-primary" type="button">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="modalAlterarSenha" class="config-modal hidden" aria-hidden="true">
       <div class="config-modal-backdrop" data-fechar-modal-senha></div>
       <div

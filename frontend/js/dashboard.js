@@ -1211,11 +1211,7 @@ function salvarEmojiRotinaPersonalizada(chave, emoji) {
 
 function obterEmojiRotinaPersonalizada(rotina) {
   const emojis = carregarEmojisRotinasPersonalizadas();
-  return (
-    emojis[String(rotina?.id)] ||
-    emojis[String(rotina?.nome || "").toLowerCase()] ||
-    ""
-  );
+  return emojis[String(rotina?.id)] || "";
 }
 
 function normalizarEmojiRotina(valor) {
@@ -5671,10 +5667,13 @@ function salvarTemplateModalRotina(idRotina, nomeRotina, template) {
   if (!template) return;
 
   try {
-    if (idRotina)
+    if (idRotina) {
       localStorage.setItem(chaveTemplateModalRotina(idRotina), template);
-    if (nomeRotina)
-      localStorage.setItem(chaveTemplateModalRotina(nomeRotina), template);
+    }
+
+    if (nomeRotina) {
+      localStorage.removeItem(chaveTemplateModalRotina(nomeRotina));
+    }
   } catch (erro) {
     console.warn("NÃ£o foi possÃ­vel salvar o template da rotina:", erro);
   }
@@ -5684,11 +5683,7 @@ function obterTemplateModalRotinaAtual() {
   if (!rotinaAtual) return "";
 
   try {
-    return (
-      localStorage.getItem(chaveTemplateModalRotina(rotinaAtual.id)) ||
-      localStorage.getItem(chaveTemplateModalRotina(rotinaAtual.nome)) ||
-      ""
-    );
+    return localStorage.getItem(chaveTemplateModalRotina(rotinaAtual.id)) || "";
   } catch {
     return "";
   }
@@ -5698,11 +5693,7 @@ function obterTemplateModalRotinaPorRotina(rotina) {
   if (!rotina) return "";
 
   try {
-    return (
-      localStorage.getItem(chaveTemplateModalRotina(rotina.id)) ||
-      localStorage.getItem(chaveTemplateModalRotina(rotina.nome)) ||
-      ""
-    );
+    return localStorage.getItem(chaveTemplateModalRotina(rotina.id)) || "";
   } catch {
     return "";
   }
@@ -7846,7 +7837,6 @@ salvarRotina.addEventListener("click", async () => {
       if (dados.id) {
         salvarEmojiRotinaPersonalizada(dados.id, emojiPersonalizado);
       }
-      salvarEmojiRotinaPersonalizada(nome.toLowerCase(), emojiPersonalizado);
     }
 
     mostrarAviso("sucesso", "Rotina criada com sucesso!");

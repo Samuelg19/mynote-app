@@ -132,6 +132,12 @@ const btnExportarExcel = document.getElementById("btnExportarExcel");
 const btnSincronizarBackup = document.getElementById("btnSincronizarBackup");
 const btnRestaurarBackup = document.getElementById("btnRestaurarBackup");
 const inputRestaurarBackup = document.getElementById("inputRestaurarBackup");
+const btnFecharModalFeedback = document.getElementById("btnFecharModalFeedback");
+const btnOkModalFeedback = document.getElementById("btnOkModalFeedback");
+const modalFeedbackConfiguracoes = document.getElementById("modalFeedbackConfiguracoes");
+const tituloModalFeedbackConfiguracoes = document.getElementById("tituloModalFeedbackConfiguracoes");
+const textoModalFeedbackConfiguracoes = document.getElementById("textoModalFeedbackConfiguracoes");
+const iconeModalFeedbackConfiguracoes = document.getElementById("iconeModalFeedbackConfiguracoes");
 
 //tema de fundo (bolinhas)
 const opcoesFundo = document.querySelectorAll(".cor-opcao");
@@ -395,14 +401,26 @@ async function salvarConfiguracoes() {
 
     if (!resposta.ok) {
       console.error("Erro ao salvar configuracoes:", dados);
-      alert(dados.msg || MyNotePrefs.t("Erro ao salvar configuracoes."));
+      mostrarModalFeedbackConfiguracoes({
+        titulo: MyNotePrefs.t("Erro ao salvar"),
+        mensagem: dados.msg || MyNotePrefs.t("Erro ao salvar configuracoes."),
+        tipo: "erro",
+      });
       return;
     }
 
-    alert(MyNotePrefs.t("Configurações salvas com sucesso!"));
+    mostrarModalFeedbackConfiguracoes({
+      titulo: MyNotePrefs.t("Tudo certo"),
+      mensagem: MyNotePrefs.t("Configurações salvas com sucesso!"),
+      tipo: "sucesso",
+    });
   } catch (erro) {
     console.error("Erro ao salvar configurações:", erro);
-    alert(MyNotePrefs.t(mensagemErroConfiguracoes(erro)));
+    mostrarModalFeedbackConfiguracoes({
+      titulo: MyNotePrefs.t("Erro ao salvar"),
+      mensagem: MyNotePrefs.t(mensagemErroConfiguracoes(erro)),
+      tipo: "erro",
+    });
   }
 }
 
@@ -459,6 +477,46 @@ btnLogoutConta?.addEventListener("click", () => {
   window.location.href = LOGIN_PAGE;
 });
 
+
+function fecharModalFeedbackConfiguracoes() {
+  if (!modalFeedbackConfiguracoes) return;
+  modalFeedbackConfiguracoes.classList.add("hidden");
+  modalFeedbackConfiguracoes.setAttribute("aria-hidden", "true");
+}
+
+function mostrarModalFeedbackConfiguracoes({
+  titulo = "Tudo certo",
+  mensagem = "Configurações salvas com sucesso!",
+  tipo = "sucesso",
+} = {}) {
+  if (!modalFeedbackConfiguracoes) {
+    alert(mensagem);
+    return;
+  }
+
+  tituloModalFeedbackConfiguracoes.textContent = titulo;
+  textoModalFeedbackConfiguracoes.textContent = mensagem;
+  iconeModalFeedbackConfiguracoes.textContent = tipo === "erro" ? "!" : "✓";
+  iconeModalFeedbackConfiguracoes.classList.toggle(
+    "config-modal-icon-danger",
+    tipo === "erro",
+  );
+  iconeModalFeedbackConfiguracoes.classList.toggle(
+    "config-modal-icon-success",
+    tipo !== "erro",
+  );
+
+  modalFeedbackConfiguracoes.classList.remove("hidden");
+  modalFeedbackConfiguracoes.setAttribute("aria-hidden", "false");
+  setTimeout(() => btnOkModalFeedback?.focus(), 0);
+}
+
+btnFecharModalFeedback?.addEventListener("click", fecharModalFeedbackConfiguracoes);
+btnOkModalFeedback?.addEventListener("click", fecharModalFeedbackConfiguracoes);
+modalFeedbackConfiguracoes
+  ?.querySelector("[data-fechar-modal-feedback]")
+  ?.addEventListener("click", fecharModalFeedbackConfiguracoes);
+
 function mostrarMensagemSenha(mensagem, tipo = "erro") {
   if (!mensagemSenhaConta) return;
   mensagemSenhaConta.textContent = mensagem;
@@ -508,6 +566,13 @@ document.addEventListener("keydown", (evento) => {
     !modalExcluirConta.classList.contains("hidden")
   ) {
     fecharModalExcluirConta();
+  }
+
+  if (
+    modalFeedbackConfiguracoes &&
+    !modalFeedbackConfiguracoes.classList.contains("hidden")
+  ) {
+    fecharModalFeedbackConfiguracoes();
   }
 });
 

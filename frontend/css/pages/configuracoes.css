@@ -469,6 +469,20 @@ body.tema-escuro.config-page {
   height: 46px;
 }
 
+.config-feedback-content {
+  max-width: 430px;
+}
+
+.config-feedback-header {
+  margin-bottom: 18px;
+}
+
+.config-modal-icon-success {
+  background: color-mix(in srgb, #22c55e 18%, #ffffff);
+  color: #15803d;
+  font-weight: 900;
+}
+
 body.tema-escuro .config-modal-backdrop {
   background: rgba(2, 6, 23, 0.72);
 }
@@ -481,6 +495,11 @@ body.tema-escuro .config-modal-content {
 body.tema-escuro .config-modal-close {
   background: #334155;
   color: #f8fafc;
+}
+
+body.tema-escuro .config-modal-icon-success {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
 }
 
 .modal-excluir-conta-content {

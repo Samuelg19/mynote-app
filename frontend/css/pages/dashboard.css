@@ -1769,8 +1769,9 @@ body.tema-escuro .btn-menu-rotina {
 }
 
 .opcao-frequencia.ativa {
-  background: color-mix(in srgb, var(--accent) 74%, #111827);
-  color: white;
+  background: color-mix(in srgb, var(--accent) 18%, #fffaf1);
+  border-color: color-mix(in srgb, var(--accent) 76%, #8a5f1f);
+  color: #171717;
 }
 
 .opcao-frequencia:disabled {
@@ -1785,8 +1786,13 @@ body.tema-escuro .btn-menu-rotina {
 }
 
 .opcao-frequencia small {
-  color: color-mix(in srgb, currentColor 72%, transparent);
+  color: color-mix(in srgb, currentColor 78%, #2f2418);
   font-size: 0.78rem;
+}
+
+.opcao-frequencia.ativa small {
+  color: #2b1f13;
+  font-weight: 600;
 }
 
 .seta-opcao-frequencia {
@@ -1804,23 +1810,28 @@ body.tema-escuro .btn-menu-rotina {
 .grade-frequencia {
   display: grid;
   gap: 0;
-  border: 1px solid var(--border);
-  background: #000;
+  border: 1px solid #deb66f;
+  background: #deb66f;
   margin-top: 10px;
 }
 
 .grade-frequencia button {
   min-height: 48px;
-  border: 1px solid var(--border);
-  background: #050505;
-  color: var(--text);
+  border: 1px solid #deb66f;
+  background: #fff9ed;
+  color: #2b2118;
   font-size: 1rem;
   cursor: pointer;
 }
 
+.grade-frequencia button:hover {
+  background: #fff1d6;
+}
+
 .grade-frequencia button.ativo {
-  background: #1d8bd7;
+  background: #2d97d8;
   color: white;
+  font-weight: 700;
 }
 
 .grade-semana-frequencia {
@@ -4160,4 +4171,46 @@ body[data-fundo="menta"] {
 .btn-flutuante {
   width: 58px;
   height: 58px;
+}
+
+
+body.tema-escuro .opcao-frequencia.ativa {
+  background: color-mix(in srgb, var(--accent) 74%, #111827);
+  border-color: transparent;
+  color: white;
+}
+
+body.tema-escuro .opcao-frequencia.ativa small {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+body.tema-escuro .grade-frequencia {
+  border-color: var(--border);
+  background: #111827;
+}
+
+body.tema-escuro .grade-frequencia button {
+  border-color: var(--border);
+  background: #1f2937;
+  color: #f8fafc;
+}
+
+body.tema-escuro .grade-frequencia button:hover {
+  background: #273449;
+}
+
+body.tema-escuro .grade-frequencia button.ativo {
+  background: #2d97d8;
+  color: white;
+}
+
+
+body.dashboard-body .sidebar {
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+}
+
+body.dashboard-body .sidebar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
