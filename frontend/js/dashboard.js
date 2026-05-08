@@ -238,6 +238,14 @@ async function lerListaJson(resposta) {
   }
 }
 
+async function lerRespostaJsonSegura(resposta) {
+  try {
+    return await resposta.json();
+  } catch {
+    return {};
+  }
+}
+
 async function atualizarTarefa(id, dados) {
   return fetch(`${API_BASE_URL}/tarefas/${id}`, {
     method: "PUT",
