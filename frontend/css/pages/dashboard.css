@@ -151,7 +151,7 @@ body[data-fundo="marrom"] {
   max-height: 100vh;
 
   background: var(--sidebar);
-  padding: 24px;
+  padding: 24px 24px 16px;
 
   border-right: none;
 
@@ -193,8 +193,9 @@ body[data-fundo="marrom"] {
 }
 
 .sidebar-footer {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 14px;
+  padding-top: 0;
+  padding-bottom: 6px;
   flex-shrink: 0;
   background: var(--sidebar);
 }
