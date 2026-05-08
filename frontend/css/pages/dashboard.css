@@ -152,6 +152,8 @@ body[data-fundo="marrom"] {
 
   background: var(--sidebar);
   padding: 24px;
+  padding-bottom: 90px;
+
   border-right: none;
 
   display: flex;
@@ -192,8 +194,13 @@ body[data-fundo="marrom"] {
 }
 
 .sidebar-footer {
-  margin-top: auto;
+  margin-top: 20px;
   padding-top: 20px;
+
+  position: sticky;
+  bottom: 0;
+
+  background: var(--sidebar);
 }
 
 .lista-rotinas {
