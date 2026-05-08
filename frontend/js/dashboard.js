@@ -231,7 +231,7 @@ function headersAuth() {
 
 async function lerListaJson(resposta) {
   try {
-    const dados = await resposta.json();
+    const dados = await lerRespostaJsonSegura(resposta);
     return Array.isArray(dados) ? dados : [];
   } catch {
     return [];
@@ -7660,8 +7660,8 @@ async function salvarNovoLembrete() {
         headers: headersAuth(),
         body: JSON.stringify({
           titulo,
-          horario,
-          dia_mes: diaMes,
+          horario: horario || null,
+          dia_mes: diaMes || null,
           prioridade,
           status: "Pendente",
           notificacao,
@@ -7670,10 +7670,14 @@ async function salvarNovoLembrete() {
       },
     );
 
-    const dados = await resposta.json();
+    const dados = await lerRespostaJsonSegura(resposta);
 
     if (!resposta.ok) {
-      mostrarAviso("erro", dados.msg || "Erro ao criar lembrete.");
+      console.error("Erro ao salvar lembrete:", dados);
+      mostrarAviso(
+        "erro",
+        dados.detalhe || dados.msg || "Erro ao criar lembrete.",
+      );
       return;
     }
 

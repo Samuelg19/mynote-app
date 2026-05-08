@@ -4214,3 +4214,193 @@ body.dashboard-body .sidebar::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
+
+
+/* Grades de repeticao por tema de fundo */
+body.dashboard-body {
+  --freq-grid-border: #deb66f;
+  --freq-grid-bg: #deb66f;
+  --freq-grid-cell: #fff9ed;
+  --freq-grid-cell-hover: #fff1d6;
+  --freq-grid-text: #2b2118;
+  --freq-grid-active: #2d97d8;
+  --freq-grid-active-text: #ffffff;
+}
+
+body[data-fundo="padrao"] {
+  --freq-grid-border: #b9c6d6;
+  --freq-grid-bg: #cbd5e1;
+  --freq-grid-cell: #f8fafc;
+  --freq-grid-cell-hover: #e2e8f0;
+  --freq-grid-text: #111827;
+  --freq-grid-active: #2563eb;
+}
+
+body[data-fundo="creme"] {
+  --freq-grid-border: #deb66f;
+  --freq-grid-bg: #deb66f;
+  --freq-grid-cell: #fff9ed;
+  --freq-grid-cell-hover: #fff1d6;
+  --freq-grid-text: #2b2118;
+  --freq-grid-active: #2d97d8;
+}
+
+body[data-fundo="peach"] {
+  --freq-grid-border: #ef9f8f;
+  --freq-grid-bg: #ef9f8f;
+  --freq-grid-cell: #fff5f1;
+  --freq-grid-cell-hover: #ffe2d9;
+  --freq-grid-text: #3a1710;
+  --freq-grid-active: #e85d3f;
+}
+
+body[data-fundo="lilas"] {
+  --freq-grid-border: #b99add;
+  --freq-grid-bg: #b99add;
+  --freq-grid-cell: #fbf7ff;
+  --freq-grid-cell-hover: #eadcfb;
+  --freq-grid-text: #291640;
+  --freq-grid-active: #7c3aed;
+}
+
+body[data-fundo="salvia"] {
+  --freq-grid-border: #9dbb8b;
+  --freq-grid-bg: #9dbb8b;
+  --freq-grid-cell: #f7fff0;
+  --freq-grid-cell-hover: #dfecd3;
+  --freq-grid-text: #1f2d18;
+  --freq-grid-active: #4d8b3d;
+}
+
+body[data-fundo="amarelo-suave"] {
+  --freq-grid-border: #dfc64d;
+  --freq-grid-bg: #dfc64d;
+  --freq-grid-cell: #fffde9;
+  --freq-grid-cell-hover: #fff3a8;
+  --freq-grid-text: #31260a;
+  --freq-grid-active: #b98000;
+}
+
+body[data-fundo="azul-claro"],
+body[data-fundo="oceano"],
+body[data-fundo="azul-noite"] {
+  --freq-grid-border: #8fc6d7;
+  --freq-grid-bg: #8fc6d7;
+  --freq-grid-cell: #f1fbff;
+  --freq-grid-cell-hover: #d8f1f8;
+  --freq-grid-text: #10243a;
+  --freq-grid-active: #0e7aa3;
+}
+
+body[data-fundo="menta"] {
+  --freq-grid-border: #73cdbd;
+  --freq-grid-bg: #73cdbd;
+  --freq-grid-cell: #effffb;
+  --freq-grid-cell-hover: #d2f8ef;
+  --freq-grid-text: #0d332e;
+  --freq-grid-active: #0f8f7a;
+}
+
+body[data-fundo="rosa-claro"] {
+  --freq-grid-border: #e9a6c7;
+  --freq-grid-bg: #e9a6c7;
+  --freq-grid-cell: #fff7fb;
+  --freq-grid-cell-hover: #fce0ef;
+  --freq-grid-text: #3a1425;
+  --freq-grid-active: #db2777;
+}
+
+body[data-fundo="cinza-claro"] {
+  --freq-grid-border: #aeb8c5;
+  --freq-grid-bg: #aeb8c5;
+  --freq-grid-cell: #f8fafc;
+  --freq-grid-cell-hover: #e2e8f0;
+  --freq-grid-text: #111827;
+  --freq-grid-active: #475569;
+}
+
+body[data-fundo="marrom"] {
+  --freq-grid-border: #c5a08f;
+  --freq-grid-bg: #c5a08f;
+  --freq-grid-cell: #fff8f1;
+  --freq-grid-cell-hover: #f0ddd2;
+  --freq-grid-text: #2f211b;
+  --freq-grid-active: #8b5e3c;
+}
+
+body[data-fundo="verde-escuro"] {
+  --freq-grid-border: #8fc79b;
+  --freq-grid-bg: #8fc79b;
+  --freq-grid-cell: #f3fff5;
+  --freq-grid-cell-hover: #d8f0dd;
+  --freq-grid-text: #102d1c;
+  --freq-grid-active: #15803d;
+}
+
+body[data-fundo="vinho"] {
+  --freq-grid-border: #d995a2;
+  --freq-grid-bg: #d995a2;
+  --freq-grid-cell: #fff7f8;
+  --freq-grid-cell-hover: #f4d7dd;
+  --freq-grid-text: #38141f;
+  --freq-grid-active: #be123c;
+}
+
+body[data-fundo="roxo-profundo"] {
+  --freq-grid-border: #b69adf;
+  --freq-grid-bg: #b69adf;
+  --freq-grid-cell: #fbf8ff;
+  --freq-grid-cell-hover: #e8dcf7;
+  --freq-grid-text: #271642;
+  --freq-grid-active: #7e4cc9;
+}
+
+body[data-fundo="uva"] {
+  --freq-grid-border: #d59acb;
+  --freq-grid-bg: #d59acb;
+  --freq-grid-cell: #fff7fd;
+  --freq-grid-cell-hover: #f2d7ed;
+  --freq-grid-text: #371532;
+  --freq-grid-active: #a33a94;
+}
+
+body[data-fundo="coral"] {
+  --freq-grid-border: #e88f54;
+  --freq-grid-bg: #e88f54;
+  --freq-grid-cell: #fff7f0;
+  --freq-grid-cell-hover: #ffe0c7;
+  --freq-grid-text: #351708;
+  --freq-grid-active: #ea580c;
+}
+
+body[data-fundo="grafite"],
+body.tema-escuro {
+  --freq-grid-border: #334155;
+  --freq-grid-bg: #111827;
+  --freq-grid-cell: #1f2937;
+  --freq-grid-cell-hover: #273449;
+  --freq-grid-text: #f8fafc;
+  --freq-grid-active: #38bdf8;
+  --freq-grid-active-text: #082f49;
+}
+
+body.dashboard-body .grade-frequencia {
+  border-color: var(--freq-grid-border);
+  background: var(--freq-grid-bg);
+}
+
+body.dashboard-body .grade-frequencia button {
+  border-color: var(--freq-grid-border);
+  background: var(--freq-grid-cell);
+  color: var(--freq-grid-text);
+}
+
+body.dashboard-body .grade-frequencia button:hover {
+  background: var(--freq-grid-cell-hover);
+}
+
+body.dashboard-body .grade-frequencia button.ativo {
+  background: var(--freq-grid-active);
+  color: var(--freq-grid-active-text);
+  font-weight: 800;
+}
