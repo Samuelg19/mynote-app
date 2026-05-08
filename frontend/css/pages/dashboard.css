@@ -186,6 +186,16 @@ body[data-fundo="marrom"] {
   scrollbar-width: thin;
 }
 
+.sidebar-top::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+.sidebar-top {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .sidebar-title {
   display: flex;
   align-items: center;
