@@ -706,7 +706,7 @@ function renderizarSemanal(tarefas) {
 
       item.innerHTML = `
   <button class="check-semanal" type="button" title="Concluir tarefa">
-    ${tarefa.concluida ? "✅" : "⬜"}
+    ${simboloCheck(tarefa.concluida)}
   </button>
 
   <span class="titulo-semanal">${tarefa.titulo}</span>
@@ -768,11 +768,7 @@ function renderizarSemanal(tarefas) {
   tarefa.concluida = novaConclusao;
   tarefa.status = novaConclusao ? "Concluída" : "Pendente";
 
-  item.classList.toggle("concluido", novaConclusao);
-
-  if (btnCheck) {
-    btnCheck.innerHTML = novaConclusao ? "✅" : "⬜";
-  }
+  aplicarConclusaoSemanal(item, btnCheck, novaConclusao);
 
   invalidarCacheTarefas(rotinaSelecionadaId);
 });
@@ -969,7 +965,7 @@ function renderizarTreino(tarefas) {
 
           <div class="acoes-card-treino">
             <button class="btn-concluir-exercicio" title="Concluir exercício">
-              ${ex.concluida ? "✅" : "⭕"}
+              ${simboloCheck(ex.concluida)}
             </button>
 
             ${
@@ -988,7 +984,7 @@ function renderizarTreino(tarefas) {
         <p><span>Séries:</span> ${ex.series || "-"}</p>
         <p><span>Repetições:</span> ${ex.repeticoes || "-"}</p>
         <p><span>Carga:</span> ${ex.carga || "-"} kg</p>
-        <p><span>Status:</span> ${ex.status || "Pendente"}</p>
+        <p><span>Status:</span> <strong data-status-exercicio>${ex.concluida ? "Concluída" : ex.status || "Pendente"}</strong></p>
       `;
 
       card.addEventListener("dragstart", (event) => {
@@ -1024,9 +1020,7 @@ function renderizarTreino(tarefas) {
 ex.concluida = novoConcluida;
 ex.status = novoStatus;
 
-card.classList.toggle("concluido", novoConcluida);
-
-btnConcluir.innerHTML = novoConcluida ? "✅" : "⭕";
+aplicarConclusaoCardTreino(card, btnConcluir, novoConcluida);
 
 invalidarCacheTarefas(rotinaSelecionadaId);
         } catch (erro) {
@@ -5620,6 +5614,51 @@ function aplicarEstadoConclusaoLinha(linha, botao, concluida) {
   }
 }
 
+function simboloCheck(concluida) {
+  return concluida ? "&#10003;" : "";
+}
+
+function aplicarConclusaoSemanal(item, botao, concluida) {
+  item?.classList.toggle("concluido", concluida);
+  item?.classList.remove("concluindo");
+
+  if (concluida) {
+    void item?.offsetWidth;
+    item?.classList.add("concluindo");
+    window.setTimeout(() => item?.classList.remove("concluindo"), 500);
+  }
+
+  if (botao) {
+    botao.dataset.concluida = String(concluida);
+    botao.innerHTML = simboloCheck(concluida);
+    botao.title = concluida ? "Marcar como pendente" : "Concluir tarefa";
+  }
+}
+
+function aplicarConclusaoCardTreino(card, botao, concluida) {
+  const novoStatus = concluida ? "Concluída" : "Pendente";
+
+  card?.classList.toggle("concluido", concluida);
+  card?.classList.remove("concluindo");
+
+  if (concluida) {
+    void card?.offsetWidth;
+    card?.classList.add("concluindo");
+    window.setTimeout(() => card?.classList.remove("concluindo"), 560);
+  }
+
+  if (botao) {
+    botao.dataset.concluida = String(concluida);
+    botao.innerHTML = simboloCheck(concluida);
+    botao.title = concluida ? "Marcar como pendente" : "Concluir exercício";
+  }
+
+  const statusValor = card?.querySelector("[data-status-exercicio]");
+  if (statusValor) {
+    statusValor.textContent = novoStatus;
+  }
+}
+
 function montarLinhaTarefa(tarefa, tipoRotina) {
   if (tipoRotina === "matinal") {
     return `
@@ -6535,7 +6574,7 @@ function montarCardPersonalizado(tarefa, campos) {
 
         <div class="acoes-card-treino">
           <button class="btn-concluir-exercicio" data-id="${tarefa.id}" title="Concluir tarefa">
-            ⭕
+            ${simboloCheck(tarefa.concluida)}
           </button>
 
           <button class="btn-excluir" data-id="${tarefa.id}">
@@ -6574,8 +6613,10 @@ function ativarEventosCardsPersonalizados(tarefas) {
         }),
       });
 
+      tarefa.concluida = novoConcluida;
+      tarefa.status = novoStatus;
+      aplicarConclusaoCardTreino(card, btnConcluir, novoConcluida);
       invalidarCacheTarefas(rotinaSelecionadaId);
-      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     });
 
     btnExcluir?.addEventListener("click", async (event) => {

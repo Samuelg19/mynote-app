@@ -66,35 +66,101 @@
 /* Card de exercício concluído */
 .card-exercicio.concluido {
   position: relative;
-  opacity: 0.55;
-  filter: grayscale(0.5);
+  opacity: 0.86;
+  filter: none;
+  border-color: #22c55e;
+  background: color-mix(in srgb, #22c55e 7%, var(--card));
 }
 
 .card-exercicio.concluido::after {
-  content: "X";
+  content: "";
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 72px;
-  font-weight: bold;
-  color: rgba(239, 68, 68, 0.75);
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, #22c55e, #14b8a6);
   pointer-events: none;
 }
 
 /* Botão de concluir exercício */
 .btn-concluir-exercicio {
-  border: none;
-  background: transparent;
-  color: #94a3b8;
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--muted) 62%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--input-bg) 86%, transparent);
+  color: #ffffff;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
   margin-right: 8px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #ffffff 16%, transparent);
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .btn-concluir-exercicio:hover {
-  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 18px color-mix(in srgb, var(--accent) 18%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, #ffffff 18%, transparent);
+}
+
+.card-exercicio.concluido .btn-concluir-exercicio {
+  border-color: color-mix(in srgb, #22c55e 78%, var(--accent));
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+}
+
+.card-exercicio.concluindo {
+  animation: treinoConcluidoPulse 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.card-exercicio.concluindo .btn-concluir-exercicio {
+  animation: checkConcluidoPop 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.card-exercicio [data-status-exercicio] {
+  font-weight: 800;
+  color: var(--text);
+}
+
+.card-exercicio.concluido [data-status-exercicio] {
+  color: #22c55e;
+}
+
+@keyframes treinoConcluidoPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, #22c55e 0%, transparent);
+  }
+
+  45% {
+    box-shadow: 0 12px 28px color-mix(in srgb, #22c55e 16%, transparent);
+  }
+
+  100% {
+    box-shadow: none;
+  }
+}
+
+@keyframes checkConcluidoPop {
+  0% {
+    transform: scale(0.86);
+  }
+
+  55% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Edição dos cards de treino */
@@ -199,13 +265,19 @@ body.tema-claro .bloco-dia-treino.descanso {
 }
 
 .card-exercicio.concluido {
-  opacity: 0.6;
-  border: 2px solid #22c55e;
+  opacity: 0.86;
+  border: 1px solid #22c55e;
   transform: scale(0.98);
 }
 
 .card-exercicio.concluido strong {
   text-decoration: line-through;
+  color: var(--muted);
+}
+
+.card-exercicio.concluido [data-status-exercicio],
+.card-exercicio.concluido .btn-concluir-exercicio {
+  text-decoration: none;
 }
 
 .card-exercicio-header {
