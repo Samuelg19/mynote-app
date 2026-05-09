@@ -1817,7 +1817,7 @@ body.tema-escuro .btn-menu-rotina {
 
 .frequencia-controles {
   display: grid;
-  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
   align-items: stretch;
 }

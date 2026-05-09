@@ -107,9 +107,12 @@ const horarioTarefaInput = document.getElementById("horarioTarefaInput");
 const notificacaoTarefaInput = document.getElementById(
   "notificacaoTarefaInput",
 );
+const alarmeTarefaInput = document.getElementById("alarmeTarefaInput");
+const textoAlarmeTarefa = document.getElementById("textoAlarmeTarefa");
 const linhaNotificacaoTarefa = document.getElementById(
   "linhaNotificacaoTarefa",
 );
+const linhaAlarmeTarefa = document.getElementById("linhaAlarmeTarefa");
 let statusTarefaSelect = null;
 
 const labelTipoTarefa = document.getElementById("labelTipoTarefa");
@@ -496,6 +499,7 @@ let configuracoesNotificacao = {
   notificacoesNavegador: true,
   notificacoesPorRotina: true,
   somNotificacao: true,
+  apenasNotificarTarefas: false,
   resumoDiario: true,
   modoFoco: false,
 };
@@ -594,9 +598,27 @@ function atualizarTextoNotificacaoModal() {
     textoNotificacaoTarefa.textContent = "🔕 Notificação desativada";
     textoNotificacaoTarefa.classList.remove("ativa");
   }
+
+  atualizarTextoAlarmeTarefaModal();
 }
 
 //Utilitários gerais
+function atualizarTextoAlarmeTarefaModal() {
+  if (!alarmeTarefaInput || !textoAlarmeTarefa) return;
+
+  const notificacaoAtiva = notificacaoTarefaInput?.checked !== false;
+  const alarmeAtivo = notificacaoAtiva && alarmeTarefaInput.checked;
+
+  alarmeTarefaInput.disabled = !notificacaoAtiva;
+  linhaAlarmeTarefa?.classList.toggle("desativada", !notificacaoAtiva);
+  textoAlarmeTarefa.classList.toggle("ativa", alarmeAtivo);
+  textoAlarmeTarefa.textContent = alarmeAtivo
+    ? "Alarme da tarefa ligado"
+    : notificacaoAtiva
+      ? "Apenas notificar esta tarefa"
+      : "Ative a notificacao para usar alarme";
+}
+
 function obterTipoRotina(nome, rotina = rotinaAtual) {
   const modelo = rotina?.tipo_modelo;
 
@@ -1417,9 +1439,11 @@ function atualizarBotaoSilenciarRotina() {
 
   if (tipoRotina === "treino") {
     linhaNotificacaoTarefa?.classList.add("hidden");
+    linhaAlarmeTarefa?.classList.add("hidden");
     notificacaoTarefaInput.checked = false;
   } else {
     linhaNotificacaoTarefa?.classList.remove("hidden");
+    linhaAlarmeTarefa?.classList.remove("hidden");
   }
 
   if (tipoRotina === "treino") {
@@ -2503,6 +2527,8 @@ async function carregarTemaDashboard() {
     notificacoesNavegador: valorConfigAtivo(config.notificacoes_navegador),
     notificacoesPorRotina: valorConfigAtivo(config.notificacoes_por_rotina),
     somNotificacao: valorConfigAtivo(config.som_notificacao),
+    apenasNotificarTarefas:
+      localStorage.getItem(chaveApenasNotificarTarefasUsuario()) === "true",
     resumoDiario: valorConfigAtivo(config.resumo_diario),
     modoFoco: valorConfigAtivo(config.modo_foco, false),
   };
@@ -2581,9 +2607,9 @@ async function salvarCampoEditado() {
 }
 
 //Notificações
-if ("Notification" in window) {
-  Notification.requestPermission();
-}
+let pedidoPermissaoNotificacaoPreparado = false;
+let somNotificacaoPreparado = false;
+let ultimoAlarmeTarefa = 0;
 
 function converterAntecedenciaEmMinutos(texto) {
   const valor = String(texto || "").toLowerCase();
@@ -2600,7 +2626,7 @@ function diferencaEmMinutos(horarioAlvo) {
   return MyNotePrefs.minutesUntilTime(horarioAlvo);
 }
 
-async function inicializarPermissaoNotificacao() {
+async function inicializarPermissaoNotificacao({ solicitar = false } = {}) {
   if (!("Notification" in window)) return;
   if (
     !configuracoesNotificacao.notificacoesGerais ||
@@ -2613,31 +2639,151 @@ async function inicializarPermissaoNotificacao() {
     return;
   }
 
-  if (Notification.permission !== "denied") {
+  if (solicitar && Notification.permission !== "denied") {
     const permissao = await Notification.requestPermission();
     notificacoesPermitidas = permissao === "granted";
   }
+}
+
+function prepararSomNotificacaoPorInteracao() {
+  if (somNotificacaoPreparado || !configuracoesNotificacao.somNotificacao)
+    return;
+
+  somNotificacaoPreparado = true;
+  const audio = new Audio(obterSomNotificacaoConfigurado());
+  audio.volume = 0;
+  audio
+    .play()
+    .then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 1;
+    })
+    .catch(() => {
+      somNotificacaoPreparado = false;
+    });
+}
+
+function prepararPedidoPermissaoNotificacaoPorInteracao() {
+  if (pedidoPermissaoNotificacaoPreparado) return;
+
+  pedidoPermissaoNotificacaoPreparado = true;
+
+  const solicitarComGesto = () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      inicializarPermissaoNotificacao({ solicitar: true }).catch((erro) =>
+        console.warn("Nao foi possivel pedir permissao de notificacao:", erro),
+      );
+    }
+    prepararSomNotificacaoPorInteracao();
+  };
+
+  document.addEventListener("pointerdown", solicitarComGesto, { once: true });
+  document.addEventListener("keydown", solicitarComGesto, { once: true });
 }
 
 function chaveSomNotificacaoUsuario() {
   return `somNotificacaoPersonalizado_${usuario.id}`;
 }
 
+function chaveApenasNotificarTarefasUsuario() {
+  return `apenasNotificarTarefas_${usuario.id}`;
+}
+
 function obterSomNotificacaoConfigurado() {
   return (
-    localStorage.getItem(chaveSomNotificacaoUsuario()) || "notificacao.mp3"
+    localStorage.getItem(chaveSomNotificacaoUsuario()) ||
+    "assets/notificacao.wav"
   );
 }
 
-function tocarSomNotificacao() {
+function vibrarNotificacao({ alarme = false } = {}) {
+  if (configuracoesNotificacao.modoFoco) return;
+  if (!("vibrate" in navigator)) return;
+
+  navigator.vibrate(
+    alarme ? [420, 140, 420, 140, 420, 220, 650] : [180, 80, 180],
+  );
+}
+
+function tocarSomNotificacao({ alarme = false } = {}) {
   if (configuracoesNotificacao.modoFoco) return;
   if (!configuracoesNotificacao.somNotificacao) return;
-  const som = new Audio(obterSomNotificacaoConfigurado());
-  som
-    .play()
-    .catch((erro) =>
-      console.warn("Não foi possível tocar o som da notificação:", erro),
-    );
+
+  const repeticoes = alarme ? 4 : 1;
+  const intervalo = alarme ? 1500 : 0;
+
+  const tocar = (tentativa = 1) => {
+    const som = new Audio(obterSomNotificacaoConfigurado());
+    som.volume = alarme ? 1 : 0.82;
+    som
+      .play()
+      .catch((erro) =>
+        console.warn("Nao foi possivel tocar o som da notificacao:", erro),
+      );
+
+    if (tentativa < repeticoes) {
+      setTimeout(() => tocar(tentativa + 1), intervalo);
+    }
+  };
+
+  tocar();
+}
+
+function deveAlarmarNotificacao(opcoes = {}) {
+  return (
+    !!opcoes.tarefa &&
+    opcoes.alarme !== false &&
+    !configuracoesNotificacao.apenasNotificarTarefas
+  );
+}
+
+function montarOpcoesNotificacao(corpo, { alarme = false } = {}) {
+  return {
+    body: corpo,
+    icon: "/assets/icon-192.png",
+    badge: "/assets/icon-192.png",
+    requireInteraction: alarme,
+    renotify: alarme,
+    tag: alarme ? "mynote-alarme-tarefa" : undefined,
+    vibrate: alarme ? [420, 140, 420, 140, 420] : [180, 80, 180],
+  };
+}
+
+async function exibirNotificacaoNavegador(titulo, corpo, opcoes = {}) {
+  if (
+    !configuracoesNotificacao.notificacoesNavegador ||
+    !notificacoesPermitidas ||
+    !("Notification" in window)
+  ) {
+    return false;
+  }
+
+  const alarme = deveAlarmarNotificacao(opcoes);
+  const opcoesNotificacao = montarOpcoesNotificacao(corpo, { alarme });
+
+  if ("serviceWorker" in navigator) {
+    try {
+      const registro = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((resolve) => setTimeout(() => resolve(null), 900)),
+      ]);
+
+      if (registro?.showNotification) {
+        await registro.showNotification(titulo, opcoesNotificacao);
+        return true;
+      }
+    } catch (erro) {
+      console.warn("Nao foi possivel notificar pelo service worker:", erro);
+    }
+  }
+
+  const notif = new Notification(titulo, opcoesNotificacao);
+  notif.onclick = () => {
+    window.focus();
+  };
+
+  return true;
 }
 
 function mostrarNotificacao(titulo, corpo, opcoes = {}) {
@@ -2647,25 +2793,25 @@ function mostrarNotificacao(titulo, corpo, opcoes = {}) {
 
   const tituloTraduzido = MyNotePrefs.t(titulo);
   const corpoTraduzido = MyNotePrefs.t(corpo);
-  let exibiuNavegador = false;
+  const alarme = deveAlarmarNotificacao(opcoes);
 
-  if (
-    configuracoesNotificacao.notificacoesNavegador &&
-    notificacoesPermitidas &&
-    "Notification" in window
-  ) {
-    const notif = new Notification(tituloTraduzido, {
-      body: corpoTraduzido,
-    });
-
-    notif.onclick = () => {
-      window.focus();
-    };
-    exibiuNavegador = true;
+  if (alarme) {
+    const agora = Date.now();
+    if (agora - ultimoAlarmeTarefa > 4000) {
+      ultimoAlarmeTarefa = agora;
+      vibrarNotificacao({ alarme: true });
+      tocarSomNotificacao({ alarme: true });
+    }
+  } else {
+    vibrarNotificacao();
+    tocarSomNotificacao();
   }
 
-  tocarSomNotificacao();
-  return exibiuNavegador || configuracoesNotificacao.somNotificacao;
+  exibirNotificacaoNavegador(tituloTraduzido, corpoTraduzido, opcoes).catch(
+    (erro) => console.warn("Erro ao exibir notificacao:", erro),
+  );
+
+  return true;
 }
 
 // ===============================
@@ -2793,6 +2939,7 @@ function obterPreferenciaPadraoTarefa(tarefa) {
     return {
       modo: "prazo",
       repeticao: null,
+      alarme: true,
       antecedencia: criarAntecedencia(
         "minuto",
         antecedenciaPadraoMinutos(),
@@ -2807,6 +2954,7 @@ function obterPreferenciaPadraoTarefa(tarefa) {
       tipo: "diaria",
       dias: diasFrequenciaSemana.map((dia) => dia.valor),
     },
+    alarme: true,
     antecedencia: criarAntecedencia(
       "minuto",
       antecedenciaPadraoMinutos(),
@@ -2827,6 +2975,7 @@ function obterPreferenciaEfetivaTarefa(tarefa) {
     repeticao: tarefaTemPrazo(tarefa)
       ? null
       : salva.repeticao || padrao.repeticao,
+    alarme: salva.alarme !== false,
     antecedencia: salva.antecedencia || padrao.antecedencia,
   };
 }
@@ -2883,6 +3032,10 @@ function rotuloRepeticaoTarefa(repeticao) {
   }
 
   return "Diariamente";
+}
+
+function rotuloAlarmeTarefa(pref) {
+  return pref?.alarme === false ? "Apenas notificar" : "Alarmar";
 }
 
 function converterAntecedenciaParaMinutos(antecedencia) {
@@ -3325,6 +3478,10 @@ function renderizarListaFrequenciaTarefas(tarefas) {
           <span>Antecedência do aviso</span>
           <strong>${escaparHTML(rotuloAntecedencia(pref.antecedencia))}</strong>
         </button>
+        <button class="frequencia-control-btn" type="button" data-freq-alarme="${tarefa.id}">
+          <span>Alarme da tarefa</span>
+          <strong>${escaparHTML(rotuloAlarmeTarefa(pref))}</strong>
+        </button>
       </div>
     `;
 
@@ -3346,6 +3503,13 @@ function renderizarListaFrequenciaTarefas(tarefas) {
       abrirOpcoesAntecedenciaTarefa(tarefa),
     );
   });
+
+  lista.querySelectorAll("[data-freq-alarme]").forEach((botao) => {
+    const tarefa = tarefas.find(
+      (item) => String(item.id) === botao.dataset.freqAlarme,
+    );
+    botao.addEventListener("click", () => abrirOpcoesAlarmeTarefa(tarefa));
+  });
 }
 
 function salvarEAtualizarTarefaFrequencia(tarefa, dados, mensagem) {
@@ -3355,6 +3519,41 @@ function salvarEAtualizarTarefaFrequencia(tarefa, dados, mensagem) {
   fecharModalNumeroFrequencia();
   atualizarModalFrequenciaRotinaAberto();
   mostrarMensagem(mensagem || "Frequência atualizada!");
+}
+
+function abrirOpcoesAlarmeTarefa(tarefa) {
+  if (!tarefa) return;
+
+  const pref = obterPreferenciaEfetivaTarefa(tarefa);
+
+  abrirModalOpcoesFrequencia(
+    "Alarme da tarefa",
+    tarefa.titulo || "Tarefa",
+    [
+      {
+        titulo: "Alarmar",
+        descricao: "Toca o som e vibra quando a tarefa avisar.",
+        ativo: pref.alarme !== false,
+        acao: () =>
+          salvarEAtualizarTarefaFrequencia(
+            tarefa,
+            { alarme: true },
+            "Alarme da tarefa ativado!",
+          ),
+      },
+      {
+        titulo: "Apenas notificar",
+        descricao: "Mostra o aviso sem tocar o alarme desta tarefa.",
+        ativo: pref.alarme === false,
+        acao: () =>
+          salvarEAtualizarTarefaFrequencia(
+            tarefa,
+            { alarme: false },
+            "Esta tarefa agora apenas notifica.",
+          ),
+      },
+    ],
+  );
 }
 
 function abrirOpcoesRepeticaoTarefa(tarefa) {
@@ -4523,9 +4722,9 @@ async function verificarTarefasComAntecedencia() {
           !notificacoesJaEnviadas.has(chave)
         ) {
           mostrarNotificacao(
-            "Prazo próximo",
+            "Prazo proximo",
             `${tarefa.titulo} vence em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-            { rotina: true },
+            { rotina: true, tarefa: true, alarme: pref.alarme !== false },
           );
           notificacoesJaEnviadas.add(chave);
         }
@@ -4546,8 +4745,9 @@ async function verificarTarefasComAntecedencia() {
         !notificacoesJaEnviadas.has(chave)
       ) {
         mostrarNotificacao(
-          "Tarefa próxima",
-          `${tarefa.titulo} começa em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
+          "Tarefa proxima",
+          `${tarefa.titulo} comeca em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
+          { rotina: true, tarefa: true, alarme: pref.alarme !== false },
         );
         notificacoesJaEnviadas.add(chave);
       }
@@ -4559,7 +4759,8 @@ async function verificarTarefasComAntecedencia() {
       ) {
         mostrarNotificacao(
           "Agora!",
-          `${tarefa.titulo} está acontecendo agora.`,
+          `${tarefa.titulo} esta acontecendo agora.`,
+          { rotina: true, tarefa: true, alarme: pref.alarme !== false },
         );
         notificacoesJaEnviadas.add(`${chave}-hora`);
       }
@@ -6033,9 +6234,12 @@ function adaptarModalTarefaPelosCampos() {
     ?.classList.toggle("hidden", !temCalorias);
   caloriasInput?.classList.toggle("hidden", !temCalorias);
 
-  document
-    .querySelector(".linha-notificacao")
-    ?.classList.toggle("hidden", !temNotificacao);
+  linhaNotificacaoTarefa?.classList.toggle("hidden", !temNotificacao);
+  linhaAlarmeTarefa?.classList.toggle("hidden", !temNotificacao);
+  if (!temNotificacao) {
+    notificacaoTarefaInput.checked = false;
+  }
+  atualizarTextoNotificacaoModal();
 
   if (!temTipo) {
     tipoTarefaInput.classList.add("hidden");
@@ -6206,6 +6410,7 @@ function abrirModalTarefa() {
   disciplinaTarefaInput.value = "";
   horarioTarefaInput.value = "";
   notificacaoTarefaInput.checked = false;
+  if (alarmeTarefaInput) alarmeTarefaInput.checked = true;
   removerCampoStatusTarefa();
 
   if (tipoTarefaSelect) tipoTarefaSelect.value = "";
@@ -6223,6 +6428,7 @@ function abrirModalTarefa() {
 
   atualizarTextoNotificacaoModal();
   linhaNotificacaoTarefa?.classList.remove("hidden");
+  linhaAlarmeTarefa?.classList.remove("hidden");
 
   // Reset visual
   [
@@ -6303,7 +6509,9 @@ function abrirModalTarefa() {
     horarioTarefaInput.classList.add("hidden");
 
     linhaNotificacaoTarefa?.classList.add("hidden");
+    linhaAlarmeTarefa?.classList.add("hidden");
     notificacaoTarefaInput.checked = false;
+    if (alarmeTarefaInput) alarmeTarefaInput.checked = false;
 
     camposTreino.classList.remove("hidden");
 
@@ -7098,6 +7306,7 @@ async function salvarNovaTarefa() {
   const horario = horarioTarefaInput.value;
   const notificacao =
     tipoRotina === "treino" ? false : notificacaoTarefaInput.checked;
+  const alarmeDaTarefa = alarmeTarefaInput?.checked !== false;
   const status = "Pendente";
 
   const diaSemana = diaSemanaInput?.value;
@@ -7302,6 +7511,10 @@ async function salvarNovaTarefa() {
     }
 
     mostrarAviso("sucesso", "Tarefa criada com sucesso!");
+    if (tipoRotina !== "treino") {
+      const tarefaCriadaId = dadosResposta.id || dados.id;
+      salvarPreferenciaTarefa(tarefaCriadaId, { alarme: alarmeDaTarefa });
+    }
     fecharModalNovaTarefa();
     invalidarCacheTarefas(rotinaSelecionadaId);
       carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
@@ -8345,6 +8558,8 @@ notificacaoTarefaInput.addEventListener(
   atualizarTextoNotificacaoModal,
 );
 
+alarmeTarefaInput?.addEventListener("change", atualizarTextoAlarmeTarefaModal);
+
 btnLembretes?.addEventListener("click", () => {
   mostrarSecaoLembretes();
   limparAtivosSidebar();
@@ -8981,6 +9196,7 @@ async function inicializarDashboard() {
   inicializarPermissaoNotificacao().catch((erro) => {
     console.warn("Nao foi possivel inicializar notificacoes:", erro);
   });
+  prepararPedidoPermissaoNotificacaoPorInteracao();
   await Promise.all([carregarRotinas(), carregarLembretes()]);
 
   // Roda o reset depois que a tela já carregou, sem travar o usuário

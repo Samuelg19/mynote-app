@@ -1,9 +1,8 @@
-const CACHE_NAME = "mynote-cache-v1";
+const CACHE_NAME = "mynote-cache-v2";
 
 const FILES_TO_CACHE = [
   "/",
   "/index.html",
-  "/login.html",
   "/cadastro.html",
   "/dashboard.html",
   "/configuracoes.html",
@@ -17,10 +16,14 @@ const FILES_TO_CACHE = [
   "/js/dashboard.js",
   "/js/configuracoes.js",
   "/js/login.js",
-  "/js/cadastro.js"
+  "/js/cadastro.js",
+  "/assets/icon-192.png",
+  "/assets/notificacao.wav"
 ];
 
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
+
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
   );
@@ -28,9 +31,12 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((key) => key !== CACHE_NAME && caches.delete(key)))
-    )
+    Promise.all([
+      caches.keys().then((keys) =>
+        Promise.all(keys.map((key) => key !== CACHE_NAME && caches.delete(key)))
+      ),
+      self.clients.claim(),
+    ])
   );
 });
 
@@ -39,5 +45,25 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        const dashboardClient = clientList.find((client) =>
+          client.url.includes("/dashboard.html"),
+        );
+
+        if (dashboardClient) {
+          return dashboardClient.focus();
+        }
+
+        return clients.openWindow("/dashboard.html");
+      }),
   );
 });

@@ -107,6 +107,9 @@ const ordenacaoTarefas = document.getElementById("ordenacaoTarefas");
 const mostrarColunas = document.getElementById("mostrarColunas");
 const backupAutomatico = document.getElementById("backupAutomatico");
 const modoFoco = document.getElementById("modoFoco");
+const apenasNotificarTarefas = document.getElementById(
+  "apenasNotificarTarefas",
+);
 const somNotificacaoArquivo = document.getElementById("somNotificacaoArquivo");
 const nomeSomNotificacao = document.getElementById("nomeSomNotificacao");
 const testarSomNotificacao = document.getElementById("testarSomNotificacao");
@@ -154,6 +157,10 @@ function chaveSomNotificacaoUsuario() {
 
 function chaveNomeSomNotificacaoUsuario() {
   return `nomeSomNotificacaoPersonalizado_${usuario.id}`;
+}
+
+function chaveApenasNotificarTarefasUsuario() {
+  return `apenasNotificarTarefas_${usuario.id}`;
 }
 
 function chavePadroesNotificacaoUsuario() {
@@ -205,7 +212,8 @@ function aplicarPadraoBackupAutomatico(config = {}) {
 
 function obterSomNotificacaoConfigurado() {
   return (
-    localStorage.getItem(chaveSomNotificacaoUsuario()) || "notificacao.mp3"
+    localStorage.getItem(chaveSomNotificacaoUsuario()) ||
+    "assets/notificacao.wav"
   );
 }
 
@@ -219,6 +227,17 @@ function atualizarNomeSomNotificacao() {
 function valorConfigAtivo(valor, padrao = true) {
   if (valor === undefined || valor === null || valor === "") return padrao;
   return valor !== false && valor !== 0 && valor !== "0";
+}
+
+function carregarApenasNotificarTarefasLocal() {
+  return localStorage.getItem(chaveApenasNotificarTarefasUsuario()) === "true";
+}
+
+function salvarApenasNotificarTarefasLocal() {
+  localStorage.setItem(
+    chaveApenasNotificarTarefasUsuario(),
+    apenasNotificarTarefas?.checked ? "true" : "false",
+  );
 }
 
 function tocarSomNotificacaoConfigurado() {
@@ -292,6 +311,8 @@ function aplicarCamposGerais(config) {
 }
 
 function montarPayloadConfiguracoes() {
+  salvarApenasNotificarTarefasLocal();
+
   const preferenciasParaSalvar = MyNotePrefs.saveLocal({
     ...preferenciasGerais,
     idioma: idioma.value,
@@ -367,6 +388,9 @@ async function carregarConfiguracoes() {
     mostrarColunas.checked = config.mostrar_colunas !== false;
     backupAutomatico.checked = valorConfigAtivo(config.backup_automatico, true);
     modoFoco.checked = !!config.modo_foco;
+    if (apenasNotificarTarefas) {
+      apenasNotificarTarefas.checked = carregarApenasNotificarTarefasLocal();
+    }
     atualizarNomeSomNotificacao();
 
     opcoesFundo.forEach((btn) => {
@@ -385,8 +409,22 @@ async function carregarConfiguracoes() {
   }
 }
 
+async function pedirPermissaoNotificacaoConfiguracoes() {
+  if (!("Notification" in window)) return;
+  if (!notificacoesGerais.checked || !notificacoesNavegador.checked) return;
+  if (Notification.permission !== "default") return;
+
+  try {
+    await Notification.requestPermission();
+  } catch (erro) {
+    console.warn("Nao foi possivel pedir permissao de notificacao:", erro);
+  }
+}
+
 async function salvarConfiguracoes() {
   try {
+    await pedirPermissaoNotificacaoConfiguracoes();
+
     const payload = {
       ...montarPayloadConfiguracoes(),
       preferencias_salvas_em: Date.now(),

@@ -110,6 +110,14 @@
   margin-top: 10px;
 }
 
+.linha-notificacao.desativada {
+  opacity: 0.62;
+}
+
+.linha-notificacao.desativada .slider {
+  cursor: not-allowed;
+}
+
 .modal:not(.hidden) .modal-content {
   animation: abrirModalSuave 0.22s ease;
 }

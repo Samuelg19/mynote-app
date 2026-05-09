@@ -47,12 +47,12 @@ exports.criar = (req, res) => {
         return res.status(403).json({ msg: "Acesso negado à rotina." });
       }
 
-      db.query("INSERT INTO tarefas SET ?", tarefa, (err) => {
+      db.query("INSERT INTO tarefas SET ?", tarefa, (err, result) => {
         if (err) {
           console.error("Erro ao criar tarefa:", err);
           return res.status(500).json(err);
         }
-        res.json({ msg: "Tarefa criada" });
+        res.json({ msg: "Tarefa criada", id: tarefa.id || result.insertId });
       });
     },
   );
