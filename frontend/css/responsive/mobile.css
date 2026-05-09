@@ -206,6 +206,27 @@
     font-weight: 900;
     line-height: 1;
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+    animation: voltarMobileEntrada 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      background 160ms ease,
+      border-color 160ms ease;
+    will-change: transform;
+  }
+
+  body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"])
+    .btn-voltar-mobile:not(.hidden):active {
+    transform: translateX(-2px) scale(0.96);
+  }
+
+  @media (hover: hover) {
+    body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"])
+      .btn-voltar-mobile:not(.hidden):hover {
+      transform: translateX(-2px);
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--text));
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.2);
+    }
   }
 
   body.dashboard-body:not([data-mobile-tela="calendario"])
@@ -222,5 +243,25 @@
   body.dashboard-body[data-mobile-tela="calendario"]
     :is(.acoes-topo-rotina, #cardTabelaTarefas, #cardNotasRotina, #areaTreino) {
     display: none !important;
+  }
+}
+
+@keyframes voltarMobileEntrada {
+  0% {
+    opacity: 0;
+    transform: translateX(8px) scale(0.94);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-voltar-mobile,
+  .btn-voltar-dashboard-mobile {
+    animation: none !important;
+    transition: none !important;
   }
 }
