@@ -1964,6 +1964,9 @@ const onboardingAccentMap = {
 const modalOnboardingTutorial = document.getElementById(
   "modalOnboardingTutorial",
 );
+const modalOnboardingRecursos = document.getElementById(
+  "modalOnboardingRecursos",
+);
 const modalOnboardingCustomizacao = document.getElementById(
   "modalOnboardingCustomizacao",
 );
@@ -2157,6 +2160,7 @@ function atualizarOnboarding() {
 }
 
 function abrirModalTutorialOnboarding() {
+  modalOnboardingRecursos?.classList.add("hidden");
   modalOnboardingTutorial?.classList.remove("hidden");
 }
 
@@ -2164,16 +2168,28 @@ function fecharModalTutorialOnboarding() {
   modalOnboardingTutorial?.classList.add("hidden");
 }
 
+function abrirModalRecursosOnboarding() {
+  fecharModalTutorialOnboarding();
+  modalOnboardingCustomizacao?.classList.add("hidden");
+  modalOnboardingRecursos?.classList.remove("hidden");
+}
+
+function fecharModalRecursosOnboarding() {
+  modalOnboardingRecursos?.classList.add("hidden");
+}
+
 function abrirModalCustomizacaoOnboarding() {
   onboardingConfigOriginal = obterConfigOnboardingBase();
   onboardingConfigAtual = { ...onboardingConfigOriginal };
   fecharModalTutorialOnboarding();
+  fecharModalRecursosOnboarding();
   modalOnboardingCustomizacao?.classList.remove("hidden");
   atualizarOnboarding();
 }
 
 function finalizarOnboarding() {
   modalOnboardingTutorial?.classList.add("hidden");
+  modalOnboardingRecursos?.classList.add("hidden");
   modalOnboardingCustomizacao?.classList.add("hidden");
   localStorage.setItem(chaveOnboardingConcluido(), "true");
   localStorage.removeItem(chaveOnboardingPendente());
@@ -2233,11 +2249,16 @@ async function salvarCustomizacaoOnboarding() {
 }
 
 function configurarEventosOnboarding() {
-  if (!modalOnboardingTutorial || !modalOnboardingCustomizacao) return;
+  if (
+    !modalOnboardingTutorial ||
+    !modalOnboardingRecursos ||
+    !modalOnboardingCustomizacao
+  )
+    return;
 
   document
     .getElementById("continuarOnboardingTutorial")
-    ?.addEventListener("click", abrirModalCustomizacaoOnboarding);
+    ?.addEventListener("click", abrirModalRecursosOnboarding);
 
   document
     .getElementById("pularOnboardingTutorial")
@@ -2245,6 +2266,18 @@ function configurarEventosOnboarding() {
 
   document
     .getElementById("fecharOnboardingTutorial")
+    ?.addEventListener("click", finalizarOnboarding);
+
+  document
+    .getElementById("voltarOnboardingRecursos")
+    ?.addEventListener("click", abrirModalTutorialOnboarding);
+
+  document
+    .getElementById("continuarOnboardingRecursos")
+    ?.addEventListener("click", abrirModalCustomizacaoOnboarding);
+
+  document
+    .getElementById("fecharOnboardingRecursos")
     ?.addEventListener("click", finalizarOnboarding);
 
   document
@@ -4147,6 +4180,17 @@ function deslocarData(data, dias) {
   return novaData;
 }
 
+function obterDiaSemanaDoMes(ano, mes, diaSemana, ocorrencia) {
+  const data = new Date(ano, mes, 1);
+
+  while (data.getDay() !== diaSemana) {
+    data.setDate(data.getDate() + 1);
+  }
+
+  data.setDate(data.getDate() + 7 * (ocorrencia - 1));
+  return data;
+}
+
 function criarEventoFeriado(id, titulo, data) {
   const dataISO = formatarDataISO(data);
 
@@ -4163,12 +4207,19 @@ function criarEventoFeriado(id, titulo, data) {
 
 function obterFeriadosBrasileiros(ano) {
   const pascoa = calcularPascoa(ano);
+  const segundoDomingoDeMaio = obterDiaSemanaDoMes(ano, 4, 0, 2);
+  const segundoDomingoDeAgosto = obterDiaSemanaDoMes(ano, 7, 0, 2);
 
   const feriados = [
     criarEventoFeriado(
       "confraternizacao",
       "Confraternização Universal",
       new Date(ano, 0, 1),
+    ),
+    criarEventoFeriado(
+      "dia-mulher",
+      "Dia Internacional da Mulher",
+      new Date(ano, 2, 8),
     ),
     criarEventoFeriado(
       "segunda-carnaval",
@@ -4183,11 +4234,32 @@ function obterFeriadosBrasileiros(ano) {
     ),
     criarEventoFeriado("pascoa", "Páscoa", pascoa),
     criarEventoFeriado("tiradentes", "Tiradentes", new Date(ano, 3, 21)),
+    criarEventoFeriado(
+      "descobrimento-brasil",
+      "Descobrimento do Brasil",
+      new Date(ano, 3, 22),
+    ),
     criarEventoFeriado("trabalho", "Dia do Trabalho", new Date(ano, 4, 1)),
+    criarEventoFeriado(
+      "dia-maes",
+      "Dia das Mães",
+      segundoDomingoDeMaio,
+    ),
     criarEventoFeriado(
       "corpus-christi",
       "Corpus Christi",
       deslocarData(pascoa, 60),
+    ),
+    criarEventoFeriado(
+      "dia-namorados",
+      "Dia dos Namorados",
+      new Date(ano, 5, 12),
+    ),
+    criarEventoFeriado("sao-joao", "São João", new Date(ano, 5, 24)),
+    criarEventoFeriado(
+      "dia-pais",
+      "Dia dos Pais",
+      segundoDomingoDeAgosto,
     ),
     criarEventoFeriado(
       "independencia",
@@ -4198,6 +4270,16 @@ function obterFeriadosBrasileiros(ano) {
       "nossa-senhora",
       "Nossa Senhora Aparecida",
       new Date(ano, 9, 12),
+    ),
+    criarEventoFeriado(
+      "dia-criancas",
+      "Dia das Crianças",
+      new Date(ano, 9, 12),
+    ),
+    criarEventoFeriado(
+      "dia-professores",
+      "Dia dos Professores",
+      new Date(ano, 9, 15),
     ),
     criarEventoFeriado("finados", "Finados", new Date(ano, 10, 2)),
     criarEventoFeriado(
