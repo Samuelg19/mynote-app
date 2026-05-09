@@ -802,7 +802,18 @@ function renderizarSemanal(tarefas) {
   invalidarCacheTarefas(rotinaSelecionadaId);
 });
 
-      btnExcluir?.addEventListener("click", async () => {
+      btnEditar?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        abrirModalEditarCampo(
+          tarefa.id,
+          "titulo",
+          tarefa.titulo || "",
+          "Editar tarefa",
+        );
+      });
+
+      btnExcluir?.addEventListener("click", async (event) => {
+        event.stopPropagation();
         mostrarConfirmacao(
           `Deseja excluir a tarefa "${tarefa.titulo}"?`,
           async () => {
@@ -2731,10 +2742,15 @@ function tocarSomNotificacao({ alarme = false } = {}) {
 }
 
 function deveAlarmarNotificacao(opcoes = {}) {
+  if (opcoes.alarme === false) return false;
+  if (opcoes.tarefa && configuracoesNotificacao.apenasNotificarTarefas)
+    return false;
+
   return (
-    !!opcoes.tarefa &&
-    opcoes.alarme !== false &&
-    !configuracoesNotificacao.apenasNotificarTarefas
+    !!opcoes.tarefa ||
+    !!opcoes.lembrete ||
+    !!opcoes.evento ||
+    opcoes.alarme === true
   );
 }
 
@@ -2986,6 +3002,7 @@ function obterPreferenciaPrazoExterna(chave) {
   return {
     modo: "prazo",
     repeticao: null,
+    alarme: salva?.alarme !== false,
     antecedencia:
       salva?.antecedencia ||
       criarAntecedencia("minuto", antecedenciaPadraoMinutos(), true),
@@ -3556,6 +3573,30 @@ function abrirOpcoesAlarmeTarefa(tarefa) {
   );
 }
 
+function abrirOpcoesAlarmeGenerico({
+  titulo,
+  subtitulo,
+  alarmeAtivo,
+  descricaoLigado,
+  descricaoDesligado,
+  onSave,
+}) {
+  abrirModalOpcoesFrequencia(titulo, subtitulo, [
+    {
+      titulo: "Alarmar",
+      descricao: descricaoLigado || "Toca o som e vibra junto do aviso.",
+      ativo: alarmeAtivo !== false,
+      acao: () => onSave(true),
+    },
+    {
+      titulo: "Apenas notificar",
+      descricao: descricaoDesligado || "Mostra o aviso sem tocar alarme.",
+      ativo: alarmeAtivo === false,
+      acao: () => onSave(false),
+    },
+  ]);
+}
+
 function abrirOpcoesRepeticaoTarefa(tarefa) {
   if (!tarefa) return;
 
@@ -3737,6 +3778,7 @@ function obterFrequenciaEventoManual(evento) {
 
   return {
     repeticao: eventoBase?.frequencia?.repeticao || null,
+    alarme: eventoBase?.frequencia?.alarme !== false,
     antecedencia:
       eventoBase?.frequencia?.antecedencia || criarAntecedencia("dia", 1, true),
   };
@@ -3865,6 +3907,12 @@ function abrirPainelFrequenciaEventoManual(evento) {
       seta: true,
       acao: () => abrirOpcoesAntecedenciaEventoManual(evento),
     },
+    {
+      titulo: "Alarme do evento",
+      descricao: rotuloAlarmeTarefa(freq),
+      seta: true,
+      acao: () => abrirOpcoesAlarmeEventoManual(evento),
+    },
   ];
 
   if (!evento.aniversario) {
@@ -3877,6 +3925,27 @@ function abrirPainelFrequenciaEventoManual(evento) {
   }
 
   abrirModalOpcoesFrequencia("Frequencia do evento", evento.titulo || "Evento", opcoes);
+}
+
+function abrirOpcoesAlarmeEventoManual(evento) {
+  evento = obterEventoManualBase(evento);
+  const freq = obterFrequenciaEventoManual(evento);
+
+  abrirOpcoesAlarmeGenerico({
+    titulo: "Alarme do evento",
+    subtitulo: evento.titulo || "Evento",
+    alarmeAtivo: freq.alarme,
+    descricaoLigado: "Toca o som e vibra quando o evento avisar.",
+    descricaoDesligado: "Mostra o aviso sem tocar alarme neste evento.",
+    onSave: (alarme) =>
+      salvarFrequenciaEventoManual(
+        evento.id,
+        { alarme },
+        alarme
+          ? "Alarme do evento ativado!"
+          : "Este evento agora apenas notifica.",
+      ),
+  });
 }
 
 function abrirOpcoesRepeticaoEventoManual(evento) {
@@ -4050,6 +4119,12 @@ function abrirPainelFrequenciaEventoPrazo(evento) {
         seta: true,
         acao: () => abrirOpcoesAntecedenciaEventoPrazo(evento),
       },
+      {
+        titulo: "Alarme do aviso",
+        descricao: rotuloAlarmeTarefa(pref),
+        seta: true,
+        acao: () => abrirOpcoesAlarmeEventoPrazo(evento),
+      },
     ],
   );
 }
@@ -4084,6 +4159,39 @@ function salvarAntecedenciaEventoPrazo(evento, antecedencia) {
   fecharModalOpcoesFrequencia();
   fecharModalNumeroFrequencia();
   mostrarMensagem("Antecedência atualizada!");
+}
+
+function salvarAlarmeEventoPrazo(evento, alarme) {
+  if (evento.tipo === "tarefa") {
+    salvarPreferenciaTarefa(evento.tarefaId, {
+      modo: "prazo",
+      alarme,
+    });
+  } else {
+    salvarPreferenciaCalendario(`lembrete-${evento.lembreteId || evento.id}`, {
+      modo: "prazo",
+      alarme,
+    });
+  }
+
+  fecharModalOpcoesFrequencia();
+  fecharModalNumeroFrequencia();
+  mostrarMensagem(
+    alarme ? "Alarme do aviso ativado!" : "Este aviso agora apenas notifica.",
+  );
+}
+
+function abrirOpcoesAlarmeEventoPrazo(evento) {
+  const pref = obterPreferenciaPrazoEvento(evento);
+
+  abrirOpcoesAlarmeGenerico({
+    titulo: "Alarme do aviso",
+    subtitulo: evento.titulo || "Evento com prazo",
+    alarmeAtivo: pref.alarme,
+    descricaoLigado: "Toca o som e vibra quando este aviso disparar.",
+    descricaoDesligado: "Mostra o aviso sem tocar alarme.",
+    onSave: (alarme) => salvarAlarmeEventoPrazo(evento, alarme),
+  });
 }
 
 function abrirOpcoesAntecedenciaEventoPrazo(evento) {
@@ -4774,13 +4882,7 @@ async function verificarLembretesComAntecedencia() {
   if (!configuracoesNotificacao.notificacoesGerais) return;
 
   try {
-    const resposta = await fetch(
-      `${API_BASE_URL}/lembretes`,
-      {
-        headers: headersAuth(),
-      },
-    );
-    const lembretes = await lerListaJson(resposta);
+    const lembretes = await buscarLembretes();
     const hoje = dataHojeISO();
 
     lembretes.forEach((lembrete) => {
@@ -4788,7 +4890,7 @@ async function verificarLembretesComAntecedencia() {
       if (!lembrete.notificacao) return;
 
       if (lembrete.dia_mes && lembrete.dia_mes.includes("/")) {
-        const pref = obterPreferenciaPrazoExterna(`lembrete-${lembrete.id}`);
+        const pref = obterPreferenciaLembrete(lembrete);
         const antecedenciaMinutos = converterAntecedenciaParaMinutos(
           pref.antecedencia,
         );
@@ -4809,6 +4911,7 @@ async function verificarLembretesComAntecedencia() {
           mostrarNotificacao(
             "Lembrete próximo",
             `${lembrete.titulo} vence em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
+            { lembrete: true, alarme: pref.alarme !== false },
           );
           notificacoesJaEnviadas.add(chave);
         }
@@ -4834,6 +4937,7 @@ async function verificarLembretesComAntecedencia() {
         mostrarNotificacao(
           "Lembrete próximo",
           `${lembrete.titulo} começa em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
+          { lembrete: true, alarme: pref.alarme !== false },
         );
         notificacoesJaEnviadas.add(chave);
       }
@@ -4846,6 +4950,7 @@ async function verificarLembretesComAntecedencia() {
         mostrarNotificacao(
           "Agora!",
           `${lembrete.titulo} está acontecendo agora.`,
+          { lembrete: true, alarme: pref.alarme !== false },
         );
         notificacoesJaEnviadas.add(`${chave}-hora`);
       }
@@ -4860,14 +4965,17 @@ function verificarEventosCalendarioComAntecedencia() {
 
   try {
     const agora = new Date();
-    const fimBusca = new Date(agora);
-    fimBusca.setDate(fimBusca.getDate() + 370);
-
     carregarEventosManuais().forEach((evento) => {
       const freq = obterFrequenciaEventoManual(evento);
       const antecedenciaMinutos = converterAntecedenciaParaMinutos(
         freq.antecedencia,
       );
+      const fimBusca = new Date(agora);
+      const diasBusca = Math.min(
+        370,
+        Math.max(2, Math.ceil(antecedenciaMinutos / 1440) + 2),
+      );
+      fimBusca.setDate(fimBusca.getDate() + diasBusca);
       const ocorrencias = gerarOcorrenciasEventoManualEmPeriodo(
         evento,
         agora,
@@ -4881,6 +4989,8 @@ function verificarEventosCalendarioComAntecedencia() {
           "09:00",
         );
         const minutosRestantes = diferencaEmMinutosAteData(alvo);
+        if (minutosRestantes === null || minutosRestantes < 0) return;
+
         const chave = `evento-manual-${evento.id}-${ocorrencia.data}-${ocorrencia.horario || "09:00"}-${antecedenciaMinutos}`;
 
         if (
@@ -4890,6 +5000,7 @@ function verificarEventosCalendarioComAntecedencia() {
           mostrarNotificacao(
             "Evento próximo",
             `${evento.titulo} começa em ${rotuloAntecedencia(freq.antecedencia).replace(" antes", "").toLowerCase()}.`,
+            { evento: true, alarme: freq.alarme !== false },
           );
           notificacoesJaEnviadas.add(chave);
         }
@@ -7837,6 +7948,7 @@ function obterPreferenciaLembrete(lembrete) {
 
   return {
     modo: lembreteTemData(lembrete) ? "prazo" : "horario",
+    alarme: salva?.alarme !== false,
     antecedencia:
       salva?.antecedencia ||
       criarAntecedencia("minuto", antecedenciaPadraoMinutos(), true),
@@ -7855,6 +7967,22 @@ function salvarAntecedenciaLembrete(lembrete, antecedencia) {
   mostrarMensagem("Antecedência do lembrete atualizada!");
 }
 
+function salvarAlarmeLembrete(lembrete, alarme) {
+  salvarPreferenciaCalendario(`lembrete-${lembrete.id}`, {
+    modo: lembreteTemData(lembrete) ? "prazo" : "horario",
+    alarme,
+  });
+
+  fecharModalOpcoesFrequencia();
+  fecharModalNumeroFrequencia();
+  carregarLembretes();
+  mostrarMensagem(
+    alarme
+      ? "Alarme do lembrete ativado!"
+      : "Este lembrete agora apenas notifica.",
+  );
+}
+
 function abrirPainelFrequenciaLembrete(lembrete) {
   garantirModaisFrequencia();
 
@@ -7870,8 +7998,27 @@ function abrirPainelFrequenciaLembrete(lembrete) {
         seta: true,
         acao: () => abrirOpcoesAntecedenciaLembrete(lembrete),
       },
+      {
+        titulo: "Alarme do lembrete",
+        descricao: rotuloAlarmeTarefa(pref),
+        seta: true,
+        acao: () => abrirOpcoesAlarmeLembrete(lembrete),
+      },
     ],
   );
+}
+
+function abrirOpcoesAlarmeLembrete(lembrete) {
+  const pref = obterPreferenciaLembrete(lembrete);
+
+  abrirOpcoesAlarmeGenerico({
+    titulo: "Alarme do lembrete",
+    subtitulo: lembrete.titulo || "Lembrete",
+    alarmeAtivo: pref.alarme,
+    descricaoLigado: "Toca o som e vibra quando o lembrete avisar.",
+    descricaoDesligado: "Mostra o aviso sem tocar alarme neste lembrete.",
+    onSave: (alarme) => salvarAlarmeLembrete(lembrete, alarme),
+  });
 }
 
 function abrirOpcoesAntecedenciaLembrete(lembrete) {

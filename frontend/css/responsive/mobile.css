@@ -14,6 +14,16 @@
   }
 }
 
+@media (min-width: 761px) and (max-width: 980px) {
+  .frequencia-tarefa-item {
+    grid-template-columns: 1fr;
+  }
+
+  .frequencia-controles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1180px) {
   .semanal-container {
     grid-template-columns: repeat(4, minmax(170px, 1fr)) !important;

@@ -1790,7 +1790,7 @@ body.tema-escuro .btn-menu-rotina {
 
 .frequencia-tarefa-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 1.25fr);
   gap: 16px;
   align-items: center;
   padding: 14px;
@@ -1817,7 +1817,7 @@ body.tema-escuro .btn-menu-rotina {
 
 .frequencia-controles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 10px;
   align-items: stretch;
 }
@@ -3485,7 +3485,7 @@ body[data-fundo="uva"]
 
 /* tabela interativa */
 .tabela-tarefas tr {
-  transition: 0.2s;
+  transition: background-color 0.16s ease;
 }
 
 .tabela-tarefas tr:hover {
@@ -3501,7 +3501,11 @@ body[data-fundo="uva"]
 /* sidebar mais fluida */
 .item-rotina,
 .item-menu {
-  transition: all 0.18s ease;
+  transition:
+    transform 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
 }
 
 .item-rotina:hover,
@@ -3590,12 +3594,11 @@ textarea:focus {
 
 body.dashboard-body :is(button, .item-rotina, .item-menu, .card, .card-calendario, .dia-calendario, .card-exercicio) {
   transition:
-    transform var(--motion-base) var(--motion-ease),
-    box-shadow var(--motion-base) var(--motion-ease),
-    background-color var(--motion-base) ease,
-    border-color var(--motion-base) ease,
-    color var(--motion-base) ease,
-    opacity var(--motion-base) ease;
+    transform var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    opacity var(--motion-fast) ease;
 }
 
 body.dashboard-body :is(.btn-sidebar, .btn-primario, .btn-secundario, .btn-menu-rotina, .btn-excluir, .btn-notificacao, .btn-frequencia-lembrete, .btn-editar-card, .btn-descanso, .btn-hoje-calendario, .btn-evento-flutuante):hover {

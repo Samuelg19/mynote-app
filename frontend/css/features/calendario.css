@@ -1241,6 +1241,44 @@ body.dashboard-body:not(.tema-escuro) .dia-vazio {
     border-radius: 0;
   }
 
+  .visao-anual-calendario {
+    margin-top: 12px;
+    overflow: visible;
+  }
+
+  .meses-ano-calendario {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .mini-mes {
+    min-width: 0;
+    padding: 10px 8px;
+    border-radius: 13px;
+  }
+
+  .mini-mes h3 {
+    margin-bottom: 8px;
+    font-size: 1.45rem;
+  }
+
+  .mini-semana,
+  .mini-grade-dias {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .mini-semana span {
+    font-size: 0.62rem;
+  }
+
+  .mini-dia {
+    min-width: 0;
+    font-size: 0.72rem;
+    line-height: 1.55;
+    padding: 1px 0;
+  }
+
   .calendario-topo {
     padding: 16px 14px;
     border-radius: 18px;
