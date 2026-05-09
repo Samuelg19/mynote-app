@@ -6598,6 +6598,14 @@ function renderizarTabelaPorDia(tarefas, campos) {
   ativarEventosCardsPersonalizados(tarefas);
 }
 
+function animarTransicaoRotina() {
+  if (!secaoRotinas) return;
+
+  secaoRotinas.classList.remove("rotina-transicao-suave");
+  void secaoRotinas.offsetWidth;
+  secaoRotinas.classList.add("rotina-transicao-suave");
+}
+
 async function carregarTarefas(rotinaId, nomeRotina) {
   try {
     rotinaSelecionadaId = rotinaId;
@@ -6654,6 +6662,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
       areaTreino.classList.remove("hidden");
       renderizarTreino(tarefas);
       atualizarBotaoSilenciarRotina();
+      animarTransicaoRotina();
       return;
     }
 
@@ -6662,6 +6671,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
       areaTreino.classList.remove("hidden");
       renderizarSemanal(tarefas);
       atualizarBotaoSilenciarRotina();
+      animarTransicaoRotina();
       return;
     }
 
@@ -6720,6 +6730,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
       <td colspan="${totalColunas}">Nenhuma tarefa cadastrada nessa rotina.</td>
     </tr>
       `;
+      animarTransicaoRotina();
       return;
     }
 
@@ -6864,6 +6875,8 @@ invalidarCacheTarefas(rotinaSelecionadaId);
     if (modoEdicaoTabela) {
       ativarDragTarefasTabela();
     }
+
+    animarTransicaoRotina();
   } catch (erro) {
     console.error("Erro ao carregar tarefas:", erro);
     mostrarAviso("erro", "Erro ao carregar tarefas.");
