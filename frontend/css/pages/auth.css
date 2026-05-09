@@ -70,17 +70,24 @@
   min-height: 44px;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
+  padding-inline: 4px;
   margin-bottom: 20px;
+  overflow: visible;
 }
 
 .g_id_signin > div {
   width: 100% !important;
-  max-width: 360px;
+  max-width: 348px;
+  min-width: 0 !important;
+  overflow: visible;
 }
 
 .g_id_signin iframe {
   width: 100% !important;
-  max-width: 360px !important;
+  max-width: 348px !important;
+  min-width: 0 !important;
+  display: block;
 }
 
 .login-card label {
