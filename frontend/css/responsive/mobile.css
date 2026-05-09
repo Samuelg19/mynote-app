@@ -87,3 +87,140 @@
     min-height: 380px;
   }
 }
+
+@media (max-width: 900px) {
+  body.dashboard-body[data-mobile-tela="home"] {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .dashboard-layout {
+    display: block;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .dashboard-main {
+    display: none !important;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .sidebar {
+    position: relative !important;
+    top: auto !important;
+    width: 100% !important;
+    min-height: 100dvh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 26px 20px calc(22px + env(safe-area-inset-bottom)) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-top,
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-extra,
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-footer {
+    flex: 0 0 auto;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .lista-rotinas {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 12px 0 0;
+    padding: 0 0 8px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .lista-rotinas::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-extra {
+    margin-top: 14px;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-footer {
+    margin-top: 12px;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .item-rotina,
+  body.dashboard-body[data-mobile-tela="home"] .item-menu,
+  body.dashboard-body[data-mobile-tela="home"] #btnNovaRotina {
+    min-height: 46px;
+    border-radius: 12px;
+  }
+
+  body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"]) {
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"])
+    .dashboard-layout {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"])
+    .sidebar {
+    display: none !important;
+  }
+
+  body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"])
+    .dashboard-main {
+    display: block !important;
+    width: 100% !important;
+    min-height: 100dvh;
+    padding: 18px 10px calc(98px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"])
+    .rotina-header {
+    min-height: 48px;
+    padding-right: 58px;
+  }
+
+  .btn-voltar-mobile {
+    display: none;
+  }
+
+  body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"])
+    .btn-voltar-mobile:not(.hidden) {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    right: 12px;
+    z-index: 900;
+    width: 42px;
+    height: 42px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid color-mix(in srgb, var(--text) 72%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--card) 82%, transparent);
+    color: var(--text);
+    font-size: 1.6rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+  }
+
+  body.dashboard-body:not([data-mobile-tela="calendario"])
+    :is(.btn-hoje-calendario, .btn-evento-flutuante) {
+    display: none !important;
+  }
+
+  body.dashboard-body[data-mobile-tela="calendario"]
+    :is(.btn-hoje-calendario, .btn-evento-flutuante):not(.hidden) {
+    display: inline-grid;
+    place-items: center;
+  }
+
+  body.dashboard-body[data-mobile-tela="calendario"]
+    :is(.acoes-topo-rotina, #cardTabelaTarefas, #cardNotasRotina, #areaTreino) {
+    display: none !important;
+  }
+}

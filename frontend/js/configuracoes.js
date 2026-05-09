@@ -89,6 +89,9 @@ const btnSalvarConfiguracoes = document.getElementById(
   "btnSalvarConfiguracoes",
 );
 const btnVoltarDashboard = document.getElementById("btnVoltarDashboard");
+const btnVoltarDashboardMobile = document.getElementById(
+  "btnVoltarDashboardMobile",
+);
 const idioma = document.getElementById("idioma");
 const fusoHorario = document.getElementById("fusoHorario");
 const formatoHora = document.getElementById("formatoHora");
@@ -469,6 +472,10 @@ limparSomNotificacao?.addEventListener("click", () => {
 });
 
 btnVoltarDashboard.addEventListener("click", () => {
+  window.location.href = "dashboard.html";
+});
+
+btnVoltarDashboardMobile?.addEventListener("click", () => {
   window.location.href = "dashboard.html";
 });
 

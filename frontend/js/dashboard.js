@@ -24,6 +24,9 @@ const btnLogout = document.getElementById("btnLogout");
 //Seções principais
 const secaoRotinas = document.getElementById("secaoRotinas");
 const secaoLembretes = document.getElementById("secaoLembretes");
+const btnVoltarMobile = document.getElementById("btnVoltarMobile");
+const cardNotasRotina = document.getElementById("cardNotasRotina");
+const consultaMobileDashboard = window.matchMedia("(max-width: 900px)");
 
 //Elementos das rotinas
 const modalRotina = document.getElementById("modalRotina");
@@ -1557,6 +1560,55 @@ function mostrarSecaoRotinas() {
 function mostrarSecaoLembretes() {
   if (secaoRotinas) secaoRotinas.style.display = "none";
   if (secaoLembretes) secaoLembretes.style.display = "block";
+  definirTelaMobileDashboard("lembretes");
+}
+
+function estaEmMobileDashboard() {
+  return consultaMobileDashboard.matches;
+}
+
+function esconderAcoesCalendarioMobile() {
+  if (!estaEmMobileDashboard()) return;
+  btnHojeCalendario?.classList.add("hidden");
+  btnAdicionarEventoCalendario?.classList.add("hidden");
+}
+
+function definirTelaMobileDashboard(tela = "home") {
+  if (!estaEmMobileDashboard()) {
+    document.body.removeAttribute("data-mobile-tela");
+    btnVoltarMobile?.classList.add("hidden");
+    return;
+  }
+
+  const telaAtual = tela || "home";
+  document.body.dataset.mobileTela = telaAtual;
+  btnVoltarMobile?.classList.toggle("hidden", telaAtual === "home");
+
+  if (telaAtual !== "calendario") {
+    esconderAcoesCalendarioMobile();
+  }
+
+  window.scrollTo(0, 0);
+}
+
+function voltarParaTelaInicialMobile() {
+  definirTelaMobileDashboard("home");
+  limparAtivosSidebar();
+}
+
+btnVoltarMobile?.addEventListener("click", voltarParaTelaInicialMobile);
+
+function sincronizarTelaMobileDashboard() {
+  definirTelaMobileDashboard(consultaMobileDashboard.matches ? "home" : "");
+}
+
+if (consultaMobileDashboard.addEventListener) {
+  consultaMobileDashboard.addEventListener(
+    "change",
+    sincronizarTelaMobileDashboard,
+  );
+} else {
+  consultaMobileDashboard.addListener?.(sincronizarTelaMobileDashboard);
 }
 
 //Classes visuais
@@ -5314,6 +5366,8 @@ async function carregarRotinas() {
 
         areaCalendario?.classList.add("hidden");
         tabelaCard?.classList.remove("hidden");
+        cardNotasRotina?.classList.remove("hidden");
+        definirTelaMobileDashboard("rotina");
 
         carregarTarefas(rotina.id, rotina.nome);
       });
@@ -8780,6 +8834,7 @@ function mostrarCalendarioDashboard() {
 
   areaCalendario?.classList.remove("hidden");
   tabelaCard?.classList.add("hidden");
+  cardNotasRotina?.classList.add("hidden");
   areaTreino?.classList.add("hidden");
   areaTreino.innerHTML = "";
   visaoAnualCalendario?.classList.add("hidden");
@@ -8800,7 +8855,10 @@ function mostrarCalendarioDashboard() {
   renderizarCalendario();
 }
 
-btnCalendario?.addEventListener("click", mostrarCalendarioDashboard);
+btnCalendario?.addEventListener("click", () => {
+  mostrarCalendarioDashboard();
+  definirTelaMobileDashboard("calendario");
+});
 
 mesAnterior?.addEventListener("click", () => {
   if (modoCalendario === "ano") {
@@ -8931,6 +8989,7 @@ async function inicializarDashboard() {
   }, 3000);
 
   mostrarCalendarioDashboard();
+  definirTelaMobileDashboard(estaEmMobileDashboard() ? "home" : "");
 
   setTimeout(mostrarResumoDiario, 1500);
   iniciarOnboardingPrimeiroAcesso();
