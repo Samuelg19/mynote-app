@@ -638,7 +638,7 @@ function renderizarSemanal(tarefas) {
     coluna.innerHTML = `
       <div class="semanal-header">
         <h3>${dia.nome}</h3>
-        <span>${tarefasDoDia.filter((t) => t.concluida).length}/${tarefasDoDia.length} concluídas</span>
+        <span class="semanal-contador">${tarefasDoDia.filter((t) => t.concluida).length}/${tarefasDoDia.length} concluídas</span>
       </div>
 
       <div class="semanal-lista" data-dia="${dia.valor}"></div>
@@ -696,6 +696,10 @@ function renderizarSemanal(tarefas) {
     tarefasDoDia.forEach((tarefa) => {
       const item = document.createElement("div");
       item.classList.add("semanal-item");
+
+      if (modoEdicaoTabela) {
+        item.classList.add("com-acoes-edicao");
+      }
 
       if (tarefa.concluida) {
         item.classList.add("concluido");
@@ -965,7 +969,7 @@ function renderizarTreino(tarefas) {
 
           <div class="acoes-card-treino">
             <button class="btn-concluir-exercicio" title="Concluir exercício">
-              ${simboloCheck(ex.concluida)}
+              ${ex.concluida ? "×" : ""}
             </button>
 
             ${
@@ -5394,6 +5398,9 @@ function ativarDragRotinas() {
     });
   });
 
+  if (listaRotinas.dataset.dragListenersAtivos === "true") return;
+  listaRotinas.dataset.dragListenersAtivos = "true";
+
   listaRotinas.addEventListener("dragover", (event) => {
     event.preventDefault();
     listaRotinas.classList.add("drag-over");
@@ -5633,6 +5640,16 @@ function aplicarConclusaoSemanal(item, botao, concluida) {
     botao.innerHTML = simboloCheck(concluida);
     botao.title = concluida ? "Marcar como pendente" : "Concluir tarefa";
   }
+
+  const coluna = item?.closest(".semanal-coluna");
+  const contador = coluna?.querySelector(".semanal-contador");
+  const total = coluna?.querySelectorAll(".semanal-item").length || 0;
+  const concluidas =
+    coluna?.querySelectorAll(".semanal-item.concluido").length || 0;
+
+  if (contador) {
+    contador.textContent = `${concluidas}/${total} concluídas`;
+  }
 }
 
 function aplicarConclusaoCardTreino(card, botao, concluida) {
@@ -5649,7 +5666,7 @@ function aplicarConclusaoCardTreino(card, botao, concluida) {
 
   if (botao) {
     botao.dataset.concluida = String(concluida);
-    botao.innerHTML = simboloCheck(concluida);
+    botao.innerHTML = concluida ? "×" : "";
     botao.title = concluida ? "Marcar como pendente" : "Concluir exercício";
   }
 
@@ -5760,6 +5777,9 @@ function ativarDragTarefasTabela() {
   const linhas = corpoTabelaTarefas.querySelectorAll("tr[draggable='true']");
 
   linhas.forEach((linha) => {
+    if (linha.dataset.dragListenersAtivos === "true") return;
+    linha.dataset.dragListenersAtivos = "true";
+
     linha.addEventListener("dragstart", () => {
       linha.classList.add("linha-arrastando");
     });
@@ -5769,6 +5789,9 @@ function ativarDragTarefasTabela() {
       salvarOrdemTarefasTabela();
     });
   });
+
+  if (corpoTabelaTarefas.dataset.dragListenersAtivos === "true") return;
+  corpoTabelaTarefas.dataset.dragListenersAtivos = "true";
 
   corpoTabelaTarefas.addEventListener("dragover", (event) => {
     event.preventDefault();
@@ -7255,6 +7278,9 @@ function ativarDragTreino() {
     const cards = lista.querySelectorAll(".card-exercicio[draggable='true']");
 
     cards.forEach((card) => {
+      if (card.dataset.dragListenersAtivos === "true") return;
+      card.dataset.dragListenersAtivos = "true";
+
       card.addEventListener("dragstart", () => {
         card.classList.add("linha-arrastando");
       });
@@ -7264,6 +7290,9 @@ function ativarDragTreino() {
         salvarOrdemTreino();
       });
     });
+
+    if (lista.dataset.dragListenersAtivos === "true") return;
+    lista.dataset.dragListenersAtivos = "true";
 
     lista.addEventListener("dragover", (event) => {
       event.preventDefault();

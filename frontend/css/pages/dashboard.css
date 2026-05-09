@@ -1506,7 +1506,7 @@ body.tema-escuro .btn-menu-rotina {
 }
 
 /* Quando estiver em modo edição, dá mais espaço pros ícones */
-.semanal-item:has(.btn-editar-semanal) {
+.semanal-item.com-acoes-edicao {
   grid-template-columns: 24px minmax(0, 1fr) 96px;
 }
 
@@ -1528,7 +1528,7 @@ body.tema-escuro .btn-menu-rotina {
   font-size: 14px !important;
 }
 
-.semanal-item:has(.btn-editar-semanal) {
+.semanal-item.com-acoes-edicao {
   min-height: 96px !important;
   padding-right: 42px !important;
 }
@@ -1610,7 +1610,7 @@ body.tema-escuro .btn-menu-rotina {
   overflow: hidden;
 }
 
-.semanal-item:has(.btn-editar-semanal) {
+.semanal-item.com-acoes-edicao {
   min-height: 94px;
 }
 
@@ -3045,20 +3045,20 @@ body[data-fundo="uva"] .dashboard-main > .card h3::before {
   background: var(--accent) !important;
 }
 
-body[data-fundo="marrom"] .dashboard-main > .card:has(#campoNotas),
-body[data-fundo="verde-escuro"] .dashboard-main > .card:has(#campoNotas),
-body[data-fundo="vinho"] .dashboard-main > .card:has(#campoNotas),
-body[data-fundo="roxo-profundo"] .dashboard-main > .card:has(#campoNotas),
-body[data-fundo="uva"] .dashboard-main > .card:has(#campoNotas) {
+body[data-fundo="marrom"] #cardNotasRotina,
+body[data-fundo="verde-escuro"] #cardNotasRotina,
+body[data-fundo="vinho"] #cardNotasRotina,
+body[data-fundo="roxo-profundo"] #cardNotasRotina,
+body[data-fundo="uva"] #cardNotasRotina {
   background: #ffffff !important;
   color: #111827 !important;
 }
 
-body[data-fundo="marrom"] .dashboard-main > .card:has(#campoNotas) h3,
-body[data-fundo="verde-escuro"] .dashboard-main > .card:has(#campoNotas) h3,
-body[data-fundo="vinho"] .dashboard-main > .card:has(#campoNotas) h3,
-body[data-fundo="roxo-profundo"] .dashboard-main > .card:has(#campoNotas) h3,
-body[data-fundo="uva"] .dashboard-main > .card:has(#campoNotas) h3 {
+body[data-fundo="marrom"] #cardNotasRotina h3,
+body[data-fundo="verde-escuro"] #cardNotasRotina h3,
+body[data-fundo="vinho"] #cardNotasRotina h3,
+body[data-fundo="roxo-profundo"] #cardNotasRotina h3,
+body[data-fundo="uva"] #cardNotasRotina h3 {
   color: #111827 !important;
 }
 
@@ -3148,47 +3148,47 @@ body[data-fundo="uva"] .sidebar .lista-rotinas .item-rotina:hover {
   color: #0f172a !important;
 }
 
-body[data-fundo="marrom"] .dashboard-main .card:has(#campoNotas),
-body[data-fundo="verde-escuro"] .dashboard-main .card:has(#campoNotas),
-body[data-fundo="vinho"] .dashboard-main .card:has(#campoNotas),
-body[data-fundo="roxo-profundo"] .dashboard-main .card:has(#campoNotas),
-body[data-fundo="uva"] .dashboard-main .card:has(#campoNotas) {
+body[data-fundo="marrom"] #cardNotasRotina,
+body[data-fundo="verde-escuro"] #cardNotasRotina,
+body[data-fundo="vinho"] #cardNotasRotina,
+body[data-fundo="roxo-profundo"] #cardNotasRotina,
+body[data-fundo="uva"] #cardNotasRotina {
   background: #ffffff !important;
   color: #111827 !important;
 }
 
-body[data-fundo="marrom"] .dashboard-main .card:has(#campoNotas) h3,
-body[data-fundo="verde-escuro"] .dashboard-main .card:has(#campoNotas) h3,
-body[data-fundo="vinho"] .dashboard-main .card:has(#campoNotas) h3,
-body[data-fundo="roxo-profundo"] .dashboard-main .card:has(#campoNotas) h3,
-body[data-fundo="uva"] .dashboard-main .card:has(#campoNotas) h3 {
+body[data-fundo="marrom"] #cardNotasRotina h3,
+body[data-fundo="verde-escuro"] #cardNotasRotina h3,
+body[data-fundo="vinho"] #cardNotasRotina h3,
+body[data-fundo="roxo-profundo"] #cardNotasRotina h3,
+body[data-fundo="uva"] #cardNotasRotina h3 {
   color: #111827 !important;
   text-shadow: none !important;
 }
 
 body[data-fundo="marrom"]
   .dashboard-main
-  .card:has(#campoNotas)
+  #cardNotasRotina
   h3
   :is(span, strong, small),
 body[data-fundo="verde-escuro"]
   .dashboard-main
-  .card:has(#campoNotas)
+  #cardNotasRotina
   h3
   :is(span, strong, small),
 body[data-fundo="vinho"]
   .dashboard-main
-  .card:has(#campoNotas)
+  #cardNotasRotina
   h3
   :is(span, strong, small),
 body[data-fundo="roxo-profundo"]
   .dashboard-main
-  .card:has(#campoNotas)
+  #cardNotasRotina
   h3
   :is(span, strong, small),
 body[data-fundo="uva"]
   .dashboard-main
-  .card:has(#campoNotas)
+  #cardNotasRotina
   h3
   :is(span, strong, small) {
   color: #111827 !important;
@@ -3648,7 +3648,7 @@ body.dashboard-body :is(.btn-sidebar, .btn-primario, .btn-secundario, .btn-menu-
   animation: menuFlutuar var(--motion-base) var(--motion-ease) both;
 }
 
-.rotina-transicao-suave :is(.rotina-header h1, #cardTabelaTarefas, .card:has(#campoNotas), #areaTreino) {
+.rotina-transicao-suave :is(.rotina-header h1, #cardTabelaTarefas, #cardNotasRotina, #areaTreino) {
   animation: rotinaEntrada var(--motion-slow) var(--motion-ease) both;
 }
 
@@ -3656,28 +3656,28 @@ body.dashboard-body :is(.btn-sidebar, .btn-primario, .btn-secundario, .btn-menu-
   animation-delay: 35ms;
 }
 
-.rotina-transicao-suave .card:has(#campoNotas),
+.rotina-transicao-suave #cardNotasRotina,
 .rotina-transicao-suave #areaTreino {
   animation-delay: 70ms;
 }
 
-.tabela-tarefas tbody tr {
+.rotina-transicao-suave .tabela-tarefas tbody tr {
   animation: linhaTarefaEntrada 240ms var(--motion-ease) both;
 }
 
-.tabela-tarefas tbody tr:nth-child(2) {
+.rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(2) {
   animation-delay: 22ms;
 }
 
-.tabela-tarefas tbody tr:nth-child(3) {
+.rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(3) {
   animation-delay: 44ms;
 }
 
-.tabela-tarefas tbody tr:nth-child(4) {
+.rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(4) {
   animation-delay: 66ms;
 }
 
-.tabela-tarefas tbody tr:nth-child(n + 5) {
+.rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(n + 5) {
   animation-delay: 88ms;
 }
 
