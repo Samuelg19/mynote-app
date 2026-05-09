@@ -260,15 +260,18 @@ function logout() {
 }
 
 function checkConclusao(tarefa) {
+  const concluida = !!tarefa.concluida;
+
   return `
     <button 
       class="check-tarefa" 
       type="button" 
       data-id="${tarefa.id}" 
-      data-concluida="${!!tarefa.concluida}"
-      title="Concluir tarefa"
+      data-concluida="${concluida}"
+      title="${concluida ? "Marcar como pendente" : "Concluir tarefa"}"
+      aria-label="${concluida ? "Marcar tarefa como pendente" : "Concluir tarefa"}"
     >
-      ${tarefa.concluida ? "✅" : "⬜"}
+      ${concluida ? "&#10003;" : ""}
     </button>
   `;
 }
@@ -5566,12 +5569,63 @@ function campoEditavel(tarefa, campo, texto, icone = "✏️") {
   `;
 }
 
+function tituloTarefaComCheck(tarefa, acoesExtras = "") {
+  return `${checkConclusao(tarefa)}${acoesExtras}<span class="titulo-tarefa-text">${tarefa.titulo || "-"}</span>`;
+}
+
+function statusTarefaVisual(tarefa) {
+  const statusSalvo = String(tarefa.status || "");
+  const statusConcluido =
+    statusSalvo
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .includes("conclu");
+  const status = tarefa.concluida
+    ? "Concluída"
+    : statusConcluido
+      ? "Pendente"
+      : tarefa.status || "Pendente";
+
+  return `<span class="${obterClasseStatus(status)}" data-status-tarefa>${status}</span>`;
+}
+
+function aplicarEstadoConclusaoLinha(linha, botao, concluida) {
+  const novoStatus = concluida ? "Concluída" : "Pendente";
+
+  linha?.classList.toggle("tarefa-concluida", concluida);
+  linha?.classList.remove("tarefa-concluindo");
+
+  if (concluida) {
+    void linha?.offsetWidth;
+    linha?.classList.add("tarefa-concluindo");
+    window.setTimeout(() => linha?.classList.remove("tarefa-concluindo"), 520);
+  }
+
+  if (botao) {
+    botao.dataset.concluida = String(concluida);
+    botao.innerHTML = concluida ? "&#10003;" : "";
+    botao.title = concluida ? "Marcar como pendente" : "Concluir tarefa";
+    botao.setAttribute(
+      "aria-label",
+      concluida ? "Marcar tarefa como pendente" : "Concluir tarefa",
+    );
+  }
+
+  const statusBadge = linha?.querySelector("[data-status-tarefa]");
+  if (statusBadge) {
+    statusBadge.textContent = novoStatus;
+    statusBadge.className = obterClasseStatus(novoStatus);
+    statusBadge.dataset.statusTarefa = "";
+  }
+}
+
 function montarLinhaTarefa(tarefa, tipoRotina) {
   if (tipoRotina === "matinal") {
     return `
       ${botaoArrastar()}
-      <td>${checkConclusao(tarefa)} ${tarefa.titulo}</td>
-      <td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>
+      <td>${tituloTarefaComCheck(tarefa)}</td>
+      <td>${statusTarefaVisual(tarefa)}</td>
       <td>${campoHorarioEditavel(tarefa)}</td>
       <td>${botaoNotificacao(tarefa)}</td>
       <td><button class="btn-excluir" data-id="${tarefa.id}">🗑️</button></td>
@@ -5581,9 +5635,9 @@ function montarLinhaTarefa(tarefa, tipoRotina) {
   if (tipoRotina === "estudos") {
     return `
       ${botaoArrastar()}
-      <td>${checkConclusao(tarefa)} ${tarefa.titulo}</td>
+      <td>${tituloTarefaComCheck(tarefa)}</td>
       <td><span class="${obterClasseTipo(tarefa.tipo)}">${tarefa.tipo || "-"}</span></td>
-      <td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>
+      <td>${statusTarefaVisual(tarefa)}</td>
       <td>${tarefa.disciplina || "-"}</td>
       <td>${campoHorarioEditavel(tarefa)}</td>
       <td>
@@ -5603,11 +5657,11 @@ function montarLinhaTarefa(tarefa, tipoRotina) {
   if (tipoRotina === "trabalho") {
     return `
       ${botaoArrastar()}
-      <td>${checkConclusao(tarefa)} ${tarefa.titulo}</td>
+      <td>${tituloTarefaComCheck(tarefa)}</td>
       <td>${tarefa.projeto || "-"}</td>
       <td><span class="${obterClassePrioridade(tarefa.prioridade)}">${tarefa.prioridade || "-"}</span></td>
       <td>${campoEditavel(tarefa, "prazo", tarefa.prazo, "📅")}</td>
-      <td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>
+      <td>${statusTarefaVisual(tarefa)}</td>
       <td>${campoHorarioEditavel(tarefa)}</td>
       <td>${botaoNotificacao(tarefa)}</td>
       <td><button class="btn-excluir" data-id="${tarefa.id}">🗑️</button></td>
@@ -5618,14 +5672,12 @@ function montarLinhaTarefa(tarefa, tipoRotina) {
     return `
       ${botaoArrastar()}
       <td>
-  ${checkConclusao(tarefa)}
-  ${modoEdicaoTabela ? `<button class="btn-editar-card" data-tipo="alimentacao">✏️</button>` : ""}
-  ${tarefa.titulo}
+  ${tituloTarefaComCheck(tarefa, modoEdicaoTabela ? `<button class="btn-editar-card" data-tipo="alimentacao">✏️</button>` : "")}
 </td>
       <td>${tarefa.tipo || "-"}</td>
       <td>${campoHorarioEditavel(tarefa)}</td>
       <td class="calorias-cell">${formatarCalorias(tarefa.calorias)}</td>
-      <td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>
+      <td>${statusTarefaVisual(tarefa)}</td>
       <td>${botaoNotificacao(tarefa)}</td>
       <td><button class="btn-excluir" data-id="${tarefa.id}">🗑️</button></td>
     `;
@@ -5633,9 +5685,9 @@ function montarLinhaTarefa(tarefa, tipoRotina) {
 
   return `
     ${botaoArrastar()}
-    <td>${checkConclusao(tarefa)} ${tarefa.titulo}</td>
+    <td>${tituloTarefaComCheck(tarefa)}</td>
     <td><span class="${obterClasseTipo(tarefa.tipo)}">${tarefa.tipo || "-"}</span></td>
-    <td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>
+    <td>${statusTarefaVisual(tarefa)}</td>
     <td>${tarefa.disciplina || "-"}</td>
     <td>${campoHorarioEditavel(tarefa)}</td>
     <td>${botaoNotificacao(tarefa)}</td>
@@ -6240,12 +6292,12 @@ function montarLinhaPersonalizada(tarefa, campos) {
   camposPrincipais.forEach((campo) => {
     switch (campo) {
       case "titulo":
-        linha += `<td>${checkConclusao(tarefa)} ${tarefa.titulo || "-"}</td>`;
+        linha += `<td>${tituloTarefaComCheck(tarefa)}</td>`;
         break;
 
       case "titulo":
         jaTemCheck = true;
-        linha += `<td>${checkConclusao(tarefa)} ${tarefa.titulo || "-"}</td>`;
+        linha += `<td>${tituloTarefaComCheck(tarefa)}</td>`;
         break;
 
       case "tipo":
@@ -6253,7 +6305,7 @@ function montarLinhaPersonalizada(tarefa, campos) {
         break;
 
       case "status":
-        linha += `<td><span class="${obterClasseStatus(tarefa.status)}">${tarefa.status || "-"}</span></td>`;
+        linha += `<td>${statusTarefaVisual(tarefa)}</td>`;
         break;
 
       case "disciplina":
@@ -6768,12 +6820,7 @@ async function carregarTarefas(rotinaId, nomeRotina) {
 tarefa.concluida = novoConcluida;
 tarefa.status = novoStatus;
 
-tr.classList.toggle("tarefa-concluida", novoConcluida);
-
-if (btnCheckTarefa) {
-  btnCheckTarefa.innerHTML = novoConcluida ? "✅" : "⬜";
-  btnCheckTarefa.dataset.concluida = String(novoConcluida);
-}
+aplicarEstadoConclusaoLinha(tr, btnCheckTarefa, novoConcluida);
 
 invalidarCacheTarefas(rotinaSelecionadaId);
         } catch (erro) {
@@ -8027,13 +8074,15 @@ corpoTabelaTarefas.addEventListener("click", async (event) => {
   const concluidaAtual = btnCheck.dataset.concluida === "true";
 
   try {
+    const novaConcluida = !concluidaAtual;
+
     await atualizarTarefa(tarefaId, {
-      concluida: !concluidaAtual,
-      status: !concluidaAtual ? "Concluída" : "Pendente",
+      concluida: novaConcluida,
+      status: novaConcluida ? "Concluída" : "Pendente",
     });
 
+    aplicarEstadoConclusaoLinha(btnCheck.closest("tr"), btnCheck, novaConcluida);
     invalidarCacheTarefas(rotinaSelecionadaId);
-      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro ao concluir tarefa:", erro);
     mostrarAviso("erro", "Não foi possível atualizar a tarefa.");

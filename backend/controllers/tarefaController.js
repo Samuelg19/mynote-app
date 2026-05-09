@@ -181,6 +181,16 @@ exports.atualizarStatus = (req, res) => {
     ),
   );
 
+  if (Object.prototype.hasOwnProperty.call(dados, "concluida")) {
+    const concluida =
+      dados.concluida === true ||
+      dados.concluida === 1 ||
+      dados.concluida === "true";
+
+    dados.concluida = concluida;
+    dados.status = concluida ? "Concluída" : "Pendente";
+  }
+
   if (!validarCalorias(dados, res)) return;
 
   if (!Object.keys(dados).length) {

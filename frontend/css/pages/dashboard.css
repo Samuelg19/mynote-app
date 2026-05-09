@@ -399,11 +399,41 @@ body[data-fundo="marrom"] {
 }
 
 .tarefa-concluida {
-  opacity: 0.6;
+  opacity: 0.82;
 }
 
 .tarefa-concluida td {
-  text-decoration: line-through;
+  text-decoration: none;
+}
+
+.titulo-tarefa-text {
+  position: relative;
+  display: inline;
+  transition:
+    color 0.22s ease,
+    opacity 0.22s ease;
+}
+
+.titulo-tarefa-text::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 55%;
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 62%, var(--text));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tarefa-concluida .titulo-tarefa-text {
+  color: var(--muted);
+}
+
+.tarefa-concluida .titulo-tarefa-text::after {
+  transform: scaleX(1);
 }
 
 .btn-excluir {
@@ -1415,6 +1445,29 @@ body.tema-escuro .btn-menu-rotina {
 }
 
 .check-tarefa {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--muted) 65%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--input-bg) 82%, transparent);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+  margin-right: 8px;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #ffffff 18%, transparent);
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.check-lembrete {
   border: none;
   background: transparent;
   cursor: pointer;
@@ -1423,14 +1476,18 @@ body.tema-escuro .btn-menu-rotina {
   vertical-align: middle;
 }
 
-.check-tarefa,
-.check-lembrete {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 8px;
-  vertical-align: middle;
+.check-tarefa:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 18px color-mix(in srgb, var(--accent) 18%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, #ffffff 20%, transparent);
+}
+
+.check-tarefa[data-concluida="true"] {
+  border-color: color-mix(in srgb, #22c55e 76%, var(--accent));
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+  color: #ffffff;
 }
 
 /* Botões sem quebrar texto */
@@ -3587,6 +3644,22 @@ body.dashboard-body :is(.btn-sidebar, .btn-primario, .btn-secundario, .btn-menu-
     filter var(--motion-base) ease;
 }
 
+.tarefa-concluida td {
+  background: color-mix(in srgb, #22c55e 7%, transparent);
+}
+
+.tarefa-concluida [data-status-tarefa] {
+  animation: badgeConcluido 280ms var(--motion-ease) both;
+}
+
+.tarefa-concluindo {
+  animation: tarefaConcluidaPulse 460ms var(--motion-ease) both;
+}
+
+.tarefa-concluindo .check-tarefa {
+  animation: checkConcluidoPop 420ms var(--motion-ease) both;
+}
+
 .card-exercicio,
 .bloco-dia-treino,
 .dia-semana-card,
@@ -3639,6 +3712,46 @@ body.dashboard-body :is(.btn-sidebar, .btn-primario, .btn-secundario, .btn-menu-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tarefaConcluidaPulse {
+  0% {
+    box-shadow: inset 0 0 0 0 color-mix(in srgb, #22c55e 0%, transparent);
+  }
+
+  45% {
+    box-shadow: inset 4px 0 0 color-mix(in srgb, #22c55e 78%, var(--accent));
+  }
+
+  100% {
+    box-shadow: inset 3px 0 0 color-mix(in srgb, #22c55e 46%, transparent);
+  }
+}
+
+@keyframes checkConcluidoPop {
+  0% {
+    transform: scale(0.86);
+  }
+
+  55% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes badgeConcluido {
+  from {
+    transform: translateY(2px);
+    opacity: 0.65;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
