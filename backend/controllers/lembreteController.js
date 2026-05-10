@@ -7,9 +7,26 @@ const camposPermitidosLembrete = [
   "prioridade",
   "status",
   "notificacao",
+  "alarme",
   "oculto",
   "concluido",
 ];
+
+function garantirColunaAlarmeLembretes() {
+  db.query(
+    "ALTER TABLE lembretes ADD COLUMN alarme TINYINT(1) DEFAULT 1",
+    (err) => {
+      if (err && err.code !== "ER_DUP_FIELDNAME") {
+        console.warn(
+          "Nao foi possivel garantir coluna alarme em lembretes:",
+          err.message,
+        );
+      }
+    },
+  );
+}
+
+garantirColunaAlarmeLembretes();
 
 function queryAsync(sql, params = []) {
   return new Promise((resolve, reject) => {
@@ -54,6 +71,10 @@ function normalizarLembreteSaida(lembrete) {
   return {
     ...lembrete,
     status,
+    alarme:
+      lembrete.alarme === undefined || lembrete.alarme === null
+        ? true
+        : Boolean(lembrete.alarme),
     oculto: Boolean(lembrete.oculto),
   };
 }
@@ -85,6 +106,10 @@ function limparDadosLembrete(dados, usuarioId) {
     lembrete.notificacao = lembrete.notificacao ? 1 : 0;
   }
 
+  if (Object.prototype.hasOwnProperty.call(lembrete, "alarme")) {
+    lembrete.alarme = lembrete.alarme ? 1 : 0;
+  }
+
   if (Object.prototype.hasOwnProperty.call(lembrete, "oculto")) {
     lembrete.oculto = lembrete.oculto ? 1 : 0;
   }
@@ -100,13 +125,13 @@ function inserirLembreteComFallback(lembrete, callback) {
   const dados = { ...lembrete };
 
   function tentarInserir() {
-    db.query("INSERT INTO lembretes SET ?", dados, (err) => {
+    db.query("INSERT INTO lembretes SET ?", dados, (err, result) => {
       if (err && removerCampoInexistente(dados, err)) {
         tentarInserir();
         return;
       }
 
-      callback(err);
+      callback(err, result);
     });
   }
 
@@ -168,9 +193,9 @@ function atualizarLembreteComFallback(id, usuarioId, dados, callback) {
 exports.criar = (req, res) => {
   const lembrete = limparDadosLembrete(req.body, req.usuario.id);
 
-  inserirLembreteComFallback(lembrete, (err) => {
+  inserirLembreteComFallback(lembrete, (err, result) => {
     if (err) return erroBancoLembrete(err, res, "criar");
-    res.json({ msg: "Lembrete criado com sucesso" });
+    res.json({ msg: "Lembrete criado com sucesso", id: result?.insertId });
   });
 };
 

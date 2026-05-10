@@ -3,19 +3,43 @@ const cron = require("node-cron");
 const db = require("../config/db");
 const { enviarPush } = require("./pushService");
 
+function partesAgoraBrasil() {
+  const partes = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const obter = (tipo) => partes.find((parte) => parte.type === tipo)?.value;
+
+  return {
+    hora: `${obter("hour")}:${obter("minute")}`,
+    diaMes: `${obter("day")}/${obter("month")}`,
+  };
+}
+
+function lembreteValeParaHoje(lembrete, diaMesHoje) {
+  const diaMes = String(lembrete.dia_mes || "").trim().toLowerCase();
+
+  if (!diaMes) return true;
+  if (diaMes.includes("todo")) return true;
+  return diaMes === diaMesHoje;
+}
+
 function iniciarSchedulerNotificacoes() {
   cron.schedule("* * * * *", async () => {
     try {
-      const agora = new Date();
-
-      const horaAtual = agora.toTimeString().slice(0, 5);
+      const { hora: horaAtual, diaMes: diaMesHoje } = partesAgoraBrasil();
 
       db.query(
         `
         SELECT * FROM lembretes
         WHERE horario = ?
-        AND status != 'Concluído'
-        AND oculto = false
+        AND (status IS NULL OR status != 'Concluído')
+        AND (oculto = false OR oculto IS NULL)
+        AND (notificacao = true OR notificacao = 1)
         `,
         [horaAtual],
         async (err, lembretes) => {
@@ -24,7 +48,9 @@ function iniciarSchedulerNotificacoes() {
             return;
           }
 
-          for (const lembrete of lembretes) {
+          for (const lembrete of lembretes.filter((item) =>
+            lembreteValeParaHoje(item, diaMesHoje),
+          )) {
             const chaveEnvio = `lembrete-${lembrete.id}-${horaAtual}`;
 
             db.query(
@@ -65,6 +91,10 @@ function iniciarSchedulerNotificacoes() {
                         sub,
                         "Lembrete",
                         lembrete.titulo,
+                        {
+                          alarme: lembrete.alarme !== 0,
+                          url: "/dashboard.html",
+                        },
                       );
                     }
 
@@ -96,6 +126,8 @@ function iniciarSchedulerNotificacoes() {
     } catch (erro) {
       console.error("Erro geral scheduler:", erro);
     }
+  }, {
+    timezone: "America/Sao_Paulo",
   });
 }
 

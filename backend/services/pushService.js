@@ -6,7 +6,7 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY,
 );
 
-async function enviarPush(subscription, titulo, mensagem) {
+async function enviarPush(subscription, titulo, mensagem, extras = {}) {
   try {
     await webpush.sendNotification(
       {
@@ -19,6 +19,7 @@ async function enviarPush(subscription, titulo, mensagem) {
       JSON.stringify({
         title: titulo,
         body: mensagem,
+        ...extras,
       }),
     );
   } catch (erro) {
