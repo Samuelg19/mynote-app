@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v9";
+const CACHE_NAME = "mynote-cache-v10";
 
 const FILES_TO_CACHE = [
   "/",
@@ -18,6 +18,7 @@ const FILES_TO_CACHE = [
   "/js/login.js",
   "/js/cadastro.js",
   "/assets/icon-192.png",
+  "/assets/alarme-digital.wav",
   "/assets/alarme-suave.wav",
   "/assets/notificacao.wav"
 ];
@@ -109,12 +110,14 @@ self.addEventListener("push", (event) => {
           { action: "ja-fiz", title: "Ja fiz" },
         ]
       : [];
+  const alarmeAtivo =
+    dados.alarme === true || dados.alarme === 1 || dados.alarme === "true";
   const tag =
     dados.tipo === "tarefa" && dados.tarefaId
       ? `mynote-tarefa-${dados.tarefaId}`
       : dados.tipo === "lembrete" && dados.lembreteId
         ? `mynote-lembrete-${dados.lembreteId}`
-        : dados.alarme
+        : alarmeAtivo
           ? "mynote-alarme"
           : undefined;
   const options = {
@@ -124,14 +127,18 @@ self.addEventListener("push", (event) => {
     actions,
     tag,
     renotify: false,
-    requireInteraction: !!dados.alarme || dados.tipo === "tarefa",
-    vibrate: dados.alarme ? [420, 140, 420, 140, 420] : [180, 80, 180],
+    silent: false,
+    requireInteraction: alarmeAtivo || dados.tipo === "tarefa",
+    timestamp: Date.now(),
+    vibrate: alarmeAtivo ? [520, 160, 520, 160, 720] : [180, 80, 180],
     data: {
       url: dados.url || "/dashboard.html",
       tipo: dados.tipo || "",
       tarefaId: dados.tarefaId || "",
+      lembreteId: dados.lembreteId || "",
       rotinaId: dados.rotinaId || "",
       horario: dados.horario || "",
+      alarme: alarmeAtivo,
     },
   };
 

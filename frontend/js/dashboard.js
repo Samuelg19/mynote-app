@@ -2922,7 +2922,7 @@ function chaveApenasNotificarTarefasUsuario() {
 function obterSomNotificacaoConfigurado() {
   return (
     localStorage.getItem(chaveSomNotificacaoUsuario()) ||
-    "assets/alarme-suave.wav"
+    "assets/alarme-digital.wav"
   );
 }
 
@@ -2974,9 +2974,10 @@ function deveAlarmarNotificacao(opcoes = {}) {
 
 function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaId = "", horario = "", tarefa = false } = {}) {
   const ehTarefa = tarefa && tarefaId;
+  const alarmeAtivo = alarme === true;
   const tag = ehTarefa
     ? `mynote-tarefa-${tarefaId}`
-    : alarme
+    : alarmeAtivo
       ? "mynote-alarme"
       : undefined;
 
@@ -2990,16 +2991,19 @@ function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaI
           { action: "ja-fiz", title: "Ja fiz" },
         ]
       : undefined,
-    requireInteraction: alarme || ehTarefa,
+    requireInteraction: alarmeAtivo || ehTarefa,
     renotify: false,
+    silent: false,
     tag,
-    vibrate: alarme ? [420, 140, 420, 140, 420] : [180, 80, 180],
+    timestamp: Date.now(),
+    vibrate: alarmeAtivo ? [520, 160, 520, 160, 720] : [180, 80, 180],
     data: {
       url: "/dashboard.html",
       tipo: ehTarefa ? "tarefa" : "",
       tarefaId,
       rotinaId,
       horario,
+      alarme: alarmeAtivo,
     },
   };
 }

@@ -49,6 +49,11 @@ function tarefaValeParaHoje(tarefa, diaSemanaHoje) {
   return diaSemanaHoje.includes(diaSemana) || diaSemana.includes(diaSemanaHoje);
 }
 
+function valorAlarmeAtivo(valor) {
+  if (valor === undefined || valor === null) return true;
+  return valor !== false && valor !== 0 && valor !== "0";
+}
+
 function listarSubscriptions(usuarioId) {
   return new Promise((resolve, reject) => {
     db.query(
@@ -170,7 +175,10 @@ function iniciarSchedulerNotificacoes() {
                         "Lembrete",
                         lembrete.titulo,
                         {
-                          alarme: lembrete.alarme !== 0,
+                          alarme: valorAlarmeAtivo(lembrete.alarme),
+                          tipo: "lembrete",
+                          lembreteId: lembrete.id,
+                          horario: lembrete.horario,
                           url: "/dashboard.html",
                         },
                       );
@@ -237,7 +245,7 @@ function iniciarSchedulerNotificacoes() {
               "Agora!",
               tarefa.titulo,
               {
-                alarme: tarefa.alarme !== 0,
+                alarme: valorAlarmeAtivo(tarefa.alarme),
                 tipo: "tarefa",
                 tarefaId: tarefa.id,
                 rotinaId: tarefa.rotina_id,
