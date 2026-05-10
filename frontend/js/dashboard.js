@@ -198,6 +198,8 @@ const prioridadeLembreteInput = document.getElementById(
 const notificacaoLembreteInput = document.getElementById(
   "notificacaoLembreteInput",
 );
+const alarmeLembreteInput = document.getElementById("alarmeLembreteInput");
+const textoAlarmeLembrete = document.getElementById("textoAlarmeLembrete");
 const corpoTabelaLembretes = document.getElementById("corpoTabelaLembretes");
 const btnMenuLembretes = document.getElementById("btnMenuLembretes");
 const opcoesLembretes = document.getElementById("opcoesLembretes");
@@ -317,6 +319,44 @@ async function atualizarTarefa(id, dados) {
     headers: headersAuth(),
     body: JSON.stringify(dados),
   });
+}
+
+async function processarAcaoInicialNotificacao() {
+  const params = new URLSearchParams(window.location.search);
+  const acao = params.get("acao");
+
+  if (acao !== "concluir-tarefa") return;
+
+  const tarefaId = params.get("tarefaId");
+  const rotinaId = params.get("rotinaId");
+
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  if (!tarefaId) return;
+
+  try {
+    const resposta = await atualizarTarefa(tarefaId, {
+      concluida: true,
+      status: "Concluida",
+    });
+
+    if (!resposta.ok) {
+      mostrarAviso("erro", "Nao foi possivel concluir a tarefa pelo alarme.");
+      return;
+    }
+
+    if (rotinaId) {
+      invalidarCacheTarefas(rotinaId);
+      if (String(rotinaSelecionadaId) === String(rotinaId)) {
+        carregarTarefas(rotinaId, tituloRotina.textContent);
+      }
+    }
+
+    mostrarAviso("sucesso", "Tarefa marcada como concluida!");
+  } catch (erro) {
+    console.error("Erro ao concluir tarefa pela notificacao:", erro);
+    mostrarAviso("erro", "Nao foi possivel concluir a tarefa pelo alarme.");
+  }
 }
 
 function logout() {
@@ -1027,6 +1067,10 @@ function abrirModalEditarLembreteDoCalendario(evento) {
   diaMesLembreteInput.value = formatarDataBR(evento.data).slice(0, 5);
   prioridadeLembreteInput.value = evento.prioridade || "Média";
   notificacaoLembreteInput.checked = true;
+  if (alarmeLembreteInput) {
+    alarmeLembreteInput.checked = obterPreferenciaLembrete(evento).alarme !== false;
+  }
+  atualizarTextoNotificacaoLembrete();
 
   salvarLembrete.textContent = "Salvar alterações";
   tituloLembreteInput.focus();
@@ -2927,15 +2971,30 @@ function deveAlarmarNotificacao(opcoes = {}) {
   );
 }
 
-function montarOpcoesNotificacao(corpo, { alarme = false } = {}) {
+function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaId = "", horario = "", tarefa = false } = {}) {
+  const ehTarefa = tarefa && tarefaId;
+
   return {
     body: corpo,
     icon: "/assets/icon-192.png",
     badge: "/assets/icon-192.png",
+    actions: ehTarefa
+      ? [
+          { action: "vou-fazer", title: "Vou fazer ↑↑" },
+          { action: "ja-fiz", title: "Ja fiz" },
+        ]
+      : undefined,
     requireInteraction: alarme,
     renotify: alarme,
     tag: alarme ? "mynote-alarme-tarefa" : undefined,
     vibrate: alarme ? [420, 140, 420, 140, 420] : [180, 80, 180],
+    data: {
+      url: "/dashboard.html",
+      tipo: ehTarefa ? "tarefa" : "",
+      tarefaId,
+      rotinaId,
+      horario,
+    },
   };
 }
 
@@ -2949,7 +3008,10 @@ async function exibirNotificacaoNavegador(titulo, corpo, opcoes = {}) {
   }
 
   const alarme = deveAlarmarNotificacao(opcoes);
-  const opcoesNotificacao = montarOpcoesNotificacao(corpo, { alarme });
+  const opcoesNotificacao = montarOpcoesNotificacao(corpo, {
+    ...opcoes,
+    alarme,
+  });
 
   if ("serviceWorker" in navigator) {
     try {
@@ -3153,7 +3215,13 @@ function obterPreferenciaPadraoTarefa(tarefa) {
 }
 
 function obterPreferenciaEfetivaTarefa(tarefa) {
-  const padrao = obterPreferenciaPadraoTarefa(tarefa);
+  const padrao = {
+    ...obterPreferenciaPadraoTarefa(tarefa),
+    alarme:
+      tarefa?.alarme === undefined || tarefa?.alarme === null
+        ? true
+        : Boolean(Number(tarefa.alarme)),
+  };
   const salva = obterPreferenciaTarefa(tarefa.id);
 
   if (!salva) return padrao;
@@ -3704,6 +3772,13 @@ function renderizarListaFrequenciaTarefas(tarefas) {
 
 function salvarEAtualizarTarefaFrequencia(tarefa, dados, mensagem) {
   salvarPreferenciaTarefa(tarefa.id, dados);
+
+  if (Object.prototype.hasOwnProperty.call(dados, "alarme")) {
+    atualizarTarefa(tarefa.id, { alarme: dados.alarme }).catch((erro) =>
+      console.warn("Nao foi possivel salvar o alarme da tarefa no servidor:", erro),
+    );
+  }
+
   fecharModalOpcoesFrequencia();
   fecharModalGradeFrequencia();
   fecharModalNumeroFrequencia();
@@ -5019,7 +5094,14 @@ async function verificarTarefasComAntecedencia() {
           mostrarNotificacao(
             "Agora!",
             `${tarefa.titulo} esta acontecendo agora.`,
-            { rotina: true, tarefa: true, alarme: pref.alarme !== false },
+            {
+              rotina: true,
+              tarefa: true,
+              tarefaId: tarefa.id,
+              rotinaId: tarefa.rotina_id || tarefa.rotinaId,
+              horario: tarefa.horario,
+              alarme: pref.alarme !== false,
+            },
           );
           notificacoesJaEnviadas.add(`${chave}-hora`);
         }
@@ -5055,7 +5137,14 @@ async function verificarTarefasComAntecedencia() {
         mostrarNotificacao(
           "Agora!",
           `${tarefa.titulo} esta acontecendo agora.`,
-          { rotina: true, tarefa: true, alarme: pref.alarme !== false },
+          {
+            rotina: true,
+            tarefa: true,
+            tarefaId: tarefa.id,
+            rotinaId: tarefa.rotina_id || tarefa.rotinaId,
+            horario: tarefa.horario,
+            alarme: pref.alarme !== false,
+          },
         );
         notificacoesJaEnviadas.add(`${chave}-hora`);
       }
@@ -7841,6 +7930,10 @@ async function salvarNovaTarefa() {
     };
   }
 
+  if (tipoRotina !== "treino") {
+    dados.alarme = alarmeDaTarefa;
+  }
+
   try {
     const resposta = await fetch(`${API_BASE_URL}/tarefas`, {
       method: "POST",
@@ -7999,9 +8092,39 @@ function abrirModalLembrete() {
   diaMesLembreteInput.value = "";
   prioridadeLembreteInput.value = "Média";
   notificacaoLembreteInput.checked = false;
+  if (alarmeLembreteInput) alarmeLembreteInput.checked = true;
 
   atualizarTextoNotificacaoLembrete();
   tituloLembreteInput.focus();
+}
+
+function atualizarTextoAlarmeLembreteModal(notificacaoAtiva = null) {
+  if (!alarmeLembreteInput || !textoAlarmeLembrete) return;
+
+  const podeAlarmar =
+    notificacaoAtiva === null
+      ? notificacaoLembreteInput?.checked
+      : notificacaoAtiva;
+  const alarmeAtivo = !!podeAlarmar && alarmeLembreteInput.checked;
+
+  alarmeLembreteInput.disabled = !podeAlarmar;
+  textoAlarmeLembrete.classList.toggle("ativa", alarmeAtivo);
+  textoAlarmeLembrete.textContent = alarmeAtivo
+    ? "Alarme ativado"
+    : podeAlarmar
+      ? "Apenas notificar"
+      : "Ative a notificacao para usar alarme";
+}
+
+function atualizarTextoNotificacaoLembrete() {
+  if (!textoNotificacaoLembrete || !notificacaoLembreteInput) return;
+
+  const notificacaoAtiva = notificacaoLembreteInput.checked;
+  textoNotificacaoLembrete.textContent = notificacaoAtiva
+    ? "Notificacao ativada"
+    : "Notificacao desativada";
+  textoNotificacaoLembrete.classList.toggle("ativa", notificacaoAtiva);
+  atualizarTextoAlarmeLembreteModal(notificacaoAtiva);
 }
 
 function abrirVisaoAnual() {
@@ -8178,11 +8301,19 @@ function lembreteTemData(lembrete) {
 }
 
 function obterPreferenciaLembrete(lembrete) {
-  const salva = obterPreferenciaCalendario(`lembrete-${lembrete.id}`);
+  const lembreteId = lembrete?.lembreteId || lembrete?.id;
+  const salva = obterPreferenciaCalendario(`lembrete-${lembreteId}`);
+  const alarmeServidor =
+    lembrete?.alarme === undefined || lembrete?.alarme === null
+      ? true
+      : Boolean(Number(lembrete.alarme));
 
   return {
     modo: lembreteTemData(lembrete) ? "prazo" : "horario",
-    alarme: salva?.alarme !== false,
+    alarme:
+      salva && Object.prototype.hasOwnProperty.call(salva, "alarme")
+        ? salva.alarme !== false
+        : alarmeServidor,
     antecedencia:
       salva?.antecedencia ||
       criarAntecedencia("minuto", antecedenciaPadraoMinutos(), true),
@@ -8201,11 +8332,21 @@ function salvarAntecedenciaLembrete(lembrete, antecedencia) {
   mostrarMensagem("Antecedência do lembrete atualizada!");
 }
 
-function salvarAlarmeLembrete(lembrete, alarme) {
+async function salvarAlarmeLembrete(lembrete, alarme) {
   salvarPreferenciaCalendario(`lembrete-${lembrete.id}`, {
     modo: lembreteTemData(lembrete) ? "prazo" : "horario",
     alarme,
   });
+
+  try {
+    await fetch(`${API_BASE_URL}/lembretes/${lembrete.id}`, {
+      method: "PUT",
+      headers: headersAuth(),
+      body: JSON.stringify({ alarme }),
+    });
+  } catch (erro) {
+    console.warn("Nao foi possivel salvar o alarme do lembrete no servidor:", erro);
+  }
 
   fecharModalOpcoesFrequencia();
   fecharModalNumeroFrequencia();
@@ -8480,6 +8621,7 @@ async function salvarNovoLembrete() {
       dia_mes: diaMesLembreteInput.value.trim(),
       prioridade: prioridadeLembreteInput.value,
       notificacao: notificacaoLembreteInput.checked,
+      alarme: alarmeLembreteInput?.checked !== false,
     };
 
     await fetch(
@@ -8488,6 +8630,14 @@ async function salvarNovoLembrete() {
         method: "PUT",
         headers: headersAuth(),
         body: JSON.stringify(dados),
+      },
+    );
+
+    salvarPreferenciaCalendario(
+      `lembrete-${lembreteCalendarioEmEdicao.lembreteId}`,
+      {
+        modo: dados.dia_mes ? "prazo" : "horario",
+        alarme: dados.alarme,
       },
     );
 
@@ -8510,6 +8660,7 @@ async function salvarNovoLembrete() {
   const diaMes = diaMesLembreteInput.value.trim();
   const prioridade = prioridadeLembreteInput.value;
   const notificacao = notificacaoLembreteInput.checked;
+  const alarme = notificacao && alarmeLembreteInput?.checked !== false;
 
   if (!titulo) {
     mostrarAviso("aviso", "Digite o título do lembrete.");
@@ -8533,6 +8684,7 @@ async function salvarNovoLembrete() {
           prioridade,
           status: "Pendente",
           notificacao,
+          alarme,
           oculto: false,
         }),
       },
@@ -8550,6 +8702,13 @@ async function salvarNovoLembrete() {
     }
 
     mostrarAviso("sucesso", "Lembrete criado com sucesso!");
+    const lembreteSalvoId = lembreteEditandoId || dados.id;
+    if (lembreteSalvoId) {
+      salvarPreferenciaCalendario(`lembrete-${lembreteSalvoId}`, {
+        modo: diaMes ? "prazo" : "horario",
+        alarme,
+      });
+    }
     delete salvarLembrete.dataset.editandoId;
 
     fecharModalNovoLembrete();
@@ -8881,6 +9040,9 @@ salvarLembrete.addEventListener("click", salvarNovoLembrete);
 notificacaoLembreteInput.addEventListener(
   "change",
   atualizarTextoNotificacaoLembrete,
+);
+alarmeLembreteInput?.addEventListener("change", () =>
+  atualizarTextoAlarmeLembreteModal(),
 );
 
 btnMenuLembretes?.addEventListener("click", (event) => {
@@ -9697,6 +9859,7 @@ async function inicializarDashboard() {
 
   mostrarCalendarioDashboard();
   definirTelaMobileDashboard(estaEmMobileDashboard() ? "home" : "");
+  processarAcaoInicialNotificacao();
 
   setTimeout(mostrarResumoDiario, 1500);
   iniciarOnboardingPrimeiroAcesso();

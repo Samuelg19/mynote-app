@@ -2,6 +2,22 @@ const db = require("../config/db");
 
 const CALORIAS_MAXIMAS = 5000;
 
+function garantirColunaAlarmeTarefas() {
+  db.query(
+    "ALTER TABLE tarefas ADD COLUMN alarme TINYINT(1) DEFAULT 1",
+    (err) => {
+      if (err && err.code !== "ER_DUP_FIELDNAME") {
+        console.warn(
+          "Nao foi possivel garantir coluna alarme em tarefas:",
+          err.message,
+        );
+      }
+    },
+  );
+}
+
+garantirColunaAlarmeTarefas();
+
 function normalizarCalorias(valor) {
   if (valor === undefined || valor === null || valor === "") return valor;
 
@@ -162,6 +178,7 @@ exports.atualizarStatus = (req, res) => {
     "prioridade",
     "prazo",
     "notificacao",
+    "alarme",
     "concluida",
     "dia_semana",
     "grupo_muscular",
@@ -189,6 +206,11 @@ exports.atualizarStatus = (req, res) => {
 
     dados.concluida = concluida;
     dados.status = concluida ? "Concluída" : "Pendente";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(dados, "alarme")) {
+    dados.alarme =
+      dados.alarme === true || dados.alarme === 1 || dados.alarme === "true";
   }
 
   if (!validarCalorias(dados, res)) return;
