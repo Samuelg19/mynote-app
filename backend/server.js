@@ -9,6 +9,7 @@ const tarefaRoutes = require("./routes/tarefaRoutes");
 const lembreteRoutes = require("./routes/lembreteRoutes");
 const configuracaoRoutes = require("./routes/configuracaoRoutes");
 const eventoCalendarioRoutes = require("./routes/eventoCalendarioRoutes");
+const pushRoutes = require("./routes/pushRoutes");
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/tarefas", tarefaRoutes);
 app.use("/lembretes", lembreteRoutes);
 app.use("/configuracoes", configuracaoRoutes);
 app.use("/eventos-calendario", eventoCalendarioRoutes);
+app.use("/push", pushRoutes);
 
 const PORT = process.env.PORT || 3000;
 

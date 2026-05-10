@@ -9542,6 +9542,7 @@ async function executarVerificacoesNotificacao() {
 
 async function inicializarDashboard() {
   await carregarTemaDashboard();
+  await registrarPushNotifications();
   inicializarPermissaoNotificacao().catch((erro) => {
     console.warn("Nao foi possivel inicializar notificacoes:", erro);
   });
