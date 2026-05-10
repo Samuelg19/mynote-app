@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v4";
+const CACHE_NAME = "mynote-cache-v5";
 
 const FILES_TO_CACHE = [
   "/",

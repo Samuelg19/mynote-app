@@ -49,6 +49,8 @@ async function registrarPushNotifications() {
     if (!("serviceWorker" in navigator)) return;
 
     if (!("PushManager" in window)) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
 
     const permissao = await Notification.requestPermission();
 
@@ -57,7 +59,13 @@ async function registrarPushNotifications() {
       return;
     }
 
-    const registro = await navigator.serviceWorker.ready;
+    const registroInicial =
+      await navigator.serviceWorker.register("/service-worker.js");
+    const registro =
+      (await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
+      ])) || registroInicial;
 
     let inscricao = await registro.pushManager.getSubscription();
 

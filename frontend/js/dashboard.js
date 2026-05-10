@@ -4,6 +4,8 @@ const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 const token = localStorage.getItem("token");
 const CALORIAS_MAXIMAS = 5000;
 const API_BASE_URL = "https://mynote-app-production-cb61.up.railway.app";
+const VAPID_PUBLIC_KEY =
+  "BMK8iAQvIYfGlMnVnz10kC7CjDCt-r8zHFIfAFgesUmjAfbRKd0PkEARkbwAy2-sFsT42xCedVkoVGsjGGENbGg";
 
 if (!usuario || !token) {
   window.location.href = LOGIN_PAGE;
@@ -240,6 +242,24 @@ function headersAuth() {
 
 function aguardar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function comTimeout(promessa, ms, rotulo = "operacao") {
+  let timer = null;
+
+  try {
+    return await Promise.race([
+      promessa,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Tempo esgotado em ${rotulo}.`)),
+          ms,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function fetchComRetry(url, opcoes = {}, tentativas = 2) {
@@ -584,10 +604,14 @@ async function sincronizarDadosCompartilhados({ force = false } = {}) {
   ultimaSincronizacaoCompartilhada = agora;
 
   try {
-    await Promise.all([
-      carregarRotinas(),
-      buscarLembretes({ force: true }),
-      sincronizarEventosManuais({ force: true }),
+    await Promise.allSettled([
+      comTimeout(carregarRotinas(), 8000, "sincronizar rotinas"),
+      comTimeout(buscarLembretes({ force: true }), 8000, "sincronizar lembretes"),
+      comTimeout(
+        sincronizarEventosManuais({ force: true }),
+        5000,
+        "sincronizar calendario",
+      ),
     ]);
 
     if (rotinaSelecionadaId) {
@@ -2740,13 +2764,69 @@ async function inicializarPermissaoNotificacao({ solicitar = false } = {}) {
 
   if (Notification.permission === "granted") {
     notificacoesPermitidas = true;
+    registrarPushNotifications().catch((erro) =>
+      console.warn("Nao foi possivel registrar push:", erro),
+    );
     return;
   }
 
   if (solicitar && Notification.permission !== "denied") {
     const permissao = await Notification.requestPermission();
     notificacoesPermitidas = permissao === "granted";
+
+    if (notificacoesPermitidas) {
+      registrarPushNotifications().catch((erro) =>
+        console.warn("Nao foi possivel registrar push:", erro),
+      );
+    }
   }
+}
+
+function converterChaveVapidParaUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const rawData = window.atob(base64);
+
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+async function registrarServiceWorkerDashboard() {
+  if (!("serviceWorker" in navigator)) return null;
+
+  const registro = await navigator.serviceWorker.register("/service-worker.js");
+
+  return (
+    (await Promise.race([
+      navigator.serviceWorker.ready,
+      aguardar(1500).then(() => null),
+    ])) || registro
+  );
+}
+
+async function registrarPushNotifications() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  if (!("PushManager" in window)) return;
+
+  const registro = await registrarServiceWorkerDashboard();
+  if (!registro?.pushManager) return;
+
+  let inscricao = await registro.pushManager.getSubscription();
+
+  if (!inscricao) {
+    inscricao = await registro.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: converterChaveVapidParaUint8Array(VAPID_PUBLIC_KEY),
+    });
+  }
+
+  await fetch(`${API_BASE_URL}/push/subscribe`, {
+    method: "POST",
+    headers: headersAuth(),
+    body: JSON.stringify(inscricao),
+  });
 }
 
 function prepararSomNotificacaoPorInteracao() {
@@ -8861,12 +8941,6 @@ notificacaoTarefaInput.addEventListener(
 
 alarmeTarefaInput?.addEventListener("change", atualizarTextoAlarmeTarefaModal);
 
-btnLembretes?.addEventListener("click", () => {
-  mostrarSecaoLembretes();
-  limparAtivosSidebar();
-  btnLembretes.classList.add("ativo");
-});
-
 document.querySelectorAll("input[name='tipoModeloRotina']").forEach((radio) => {
   radio.addEventListener("change", atualizarCamposModeloRotina);
 });
@@ -8876,10 +8950,6 @@ camposRotinaCheck.forEach((campo) => {
     if (rotinaTemplateAtual !== "personalizada") return;
     atualizarPreviewTemplateRotina("personalizada");
   });
-});
-
-btnConfiguracoes?.addEventListener("click", () => {
-  window.location.href = "configuracoes.html";
 });
 
 // ===============================
@@ -9603,13 +9673,22 @@ async function executarVerificacoesNotificacao() {
 
 async function inicializarDashboard() {
   await carregarTemaDashboard();
-  await registrarPushNotifications();
+  registrarServiceWorkerDashboard().catch((erro) => {
+    console.warn("Nao foi possivel registrar service worker:", erro);
+  });
   inicializarPermissaoNotificacao().catch((erro) => {
     console.warn("Nao foi possivel inicializar notificacoes:", erro);
   });
   prepararPedidoPermissaoNotificacaoPorInteracao();
-  await sincronizarEventosManuais({ force: true });
-  await Promise.all([carregarRotinas(), carregarLembretes()]);
+  await Promise.allSettled([
+    comTimeout(carregarRotinas(), 8000, "carregar rotinas"),
+    comTimeout(carregarLembretes(), 8000, "carregar lembretes"),
+    comTimeout(
+      sincronizarEventosManuais({ force: true }),
+      5000,
+      "sincronizar calendario",
+    ),
+  ]);
 
   // Roda o reset depois que a tela já carregou, sem travar o usuário
   setTimeout(() => {
