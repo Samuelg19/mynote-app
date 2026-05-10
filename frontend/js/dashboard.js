@@ -322,17 +322,7 @@ async function atualizarTarefa(id, dados) {
   });
 }
 
-async function processarAcaoInicialNotificacao() {
-  const params = new URLSearchParams(window.location.search);
-  const acao = params.get("acao");
-
-  if (acao !== "concluir-tarefa") return;
-
-  const tarefaId = params.get("tarefaId");
-  const rotinaId = params.get("rotinaId");
-
-  window.history.replaceState({}, document.title, window.location.pathname);
-
+async function concluirTarefaPelaNotificacao(tarefaId, rotinaId = "") {
   if (!tarefaId) return;
 
   try {
@@ -358,6 +348,30 @@ async function processarAcaoInicialNotificacao() {
     console.error("Erro ao concluir tarefa pela notificacao:", erro);
     mostrarAviso("erro", "Nao foi possivel concluir a tarefa pelo alarme.");
   }
+}
+
+async function processarAcaoInicialNotificacao() {
+  const params = new URLSearchParams(window.location.search);
+  const acao = params.get("acao");
+
+  if (acao !== "concluir-tarefa") return;
+
+  const tarefaId = params.get("tarefaId");
+  const rotinaId = params.get("rotinaId");
+
+  window.history.replaceState({}, document.title, window.location.pathname);
+  await concluirTarefaPelaNotificacao(tarefaId, rotinaId);
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data?.type !== "MYNOTE_CONCLUIR_TAREFA") return;
+
+    concluirTarefaPelaNotificacao(
+      event.data.tarefaId,
+      event.data.rotinaId || "",
+    );
+  });
 }
 
 function logout() {
@@ -2922,7 +2936,7 @@ function chaveApenasNotificarTarefasUsuario() {
 function obterSomNotificacaoConfigurado() {
   return (
     localStorage.getItem(chaveSomNotificacaoUsuario()) ||
-    "assets/alarme-digital.wav"
+    "assets/alarme-calmo.wav"
   );
 }
 

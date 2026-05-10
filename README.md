@@ -279,6 +279,7 @@ MyNote-app/
 |-- frontend/
 |   |-- assets/
 |   |   |-- screenshots/
+|   |   |-- alarme-calmo.wav
 |   |   |-- alarme-digital.wav
 |   |   |-- alarme-suave.wav
 |   |   |-- notificacao.wav

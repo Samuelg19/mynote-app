@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v10";
+const CACHE_NAME = "mynote-cache-v11";
 
 const FILES_TO_CACHE = [
   "/",
@@ -18,6 +18,7 @@ const FILES_TO_CACHE = [
   "/js/login.js",
   "/js/cadastro.js",
   "/assets/icon-192.png",
+  "/assets/alarme-calmo.wav",
   "/assets/alarme-digital.wav",
   "/assets/alarme-suave.wav",
   "/assets/notificacao.wav"
@@ -67,8 +68,9 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const dados = event.notification.data || {};
+  const deveConcluirTarefa = event.action === "ja-fiz" && dados.tarefaId;
   const destino =
-    event.action === "ja-fiz" && dados.tarefaId
+    deveConcluirTarefa
       ? `/dashboard.html?acao=concluir-tarefa&tarefaId=${encodeURIComponent(dados.tarefaId)}&rotinaId=${encodeURIComponent(dados.rotinaId || "")}`
       : "/dashboard.html";
 
@@ -81,6 +83,14 @@ self.addEventListener("notificationclick", (event) => {
         );
 
         if (dashboardClient) {
+          if (deveConcluirTarefa) {
+            dashboardClient.postMessage({
+              type: "MYNOTE_CONCLUIR_TAREFA",
+              tarefaId: dados.tarefaId,
+              rotinaId: dados.rotinaId || "",
+            });
+          }
+
           if ("navigate" in dashboardClient) {
             return dashboardClient.navigate(destino).then((client) => client.focus());
           }
