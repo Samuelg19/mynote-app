@@ -10,6 +10,9 @@ const lembreteRoutes = require("./routes/lembreteRoutes");
 const configuracaoRoutes = require("./routes/configuracaoRoutes");
 const eventoCalendarioRoutes = require("./routes/eventoCalendarioRoutes");
 const pushRoutes = require("./routes/pushRoutes");
+const {
+  iniciarSchedulerNotificacoes,
+} = require("./services/notificacaoScheduler");
 
 const app = express();
 
@@ -61,3 +64,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+iniciarSchedulerNotificacoes();
