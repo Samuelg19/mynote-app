@@ -48,7 +48,7 @@ exports.testePush = (req, res) => {
   const usuario_id = req.usuario.id;
 
   db.query(
-    "SELECT * FROM push_subscriptions WHERE usuario_id = ? LIMIT 1",
+    "SELECT * FROM push_subscriptions WHERE usuario_id = ?",
     [usuario_id],
     async (err, results) => {
       if (err) return res.status(500).json(err);
@@ -57,11 +57,11 @@ exports.testePush = (req, res) => {
         return res.status(404).json({ msg: "Nenhuma inscrição push encontrada." });
       }
 
-      await enviarPush(
-        results[0],
-        "MyNote",
-        "Notificação push funcionando 🚀"
-      );
+      await Promise.all(
+  results.map((inscricao) =>
+    enviarPush(inscricao, "MyNote", "Notificação push funcionando 🚀")
+  )
+);
 
       res.json({ msg: "Push de teste enviado." });
     }
