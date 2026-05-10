@@ -1171,12 +1171,18 @@ body.tema-claro .btn-excluir:hover {
 
 .card-lembretes {
   position: relative;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .menu-lembretes-topo {
-  position: absolute;
-  top: 14px;
-  right: 16px;
+  position: relative;
+  top: auto;
+  right: auto;
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 10px;
+  z-index: 5;
 }
 
 .card-rotina {

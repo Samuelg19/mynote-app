@@ -8,6 +8,7 @@ const rotinaRoutes = require("./routes/rotinaRoutes");
 const tarefaRoutes = require("./routes/tarefaRoutes");
 const lembreteRoutes = require("./routes/lembreteRoutes");
 const configuracaoRoutes = require("./routes/configuracaoRoutes");
+const eventoCalendarioRoutes = require("./routes/eventoCalendarioRoutes");
 
 const app = express();
 
@@ -18,9 +19,18 @@ const allowedOrigins = [
   "https://mynote-7w8dckqne-samuelg19s-projects.vercel.app"
 ];
 
+const allowedOriginPatterns = [
+  /^https:\/\/mynote[-a-z0-9]*\.vercel\.app$/i,
+  /^https:\/\/mynote[-a-z0-9]*-[a-z0-9-]+\.vercel\.app$/i,
+];
+
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      allowedOriginPatterns.some((pattern) => pattern.test(origin))
+    ) {
       return callback(null, true);
     }
 
@@ -42,6 +52,7 @@ app.use("/rotinas", rotinaRoutes);
 app.use("/tarefas", tarefaRoutes);
 app.use("/lembretes", lembreteRoutes);
 app.use("/configuracoes", configuracaoRoutes);
+app.use("/eventos-calendario", eventoCalendarioRoutes);
 
 const PORT = process.env.PORT || 3000;
 

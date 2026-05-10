@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v2";
+const CACHE_NAME = "mynote-cache-v3";
 
 const FILES_TO_CACHE = [
   "/",
@@ -63,7 +63,31 @@ self.addEventListener("notificationclick", (event) => {
           return dashboardClient.focus();
         }
 
-        return clients.openWindow("/dashboard.html");
+        return clients.openWindow(event.notification.data?.url || "/dashboard.html");
       }),
   );
+});
+
+self.addEventListener("push", (event) => {
+  let dados = {};
+
+  try {
+    dados = event.data ? event.data.json() : {};
+  } catch {
+    dados = { title: "MyNote", body: event.data?.text() || "" };
+  }
+
+  const title = dados.title || "MyNote";
+  const options = {
+    body: dados.body || "Voce tem um aviso no MyNote.",
+    icon: "/assets/icon-192.png",
+    badge: "/assets/icon-192.png",
+    requireInteraction: !!dados.alarme,
+    vibrate: dados.alarme ? [420, 140, 420, 140, 420] : [180, 80, 180],
+    data: {
+      url: dados.url || "/dashboard.html",
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });

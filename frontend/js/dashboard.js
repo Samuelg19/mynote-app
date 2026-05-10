@@ -221,9 +221,12 @@ let modoCalendario = "mes";
 
 aniversarioEventoInput.addEventListener("change", () => {
   if (aniversarioEventoInput.checked) {
+    tipoEventoInput.value = "permanente";
+    tipoEventoInput.disabled = true;
     horarioEventoInput.value = "";
     horarioEventoInput.disabled = true;
   } else {
+    tipoEventoInput.disabled = false;
     horarioEventoInput.disabled = false;
   }
 });
@@ -509,6 +512,8 @@ let cacheRotinas = null;
 let cacheLembretes = null;
 let eventosPorDataCalendario = new Map();
 let verificacoesNotificacaoEmExecucao = false;
+let sincronizacaoCompartilhadaEmExecucao = false;
+let ultimaSincronizacaoCompartilhada = 0;
 
 function limparAgrupamentoEventosCalendario() {
   eventosPorDataCalendario = new Map();
@@ -529,6 +534,50 @@ function invalidarCacheRotinas() {
 function invalidarCacheLembretes() {
   cacheLembretes = null;
   limparAgrupamentoEventosCalendario();
+}
+
+async function sincronizarDadosCompartilhados({ force = false } = {}) {
+  if (document.hidden || sincronizacaoCompartilhadaEmExecucao) return;
+
+  const agora = Date.now();
+  if (!force && agora - ultimaSincronizacaoCompartilhada < 45000) return;
+
+  sincronizacaoCompartilhadaEmExecucao = true;
+  ultimaSincronizacaoCompartilhada = agora;
+
+  try {
+    await Promise.all([
+      carregarRotinas(),
+      buscarLembretes({ force: true }),
+      sincronizarEventosManuais({ force: true }),
+    ]);
+
+    if (rotinaSelecionadaId) {
+      const rotinasAtualizadas = await buscarRotinas();
+      rotinaAtual =
+        rotinasAtualizadas.find(
+          (rotina) => String(rotina.id) === String(rotinaSelecionadaId),
+        ) || rotinaAtual;
+      const itemAtual = listaRotinas?.querySelector(
+        `[data-id="${rotinaSelecionadaId}"]`,
+      );
+      if (itemAtual) ativarItemSidebar(itemAtual);
+
+      invalidarCacheTarefas(rotinaSelecionadaId);
+      await carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    }
+
+    if (modoCalendario === "ano") {
+      renderizarVisaoAnual();
+    } else if (!areaCalendario?.classList.contains("hidden")) {
+      await renderizarCalendario();
+      if (dataSelecionadaCalendario) mostrarEventosDoDia(dataSelecionadaCalendario);
+    }
+  } catch (erro) {
+    console.warn("Nao foi possivel sincronizar dados compartilhados:", erro);
+  } finally {
+    sincronizacaoCompartilhadaEmExecucao = false;
+  }
 }
 
 async function buscarRotinas({ force = false } = {}) {
@@ -890,10 +939,13 @@ function abrirModalEditarEventoManual(evento) {
   tituloEventoInput.value = evento.titulo || "";
   dataEventoInput.value = evento.data || "";
   horarioEventoInput.value = evento.horario || "";
-  tipoEventoInput.value = evento.tipoEvento || "unico";
+  tipoEventoInput.value = evento.aniversario
+    ? "permanente"
+    : evento.tipoEvento || "unico";
   aniversarioEventoInput.checked = !!evento.aniversario;
 
   horarioEventoInput.disabled = !!evento.aniversario;
+  tipoEventoInput.disabled = !!evento.aniversario;
   salvarEventoCalendario.textContent = "Salvar alterações";
 
   tituloEventoInput.focus();
@@ -1113,7 +1165,8 @@ function salvarNovoEventoCalendario() {
   const data = dataEventoInput.value;
   const titulo = tituloEventoInput.value.trim();
   const horario = horarioEventoInput.value;
-  const tipoEvento = tipoEventoInput.value;
+  const aniversario = aniversarioEventoInput.checked;
+  const tipoEvento = aniversario ? "permanente" : tipoEventoInput.value;
 
   if (!data || !titulo) {
     mostrarAviso("Aviso", "Preencha a data e o título do evento.");
@@ -1121,8 +1174,6 @@ function salvarNovoEventoCalendario() {
   }
 
   let eventos = carregarEventosManuais();
-  const aniversario = aniversarioEventoInput.checked;
-
   if (eventoManualEmEdicao) {
     eventos = eventos.map((evento) => {
       if (evento.id !== eventoManualEmEdicao.id) return evento;
@@ -4832,9 +4883,23 @@ async function verificarTarefasComAntecedencia() {
           mostrarNotificacao(
             "Prazo proximo",
             `${tarefa.titulo} vence em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-            { rotina: true, tarefa: true, alarme: pref.alarme !== false },
+            { rotina: true, tarefa: true, alarme: false },
           );
           notificacoesJaEnviadas.add(chave);
+        }
+
+        if (
+          tarefa.horario &&
+          minutosRestantes <= 0 &&
+          minutosRestantes > -1 &&
+          !notificacoesJaEnviadas.has(`${chave}-hora`)
+        ) {
+          mostrarNotificacao(
+            "Agora!",
+            `${tarefa.titulo} esta acontecendo agora.`,
+            { rotina: true, tarefa: true, alarme: pref.alarme !== false },
+          );
+          notificacoesJaEnviadas.add(`${chave}-hora`);
         }
 
         return;
@@ -4855,7 +4920,7 @@ async function verificarTarefasComAntecedencia() {
         mostrarNotificacao(
           "Tarefa proxima",
           `${tarefa.titulo} comeca em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-          { rotina: true, tarefa: true, alarme: pref.alarme !== false },
+          { rotina: true, tarefa: true, alarme: false },
         );
         notificacoesJaEnviadas.add(chave);
       }
@@ -4911,9 +4976,23 @@ async function verificarLembretesComAntecedencia() {
           mostrarNotificacao(
             "Lembrete próximo",
             `${lembrete.titulo} vence em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-            { lembrete: true, alarme: pref.alarme !== false },
+            { lembrete: true, alarme: false },
           );
           notificacoesJaEnviadas.add(chave);
+        }
+
+        if (
+          lembrete.horario &&
+          minutosRestantes <= 0 &&
+          minutosRestantes > -1 &&
+          !notificacoesJaEnviadas.has(`${chave}-hora`)
+        ) {
+          mostrarNotificacao(
+            "Agora!",
+            `${lembrete.titulo} está acontecendo agora.`,
+            { lembrete: true, alarme: pref.alarme !== false },
+          );
+          notificacoesJaEnviadas.add(`${chave}-hora`);
         }
 
         return;
@@ -4937,7 +5016,7 @@ async function verificarLembretesComAntecedencia() {
         mostrarNotificacao(
           "Lembrete próximo",
           `${lembrete.titulo} começa em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-          { lembrete: true, alarme: pref.alarme !== false },
+          { lembrete: true, alarme: false },
         );
         notificacoesJaEnviadas.add(chave);
       }
@@ -5000,9 +5079,23 @@ function verificarEventosCalendarioComAntecedencia() {
           mostrarNotificacao(
             "Evento próximo",
             `${evento.titulo} começa em ${rotuloAntecedencia(freq.antecedencia).replace(" antes", "").toLowerCase()}.`,
-            { evento: true, alarme: freq.alarme !== false },
+            { evento: true, alarme: false },
           );
           notificacoesJaEnviadas.add(chave);
+        }
+
+        if (
+          ocorrencia.horario &&
+          minutosRestantes <= 0 &&
+          minutosRestantes > -1 &&
+          !notificacoesJaEnviadas.has(`${chave}-hora`)
+        ) {
+          mostrarNotificacao(
+            "Agora!",
+            `${evento.titulo} está acontecendo agora.`,
+            { evento: true, alarme: freq.alarme !== false },
+          );
+          notificacoesJaEnviadas.add(`${chave}-hora`);
         }
       });
     });
@@ -8759,6 +8852,9 @@ const horarioEventoInput = document.getElementById("horarioEventoInput");
 let dataCalendarioAtual = new Date();
 let dataSelecionadaCalendario = null;
 let eventosCalendario = [];
+let eventosManuaisCache = null;
+let eventosManuaisSincronizados = false;
+let envioEventosManuaisTimer = null;
 
 function chaveEventosCalendario() {
   return `eventosCalendario_${usuario.id}`;
@@ -8778,26 +8874,130 @@ function obterEventosDoDiaCalendario(dataISO) {
   return eventosPorDataCalendario.get(dataISO) || [];
 }
 
-function carregarEventosManuais() {
-  const eventos =
-    JSON.parse(localStorage.getItem(chaveEventosCalendario())) || [];
+function normalizarEventoManual(evento) {
+  const normalizado = { ...(evento || {}) };
+
+  if (normalizado.aniversario) {
+    normalizado.tipoEvento = "permanente";
+    normalizado.excecoes = [];
+    if (normalizado.frequencia?.repeticao) {
+      normalizado.frequencia = {
+        ...normalizado.frequencia,
+        repeticao: null,
+      };
+    }
+  }
+
+  return normalizado;
+}
+
+function filtrarEventosManuaisValidos(eventos) {
   const hoje = dataHojeISO();
+  return (Array.isArray(eventos) ? eventos : [])
+    .filter(Boolean)
+    .map(normalizarEventoManual)
+    .filter((evento) => {
+      if (evento.tipoEvento === "permanente") return true;
+      return evento.data >= hoje;
+    });
+}
 
-  const eventosValidos = eventos.filter((evento) => {
-    if (evento.tipoEvento === "permanente") return true;
+function carregarEventosManuaisLocais() {
+  try {
+    return JSON.parse(localStorage.getItem(chaveEventosCalendario())) || [];
+  } catch {
+    return [];
+  }
+}
 
-    return evento.data >= hoje;
+function mesclarEventosManuais(...listas) {
+  const mapa = new Map();
+
+  listas.flat().filter(Boolean).forEach((evento) => {
+    mapa.set(String(evento.id), evento);
   });
 
+  return filtrarEventosManuaisValidos([...mapa.values()]);
+}
+
+function carregarEventosManuais() {
+  const eventos = Array.isArray(eventosManuaisCache)
+    ? eventosManuaisCache
+    : carregarEventosManuaisLocais();
+  const eventosValidos = filtrarEventosManuaisValidos(eventos);
+
   if (eventosValidos.length !== eventos.length) {
-    salvarEventosManuais(eventosValidos);
+    salvarEventosManuais(eventosValidos, { sincronizar: false });
+  }
+
+  eventosManuaisCache = eventosValidos;
+  return eventosValidos;
+}
+
+function salvarEventosManuais(eventos, { sincronizar = true } = {}) {
+  const eventosValidos = filtrarEventosManuaisValidos(eventos);
+  eventosManuaisCache = eventosValidos;
+  localStorage.setItem(chaveEventosCalendario(), JSON.stringify(eventosValidos));
+
+  if (sincronizar) {
+    agendarEnvioEventosManuais(eventosValidos);
   }
 
   return eventosValidos;
 }
 
-function salvarEventosManuais(eventos) {
-  localStorage.setItem(chaveEventosCalendario(), JSON.stringify(eventos));
+function agendarEnvioEventosManuais(eventos) {
+  clearTimeout(envioEventosManuaisTimer);
+  envioEventosManuaisTimer = setTimeout(() => {
+    enviarEventosManuaisParaServidor(eventos).catch((erro) =>
+      console.warn("Nao foi possivel sincronizar eventos:", erro),
+    );
+  }, 350);
+}
+
+async function enviarEventosManuaisParaServidor(eventos) {
+  const resposta = await fetch(`${API_BASE_URL}/eventos-calendario`, {
+    method: "PUT",
+    headers: headersAuth(),
+    body: JSON.stringify({ eventos: filtrarEventosManuaisValidos(eventos) }),
+  });
+
+  if (!resposta.ok) {
+    throw new Error("Falha ao salvar eventos do calendario.");
+  }
+}
+
+async function sincronizarEventosManuais({ force = false } = {}) {
+  if (!force && eventosManuaisSincronizados) return carregarEventosManuais();
+
+  try {
+    const resposta = await fetch(`${API_BASE_URL}/eventos-calendario`, {
+      headers: headersAuth(),
+    });
+
+    if (!resposta.ok) throw new Error("Falha ao buscar eventos.");
+
+    const eventosServidor = filtrarEventosManuaisValidos(await resposta.json());
+    const eventosLocais = filtrarEventosManuaisValidos(
+      carregarEventosManuaisLocais(),
+    );
+    const eventos = mesclarEventosManuais(eventosLocais, eventosServidor);
+    eventosManuaisCache = eventos;
+    eventosManuaisSincronizados = true;
+    localStorage.setItem(chaveEventosCalendario(), JSON.stringify(eventos));
+
+    if (eventos.length !== eventosServidor.length) {
+      enviarEventosManuaisParaServidor(eventos).catch((erro) =>
+        console.warn("Nao foi possivel enviar eventos locais:", erro),
+      );
+    }
+
+    return eventos;
+  } catch (erro) {
+    eventosManuaisSincronizados = false;
+    console.warn("Usando eventos locais do calendario:", erro);
+    return carregarEventosManuais();
+  }
 }
 
 function formatarDataISO(data) {
@@ -9167,6 +9367,7 @@ function abrirModalEventoCalendario() {
   }
 
   tipoEventoInput.value = "unico";
+  tipoEventoInput.disabled = false;
   tituloEventoInput.value = "";
   horarioEventoInput.value = "";
   aniversarioEventoInput.checked = false;
@@ -9177,6 +9378,7 @@ function abrirModalEventoCalendario() {
 
 function fecharModalEventoCalendario() {
   modalEventoCalendario.classList.add("hidden");
+  tipoEventoInput.disabled = false;
 }
 
 function mostrarCalendarioDashboard() {
@@ -9344,6 +9546,7 @@ async function inicializarDashboard() {
     console.warn("Nao foi possivel inicializar notificacoes:", erro);
   });
   prepararPedidoPermissaoNotificacaoPorInteracao();
+  await sincronizarEventosManuais({ force: true });
   await Promise.all([carregarRotinas(), carregarLembretes()]);
 
   // Roda o reset depois que a tela já carregou, sem travar o usuário
@@ -9359,6 +9562,13 @@ async function inicializarDashboard() {
 
   setTimeout(executarVerificacoesNotificacao, 2000);
   setInterval(executarVerificacoesNotificacao, 30000);
+  setInterval(() => sincronizarDadosCompartilhados(), 60000);
+  window.addEventListener("focus", () =>
+    sincronizarDadosCompartilhados({ force: true }),
+  );
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) sincronizarDadosCompartilhados({ force: true });
+  });
 }
 
 inicializarDashboard();

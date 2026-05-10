@@ -1340,12 +1340,16 @@ body.dashboard-body:not(.tema-escuro) .dia-vazio {
   }
 
   .tabela-tarefas {
-    min-width: 680px;
+    min-width: 760px;
+    width: max-content;
   }
 
   .tabela-card,
-  #cardTabelaTarefas {
+  #cardTabelaTarefas,
+  .card-lembretes {
     overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
   }
 
   .lista-exercicios-dia {
