@@ -238,7 +238,43 @@ function headersAuth() {
   };
 }
 
-async function lerListaJson(resposta) {
+function aguardar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchComRetry(url, opcoes = {}, tentativas = 2) {
+  let ultimoErro = null;
+
+  for (let tentativa = 0; tentativa < tentativas; tentativa += 1) {
+    try {
+      const resposta = await fetch(url, opcoes);
+
+      if (resposta.ok || resposta.status < 500 || tentativa === tentativas - 1) {
+        return resposta;
+      }
+
+      ultimoErro = new Error(`Resposta ${resposta.status}`);
+    } catch (erro) {
+      ultimoErro = erro;
+      if (tentativa === tentativas - 1) throw erro;
+    }
+
+    await aguardar(500 * (tentativa + 1));
+  }
+
+  throw ultimoErro || new Error("Falha ao buscar dados.");
+}
+
+async function lerListaJson(resposta, { exigirOk = false } = {}) {
+  if (exigirOk && !resposta?.ok) {
+    const dados = resposta ? await lerRespostaJsonSegura(resposta) : {};
+    throw new Error(
+      dados.detalhe ||
+        dados.msg ||
+        `Erro ${resposta?.status || ""} ao carregar dados.`,
+    );
+  }
+
   try {
     const dados = await lerRespostaJsonSegura(resposta);
     return Array.isArray(dados) ? dados : [];
@@ -514,6 +550,8 @@ let eventosPorDataCalendario = new Map();
 let verificacoesNotificacaoEmExecucao = false;
 let sincronizacaoCompartilhadaEmExecucao = false;
 let ultimaSincronizacaoCompartilhada = 0;
+let recarregamentoRotinasPendente = null;
+let tentativasRecarregarRotinas = 0;
 
 function limparAgrupamentoEventosCalendario() {
   eventosPorDataCalendario = new Map();
@@ -585,10 +623,14 @@ async function buscarRotinas({ force = false } = {}) {
     return cacheRotinas;
   }
 
-  const resposta = await fetch(`${API_BASE_URL}/rotinas`, {
-    headers: headersAuth(),
-  });
-  cacheRotinas = await lerListaJson(resposta);
+  const resposta = await fetchComRetry(
+    `${API_BASE_URL}/rotinas`,
+    {
+      headers: headersAuth(),
+    },
+    3,
+  );
+  cacheRotinas = await lerListaJson(resposta, { exigirOk: true });
   limparAgrupamentoEventosCalendario();
   return cacheRotinas;
 }
@@ -5701,6 +5743,11 @@ function fecharModalNovaRotina() {
 async function carregarRotinas() {
   try {
     const rotinas = await buscarRotinas({ force: true });
+    tentativasRecarregarRotinas = 0;
+    if (recarregamentoRotinasPendente) {
+      clearTimeout(recarregamentoRotinasPendente);
+      recarregamentoRotinasPendente = null;
+    }
 
     listaRotinas.innerHTML = "";
 
@@ -5783,6 +5830,20 @@ async function carregarRotinas() {
     ativarDragRotinas();
   } catch (erro) {
     console.error("Erro ao carregar rotinas:", erro);
+    if (!listaRotinas.children.length) {
+      listaRotinas.innerHTML =
+        '<li class="item-lista-vazio">Carregando rotinas...</li>';
+    }
+
+    if (!recarregamentoRotinasPendente && tentativasRecarregarRotinas < 3) {
+      tentativasRecarregarRotinas += 1;
+      recarregamentoRotinasPendente = setTimeout(() => {
+        recarregamentoRotinasPendente = null;
+        carregarRotinas();
+      }, 900 * tentativasRecarregarRotinas);
+      return;
+    }
+
     mostrarAviso("erro", "Erro ao carregar rotinas.");
   }
 }

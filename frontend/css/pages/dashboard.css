@@ -213,6 +213,11 @@ body[data-fundo="marrom"] {
   margin: 0;
 }
 
+.item-lista-vazio {
+  padding: 12px;
+  color: var(--muted);
+}
+
 .item-rotina {
   display: flex;
   align-items: center;

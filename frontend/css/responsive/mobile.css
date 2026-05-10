@@ -116,6 +116,8 @@
   }
 
   body.dashboard-body[data-mobile-tela="home"] .sidebar {
+    display: flex !important;
+    flex-direction: column !important;
     position: relative !important;
     top: auto !important;
     width: 100% !important;
@@ -135,12 +137,19 @@
   }
 
   body.dashboard-body[data-mobile-tela="home"] .lista-rotinas {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px;
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 120px;
     margin: 12px 0 0;
     padding: 0 0 8px;
     overflow-y: auto;
     scrollbar-width: none;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .lista-rotinas > li {
+    flex: 0 0 auto;
   }
 
   body.dashboard-body[data-mobile-tela="home"] .lista-rotinas::-webkit-scrollbar {
@@ -161,6 +170,14 @@
   body.dashboard-body[data-mobile-tela="home"] #btnNovaRotina {
     min-height: 46px;
     border-radius: 12px;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .item-rotina {
+    display: flex !important;
+    width: 100%;
+    margin-bottom: 0;
+    opacity: 1;
+    visibility: visible;
   }
 
   body.dashboard-body[data-mobile-tela]:not([data-mobile-tela="home"]) {
