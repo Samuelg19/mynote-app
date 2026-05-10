@@ -13,7 +13,13 @@ exports.salvarInscricao = (req, res) => {
      WHERE usuario_id = ? AND endpoint = ?`,
     [usuario_id, endpoint],
     (err) => {
-      if (err) return res.status(500).json(err);
+      if (err) {
+        console.error("Erro ao remover inscrição push antiga:", err);
+        return res.status(500).json({
+          msg: "Erro ao remover inscrição antiga.",
+          erro: err.sqlMessage || err.message,
+        });
+      }
 
       db.query(
         `INSERT INTO push_subscriptions 
@@ -21,7 +27,14 @@ exports.salvarInscricao = (req, res) => {
          VALUES (?, ?, ?, ?)`,
         [usuario_id, endpoint, keys.p256dh, keys.auth],
         (err2) => {
-          if (err2) return res.status(500).json(err2);
+          if (err2) {
+            console.error("Erro ao salvar inscrição push:", err2);
+            return res.status(500).json({
+              msg: "Erro ao salvar inscrição push.",
+              erro: err2.sqlMessage || err2.message,
+            });
+          }
+
           res.json({ msg: "Inscrição push salva com sucesso." });
         },
       );
