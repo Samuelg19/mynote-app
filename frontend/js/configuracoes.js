@@ -213,7 +213,7 @@ function aplicarPadraoBackupAutomatico(config = {}) {
 function obterSomNotificacaoConfigurado() {
   return (
     localStorage.getItem(chaveSomNotificacaoUsuario()) ||
-    "assets/notificacao.wav"
+    "assets/alarme-suave.wav"
   );
 }
 

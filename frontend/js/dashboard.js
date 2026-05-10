@@ -198,6 +198,7 @@ const prioridadeLembreteInput = document.getElementById(
 const notificacaoLembreteInput = document.getElementById(
   "notificacaoLembreteInput",
 );
+const linhaAlarmeLembrete = document.getElementById("linhaAlarmeLembrete");
 const alarmeLembreteInput = document.getElementById("alarmeLembreteInput");
 const textoAlarmeLembrete = document.getElementById("textoAlarmeLembrete");
 const corpoTabelaLembretes = document.getElementById("corpoTabelaLembretes");
@@ -2921,7 +2922,7 @@ function chaveApenasNotificarTarefasUsuario() {
 function obterSomNotificacaoConfigurado() {
   return (
     localStorage.getItem(chaveSomNotificacaoUsuario()) ||
-    "assets/notificacao.wav"
+    "assets/alarme-suave.wav"
   );
 }
 
@@ -2973,6 +2974,11 @@ function deveAlarmarNotificacao(opcoes = {}) {
 
 function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaId = "", horario = "", tarefa = false } = {}) {
   const ehTarefa = tarefa && tarefaId;
+  const tag = ehTarefa
+    ? `mynote-tarefa-${tarefaId}`
+    : alarme
+      ? "mynote-alarme"
+      : undefined;
 
   return {
     body: corpo,
@@ -2980,13 +2986,13 @@ function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaI
     badge: "/assets/icon-192.png",
     actions: ehTarefa
       ? [
-          { action: "vou-fazer", title: "Vou fazer ↑↑" },
+          { action: "vou-fazer", title: "Vou fazer" },
           { action: "ja-fiz", title: "Ja fiz" },
         ]
       : undefined,
-    requireInteraction: alarme,
-    renotify: alarme,
-    tag: alarme ? "mynote-alarme-tarefa" : undefined,
+    requireInteraction: alarme || ehTarefa,
+    renotify: false,
+    tag,
     vibrate: alarme ? [420, 140, 420, 140, 420] : [180, 80, 180],
     data: {
       url: "/dashboard.html",
@@ -5058,6 +5064,7 @@ async function verificarTarefasComAntecedencia() {
 
     tarefas.forEach((tarefa) => {
       if (String(tarefa.status).toLowerCase().includes("conclu")) return;
+      if (tarefa.concluida) return;
       if (!tarefa.notificacao) return;
 
       const pref = obterPreferenciaEfetivaTarefa(tarefa);
@@ -5080,7 +5087,14 @@ async function verificarTarefasComAntecedencia() {
           mostrarNotificacao(
             "Prazo proximo",
             `${tarefa.titulo} vence em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-            { rotina: true, tarefa: true, alarme: false },
+            {
+              rotina: true,
+              tarefa: true,
+              tarefaId: tarefa.id,
+              rotinaId: tarefa.rotina_id || tarefa.rotinaId,
+              horario: tarefa.horario,
+              alarme: false,
+            },
           );
           notificacoesJaEnviadas.add(chave);
         }
@@ -5124,7 +5138,14 @@ async function verificarTarefasComAntecedencia() {
         mostrarNotificacao(
           "Tarefa proxima",
           `${tarefa.titulo} comeca em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-          { rotina: true, tarefa: true, alarme: false },
+          {
+            rotina: true,
+            tarefa: true,
+            tarefaId: tarefa.id,
+            rotinaId: tarefa.rotina_id || tarefa.rotinaId,
+            horario: tarefa.horario,
+            alarme: false,
+          },
         );
         notificacoesJaEnviadas.add(chave);
       }
@@ -8108,11 +8129,12 @@ function atualizarTextoAlarmeLembreteModal(notificacaoAtiva = null) {
   const alarmeAtivo = !!podeAlarmar && alarmeLembreteInput.checked;
 
   alarmeLembreteInput.disabled = !podeAlarmar;
+  linhaAlarmeLembrete?.classList.toggle("desativada", !podeAlarmar);
   textoAlarmeLembrete.classList.toggle("ativa", alarmeAtivo);
   textoAlarmeLembrete.textContent = alarmeAtivo
-    ? "Alarme ativado"
+    ? "Alarme do lembrete ligado"
     : podeAlarmar
-      ? "Apenas notificar"
+      ? "Apenas notificar este lembrete"
       : "Ative a notificacao para usar alarme";
 }
 
@@ -8621,7 +8643,8 @@ async function salvarNovoLembrete() {
       dia_mes: diaMesLembreteInput.value.trim(),
       prioridade: prioridadeLembreteInput.value,
       notificacao: notificacaoLembreteInput.checked,
-      alarme: alarmeLembreteInput?.checked !== false,
+      alarme:
+        notificacaoLembreteInput.checked && alarmeLembreteInput?.checked !== false,
     };
 
     await fetch(

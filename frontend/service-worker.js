@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v7";
+const CACHE_NAME = "mynote-cache-v9";
 
 const FILES_TO_CACHE = [
   "/",
@@ -18,6 +18,7 @@ const FILES_TO_CACHE = [
   "/js/login.js",
   "/js/cadastro.js",
   "/assets/icon-192.png",
+  "/assets/alarme-suave.wav",
   "/assets/notificacao.wav"
 ];
 
@@ -101,18 +102,29 @@ self.addEventListener("push", (event) => {
   }
 
   const title = dados.title || "MyNote";
-  const actions = dados.tipo === "tarefa"
-    ? [
-        { action: "vou-fazer", title: "Vou fazer ↑↑" },
-        { action: "ja-fiz", title: "Já fiz" },
-      ]
-    : [];
+  const actions =
+    dados.tipo === "tarefa"
+      ? [
+          { action: "vou-fazer", title: "Vou fazer" },
+          { action: "ja-fiz", title: "Ja fiz" },
+        ]
+      : [];
+  const tag =
+    dados.tipo === "tarefa" && dados.tarefaId
+      ? `mynote-tarefa-${dados.tarefaId}`
+      : dados.tipo === "lembrete" && dados.lembreteId
+        ? `mynote-lembrete-${dados.lembreteId}`
+        : dados.alarme
+          ? "mynote-alarme"
+          : undefined;
   const options = {
     body: dados.body || "Voce tem um aviso no MyNote.",
     icon: "/assets/icon-192.png",
     badge: "/assets/icon-192.png",
     actions,
-    requireInteraction: !!dados.alarme,
+    tag,
+    renotify: false,
+    requireInteraction: !!dados.alarme || dados.tipo === "tarefa",
     vibrate: dados.alarme ? [420, 140, 420, 140, 420] : [180, 80, 180],
     data: {
       url: dados.url || "/dashboard.html",

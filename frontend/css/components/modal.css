@@ -118,6 +118,20 @@
   cursor: not-allowed;
 }
 
+#linhaAlarmeLembrete {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+#linhaAlarmeLembrete.desativada {
+  opacity: 0.68;
+}
+
+#linhaAlarmeLembrete .switch input:disabled + .slider {
+  cursor: not-allowed;
+}
+
 .modal:not(.hidden) .modal-content {
   animation: abrirModalSuave 0.22s ease;
 }
