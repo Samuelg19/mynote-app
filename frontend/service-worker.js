@@ -1,7 +1,9 @@
-const CACHE_NAME = "mynote-cache-v11";
+const CACHE_NAME = "mynote-cache-v12";
 
 const FILES_TO_CACHE = [
   "/",
+  "/manifest.json",
+  "/apple-touch-icon.png",
   "/index.html",
   "/cadastro.html",
   "/dashboard.html",
@@ -18,6 +20,8 @@ const FILES_TO_CACHE = [
   "/js/login.js",
   "/js/cadastro.js",
   "/assets/icon-192.png",
+  "/assets/icon-512.png",
+  "/assets/favicon.png",
   "/assets/alarme-calmo.wav",
   "/assets/alarme-digital.wav",
   "/assets/alarme-suave.wav",
