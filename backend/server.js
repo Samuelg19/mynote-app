@@ -19,6 +19,12 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5500",
   "http://127.0.0.1:5500",
+
+  "http://localhost",
+  "https://localhost",
+  "capacitor://localhost",
+  "ionic://localhost",
+
   "https://mynote-app-six.vercel.app",
   "https://mynote-7w8dckqne-samuelg19s-projects.vercel.app"
 ];
