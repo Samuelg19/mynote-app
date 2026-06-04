@@ -6,6 +6,15 @@ const CALORIAS_MAXIMAS = 5000;
 const API_BASE_URL = "https://mynote-app-production-cb61.up.railway.app";
 const VAPID_PUBLIC_KEY =
   "BMK8iAQvIYfGlMnVnz10kC7CjDCt-r8zHFIfAFgesUmjAfbRKd0PkEARkbwAy2-sFsT42xCedVkoVGsjGGENbGg";
+const APP_NATIVO_CAPACITOR =
+  !!window.Capacitor?.isNativePlatform?.() ||
+  window.location.protocol === "capacitor:" ||
+  window.location.origin === "https://localhost";
+
+document.body?.classList.toggle("app-nativo-capacitor", APP_NATIVO_CAPACITOR);
+
+let sessaoExpiradaTratada = false;
+let timerRedirecionamentoSessaoExpirada = null;
 
 if (!usuario || !token) {
   window.location.href = LOGIN_PAGE;
@@ -243,6 +252,47 @@ function headersAuth() {
   };
 }
 
+function encerrarSessaoExpirada() {
+  if (sessaoExpiradaTratada) return;
+
+  sessaoExpiradaTratada = true;
+  const mensagemSessaoExpirada =
+    "Sua sessao expirou. Voce sera levado para o login para entrar novamente.";
+
+  try {
+    mostrarAviso("aviso", mensagemSessaoExpirada, redirecionarParaLoginExpirado);
+    tituloModalAviso.textContent = "Sessao expirada";
+    okModalAviso.textContent = "Entrar novamente";
+
+    timerRedirecionamentoSessaoExpirada = window.setTimeout(
+      redirecionarParaLoginExpirado,
+      4500,
+    );
+  } catch {
+    redirecionarParaLoginExpirado();
+  }
+}
+
+function redirecionarParaLoginExpirado() {
+  if (timerRedirecionamentoSessaoExpirada) {
+    clearTimeout(timerRedirecionamentoSessaoExpirada);
+    timerRedirecionamentoSessaoExpirada = null;
+  }
+
+  localStorage.removeItem("usuarioLogado");
+  localStorage.removeItem("token");
+  window.location.href = LOGIN_PAGE;
+}
+
+function validarRespostaAutenticada(resposta) {
+  if (resposta?.status === 401 || resposta?.status === 403) {
+    encerrarSessaoExpirada();
+    throw new Error("Sessao expirada.");
+  }
+
+  return resposta;
+}
+
 function aguardar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -271,6 +321,7 @@ async function fetchComRetry(url, opcoes = {}, tentativas = 2) {
   for (let tentativa = 0; tentativa < tentativas; tentativa += 1) {
     try {
       const resposta = await fetch(url, opcoes);
+      validarRespostaAutenticada(resposta);
 
       if (resposta.ok || resposta.status < 500 || tentativa === tentativas - 1) {
         return resposta;
@@ -289,6 +340,8 @@ async function fetchComRetry(url, opcoes = {}, tentativas = 2) {
 }
 
 async function lerListaJson(resposta, { exigirOk = false } = {}) {
+  validarRespostaAutenticada(resposta);
+
   if (exigirOk && !resposta?.ok) {
     const dados = resposta ? await lerRespostaJsonSegura(resposta) : {};
     throw new Error(
@@ -307,6 +360,8 @@ async function lerListaJson(resposta, { exigirOk = false } = {}) {
 }
 
 async function lerRespostaJsonSegura(resposta) {
+  validarRespostaAutenticada(resposta);
+
   try {
     return await resposta.json();
   } catch {
@@ -315,11 +370,13 @@ async function lerRespostaJsonSegura(resposta) {
 }
 
 async function atualizarTarefa(id, dados) {
-  return fetch(`${API_BASE_URL}/tarefas/${id}`, {
+  const resposta = await fetch(`${API_BASE_URL}/tarefas/${id}`, {
     method: "PUT",
     headers: headersAuth(),
     body: JSON.stringify(dados),
   });
+
+  return validarRespostaAutenticada(resposta);
 }
 
 async function concluirTarefaPelaNotificacao(tarefaId, rotinaId = "") {
@@ -972,6 +1029,38 @@ function renderizarSemanal(tarefas) {
   invalidarCacheTarefas(rotinaSelecionadaId);
 });
 
+      btnNotificacao?.addEventListener("click", async (event) => {
+        event.stopPropagation();
+
+        const novaNotificacao = !tarefa.notificacao;
+
+        try {
+          const resposta = await atualizarTarefa(tarefa.id, {
+            concluida: tarefa.concluida,
+            status: tarefa.status,
+            notificacao: novaNotificacao,
+          });
+
+          if (!resposta.ok) {
+            mostrarAviso("erro", "Nao foi possivel alterar a notificacao.");
+            return;
+          }
+
+          tarefa.notificacao = novaNotificacao;
+          btnNotificacao.classList.toggle("ativa", novaNotificacao);
+          btnNotificacao.classList.toggle("desativada", !novaNotificacao);
+          btnNotificacao.textContent = novaNotificacao ? "\uD83D\uDD14" : "\uD83D\uDD15";
+          btnNotificacao.title = novaNotificacao
+            ? "Desativar notificacao"
+            : "Ativar notificacao";
+
+          invalidarCacheTarefas(rotinaSelecionadaId);
+        } catch (erro) {
+          console.error("Erro ao alterar notificacao semanal:", erro);
+          mostrarAviso("erro", "Nao foi possivel alterar a notificacao.");
+        }
+      });
+
       btnEditar?.addEventListener("click", (event) => {
         event.stopPropagation();
         abrirModalEditarCampo(
@@ -1368,6 +1457,10 @@ function fecharModalEditarAlimentacaoFunc() {
 function fecharModalAvisoFunc() {
   modalAviso.classList.add("hidden");
   restaurarAcoesModalAviso();
+
+  if (sessaoExpiradaTratada) {
+    redirecionarParaLoginExpirado();
+  }
 }
 
 async function salvarEdicaoAlimentacao() {
@@ -1821,6 +1914,24 @@ if (consultaMobileDashboard.addEventListener) {
 } else {
   consultaMobileDashboard.addListener?.(sincronizarTelaMobileDashboard);
 }
+
+function atualizarRolagemBotaoSilenciarRotina() {
+  if (!APP_NATIVO_CAPACITOR || !tabelaCard) return;
+
+  const rolagemTabela = Math.max(
+    tabelaCard.scrollLeft || 0,
+    tabelaTarefas?.scrollLeft || 0,
+  );
+
+  tabelaCard.style.setProperty("--rolagem-tabela-x", `${rolagemTabela}px`);
+}
+
+tabelaCard?.addEventListener("scroll", atualizarRolagemBotaoSilenciarRotina, {
+  passive: true,
+});
+tabelaTarefas?.addEventListener("scroll", atualizarRolagemBotaoSilenciarRotina, {
+  passive: true,
+});
 
 //Classes visuais
 function obterClasseStatus(status) {
@@ -8513,7 +8624,7 @@ async function carregarLembretes() {
     if (!lembretes.length) {
       corpoTabelaLembretes.innerHTML = `
         <tr>
-          <td colspan="8">Nenhum lembrete cadastrado.</td>
+          <td colspan="7">Nenhum lembrete cadastrado.</td>
         </tr>
       `;
       return;
