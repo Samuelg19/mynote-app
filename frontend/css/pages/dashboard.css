@@ -4987,22 +4987,28 @@ body.dashboard-body .grade-frequencia button.ativo {
 /* Lembretes: menu global junto do cabecalho de acoes no site. */
 .cabecalho-acoes-lembretes {
   position: relative;
-  text-align: right;
+  text-align: center;
   vertical-align: middle;
   white-space: nowrap;
   overflow: visible;
+  padding-right: 62px !important;
 }
 
-.cabecalho-acoes-lembretes > span,
-.cabecalho-acoes-lembretes .menu-lembretes-topo {
+.cabecalho-acoes-lembretes > span {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
 }
 
 .cabecalho-acoes-lembretes .menu-lembretes-topo {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
   justify-content: flex-end;
-  margin: 0 0 0 8px;
+  margin: 0;
   z-index: 30;
 }
 
