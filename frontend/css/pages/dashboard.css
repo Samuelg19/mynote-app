@@ -4983,3 +4983,42 @@ body.dashboard-body .grade-frequencia button.ativo {
   color: var(--freq-grid-active-text);
   font-weight: 800;
 }
+
+/* Lembretes: menu global junto do cabecalho de acoes no site. */
+.cabecalho-acoes-lembretes {
+  position: relative;
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.cabecalho-acoes-lembretes > span,
+.cabecalho-acoes-lembretes .menu-lembretes-topo {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.cabecalho-acoes-lembretes .menu-lembretes-topo {
+  justify-content: flex-end;
+  margin: 0 0 0 8px;
+  z-index: 30;
+}
+
+.cabecalho-acoes-lembretes .btn-menu-rotina {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.cabecalho-acoes-lembretes #opcoesLembretes {
+  right: 0;
+  top: 40px;
+  text-transform: none;
+  letter-spacing: 0;
+}

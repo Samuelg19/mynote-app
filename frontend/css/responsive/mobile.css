@@ -292,3 +292,91 @@
     transition: none !important;
   }
 }
+
+@media (max-width: 900px) {
+  body.dashboard-body.app-nativo-capacitor #cardTabelaTarefas {
+    --rolagem-tabela-x: 0px;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    padding-top: 54px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .tabela-tarefas {
+    display: table !important;
+    width: max-content;
+    min-width: max(760px, 100%);
+    overflow: visible !important;
+    white-space: nowrap;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .tabela-tarefas
+    :is(th, td) {
+    min-width: 108px;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .tabela-tarefas
+    :is(th:first-child, td:first-child) {
+    min-width: 180px;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .tabela-tarefas
+    :is(th:last-child, td:last-child) {
+    min-width: 92px;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .tabela-tarefas
+    td:last-child {
+    display: table-cell !important;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .tabela-tarefas
+    td[colspan] {
+    width: 100%;
+    min-width: 760px;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .btn-silenciar-rotina {
+    top: 8px;
+    right: 12px;
+    transform: translateX(calc(-1 * var(--rolagem-tabela-x, 0px)));
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    #cardTabelaTarefas
+    .btn-silenciar-rotina:hover {
+    transform: translateX(calc(-1 * var(--rolagem-tabela-x, 0px))) scale(1.05);
+  }
+
+  body.dashboard-body.app-nativo-capacitor[data-mobile-tela="lembretes"]
+    .menu-lembretes-topo {
+    position: fixed;
+    top: calc(58px + env(safe-area-inset-top));
+    right: 14px;
+    z-index: 901;
+    margin: 0;
+  }
+
+  body.dashboard-body.app-nativo-capacitor[data-mobile-tela="lembretes"]
+    .menu-lembretes-topo
+    #opcoesLembretes {
+    right: 0;
+    top: 42px;
+  }
+}

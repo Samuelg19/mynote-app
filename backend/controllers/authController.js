@@ -12,7 +12,7 @@ function gerarTokenUsuario(user) {
       email: user.email,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" },
+    { expiresIn: "30d" },
   );
 }
 

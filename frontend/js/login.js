@@ -49,6 +49,13 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+const mensagemLoginPendente = sessionStorage.getItem("mynote_mensagem_login");
+
+if (mensagemLoginPendente) {
+  sessionStorage.removeItem("mynote_mensagem_login");
+  mostrarModalLoginErro(mensagemLoginPendente);
+}
+
 const emailSalvo = localStorage.getItem("emailLembrado");
 
 if (emailSalvo) {

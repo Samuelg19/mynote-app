@@ -238,26 +238,6 @@
           </button>
 
           <div class="card card-lembretes">
-            <div class="menu-lembretes-topo">
-              <button
-                id="btnMenuLembretes"
-                class="btn-menu-rotina"
-                type="button"
-              >
-                ⋯
-              </button>
-
-              <div id="opcoesLembretes" class="opcoes-rotina hidden">
-                <button id="btnLimparLembretesConcluidos" type="button">
-                  🗑️ Excluir concluídos
-                </button>
-
-                <button id="btnExcluirTodosLembretes" type="button">
-                  ⚠️ Excluir todos
-                </button>
-              </div>
-            </div>
-
             <table class="tabela-tarefas">
               <thead>
                 <tr>
@@ -267,7 +247,29 @@
                   <th>Prioridade</th>
                   <th>Status</th>
                   <th>Notificação</th>
-                  <th>Ações</th>
+                  <th class="cabecalho-acoes-lembretes">
+                    <span>Ações</span>
+                    <div class="menu-lembretes-topo">
+                      <button
+                        id="btnMenuLembretes"
+                        class="btn-menu-rotina"
+                        type="button"
+                        aria-label="Opções dos lembretes"
+                      >
+                        ⋯
+                      </button>
+
+                      <div id="opcoesLembretes" class="opcoes-rotina hidden">
+                        <button id="btnLimparLembretesConcluidos" type="button">
+                          🗑️ Excluir concluídos
+                        </button>
+
+                        <button id="btnExcluirTodosLembretes" type="button">
+                          ⚠️ Excluir todos
+                        </button>
+                      </div>
+                    </div>
+                  </th>
                 </tr>
               </thead>
 
