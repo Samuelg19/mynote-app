@@ -442,10 +442,10 @@ exports.redefinirSenha = (req, res) => {
 
 exports.googleLogin = async (req, res) => {
   try {
-    const { credential } = req.body;
+    const credential = req.body.credential || req.body.id_token || req.body.token;
 
     if (!credential) {
-      return res.status(400).json({ msg: "Credential do Google n�o recebida." });
+      return res.status(400).json({ msg: "Token do Google não recebido." });
     }
 
     if (!process.env.GOOGLE_CLIENT_ID) {
