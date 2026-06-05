@@ -298,7 +298,7 @@
     --rolagem-tabela-x: 0px;
     overflow-x: auto !important;
     overflow-y: visible !important;
-    padding-top: 54px;
+    padding-top: 8px;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -350,33 +350,103 @@
     min-width: 760px;
   }
 
-  body.dashboard-body.app-nativo-capacitor
-    #cardTabelaTarefas
-    .btn-silenciar-rotina {
-    top: 8px;
-    right: 12px;
-    transform: translateX(calc(-1 * var(--rolagem-tabela-x, 0px)));
+  body.dashboard-body.app-nativo-capacitor .menu-rotina {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
   }
 
   body.dashboard-body.app-nativo-capacitor
-    #cardTabelaTarefas
-    .btn-silenciar-rotina:hover {
-    transform: translateX(calc(-1 * var(--rolagem-tabela-x, 0px))) scale(1.05);
-  }
-
-  body.dashboard-body.app-nativo-capacitor[data-mobile-tela="lembretes"]
-    .menu-lembretes-topo {
-    position: fixed;
-    top: calc(58px + env(safe-area-inset-top));
-    right: 14px;
-    z-index: 901;
+    .btn-silenciar-rotina.btn-silenciar-rotina-menu {
+    position: static !important;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
     margin: 0;
+    border-radius: 12px;
+    background: var(--button-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    font-size: 19px;
+    transform: none;
   }
 
-  body.dashboard-body.app-nativo-capacitor[data-mobile-tela="lembretes"]
-    .menu-lembretes-topo
+  body.dashboard-body.app-nativo-capacitor
+    .btn-silenciar-rotina.btn-silenciar-rotina-menu:hover {
+    transform: scale(1.05);
+  }
+
+  body.dashboard-body.app-nativo-capacitor .card-lembretes {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    .card-lembretes
+    .tabela-tarefas {
+    display: table !important;
+    width: max-content;
+    min-width: max(760px, 100%);
+    overflow: visible !important;
+    white-space: nowrap;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    .card-lembretes
+    .cabecalho-acoes-lembretes {
+    min-width: 128px;
+    padding-right: 14px !important;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    .acoes-topo-lembretes-app {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 8px 0 16px;
+    padding-right: 58px;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    .acoes-topo-lembretes-app
+    .menu-lembretes-topo.menu-lembretes-overlay-app {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: none;
+    z-index: 42;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body.dashboard-body.app-nativo-capacitor
+    .acoes-topo-lembretes-app
+    .menu-lembretes-topo.menu-lembretes-overlay-app
     #opcoesLembretes {
     right: 0;
     top: 42px;
+  }
+
+  body.dashboard-body.app-nativo-capacitor[data-mobile-tela="lembretes"]
+    #btnNovoLembrete {
+    width: auto !important;
+    min-width: 0;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px !important;
+    margin: 0;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    white-space: nowrap;
   }
 }

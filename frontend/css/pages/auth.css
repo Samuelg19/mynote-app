@@ -13,12 +13,12 @@
 .login-page {
   width: 100%;
   max-width: 480px;
-  padding: 24px;
+  padding: 18px 24px;
   text-align: center;
 }
 
 .login-header {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .logo-circle {
@@ -54,7 +54,7 @@
   background: #f8f8f8;
   border: 1px solid #ebd7c7;
   border-radius: 20px;
-  padding: 28px;
+  padding: 24px 22px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   text-align: left;
 }
@@ -62,32 +62,68 @@
 .login-card form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
-.g_id_signin {
-  width: 100%;
-  min-height: 44px;
+.login-quick-access {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin: 0 0 4px;
+}
+
+.login-quick-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #8a97aa;
+  font-size: 0.92rem;
+  text-align: center;
+}
+
+.login-quick-divider::before,
+.login-quick-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #d7dce3;
+}
+
+.login-social-icons {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  box-sizing: border-box;
-  padding-inline: 4px;
-  margin-bottom: 20px;
-  overflow: visible;
+  gap: 24px;
 }
 
-.g_id_signin > div {
-  width: 100% !important;
-  max-width: 348px;
-  min-width: 0 !important;
-  overflow: visible;
+.login-social-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
 }
 
-.g_id_signin iframe {
-  width: 100% !important;
-  max-width: 348px !important;
-  min-width: 0 !important;
+.login-social-btn img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
   display: block;
+}
+
+.login-social-btn:hover {
+  background: #eef1f5;
+  transform: translateY(-1px);
+}
+
+.login-social-btn:focus-visible {
+  outline: 3px solid rgba(249, 115, 22, 0.32);
+  outline-offset: 3px;
 }
 
 .login-card label {
@@ -208,6 +244,13 @@
   color: #f97316;
   font-size: 1.5rem;
   font-weight: 800;
+}
+
+.login-success-card::before {
+  content: "OK";
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.88rem;
 }
 
 .login-error-card h2 {
@@ -467,6 +510,19 @@
   flex-direction: column;
   gap: 10px;
   margin-bottom: 18px;
+}
+
+.cadastro-body .btn-social {
+  min-height: 46px;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.cadastro-body .social-icon-img.apple {
+  width: 24px;
+  height: 24px;
+  transform: scale(1.12);
 }
 
 .divisor-cadastro {

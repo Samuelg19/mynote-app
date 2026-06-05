@@ -7,8 +7,54 @@ const modalLoginErro = document.getElementById("modalLoginErro");
 const modalLoginErroMensagem = document.getElementById("modalLoginErroMensagem");
 const fecharModalLoginErro = document.getElementById("fecharModalLoginErro");
 const okModalLoginErro = document.getElementById("okModalLoginErro");
+const modalLoginSucesso = document.getElementById("modalLoginSucesso");
+const okModalLoginSucesso = document.getElementById("okModalLoginSucesso");
+const btnGoogleLogin = document.getElementById("btnGoogleLogin");
+const btnAppleLogin = document.getElementById("btnAppleLogin");
 const API_URL = "https://mynote-app-production-cb61.up.railway.app";
+const GOOGLE_WEB_CLIENT_ID =
+  "889270972410-j0gvc2qd8ls2ssrkig8187kf95rdnthb.apps.googleusercontent.com";
 let focoAntesDoModalLoginErro = null;
+let loginConfirmado = false;
+let socialLoginGoogleInicializado = null;
+
+function ehAppNativoCapacitor() {
+  return Boolean(window.Capacitor?.isNativePlatform?.());
+}
+
+function obterSocialLoginPlugin() {
+  return window.Capacitor?.Plugins?.SocialLogin;
+}
+
+async function inicializarSocialLoginGoogle() {
+  const SocialLogin = obterSocialLoginPlugin();
+
+  if (!SocialLogin) {
+    throw new Error("Plugin SocialLogin nao encontrado no app.");
+  }
+
+  if (!socialLoginGoogleInicializado) {
+    socialLoginGoogleInicializado = SocialLogin.initialize({
+      google: {
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        mode: "online",
+      },
+    });
+  }
+
+  await socialLoginGoogleInicializado;
+  return SocialLogin;
+}
+
+function extrairIdTokenGoogle(login) {
+  return (
+    login?.result?.idToken ||
+    login?.result?.id_token ||
+    login?.idToken ||
+    login?.id_token ||
+    null
+  );
+}
 
 function esconderModalLoginErro() {
   if (!modalLoginErro) return;
@@ -34,8 +80,35 @@ function mostrarModalLoginErro(mensagem) {
   okModalLoginErro?.focus();
 }
 
+function irParaDashboard() {
+  window.location.href = "dashboard.html";
+}
+
+function mostrarModalLoginSucesso() {
+  if (!modalLoginSucesso) {
+    irParaDashboard();
+    return;
+  }
+
+  loginConfirmado = true;
+  modalLoginSucesso.classList.remove("hidden");
+  okModalLoginSucesso?.focus();
+}
+
+function confirmarLoginSucesso() {
+  if (!loginConfirmado) return;
+  irParaDashboard();
+}
+
 fecharModalLoginErro?.addEventListener("click", esconderModalLoginErro);
 okModalLoginErro?.addEventListener("click", esconderModalLoginErro);
+okModalLoginSucesso?.addEventListener("click", confirmarLoginSucesso);
+
+modalLoginSucesso?.addEventListener("click", (event) => {
+  if (event.target === modalLoginSucesso) {
+    confirmarLoginSucesso();
+  }
+});
 
 modalLoginErro?.addEventListener("click", (event) => {
   if (event.target === modalLoginErro) {
@@ -47,6 +120,31 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !modalLoginErro?.classList.contains("hidden")) {
     esconderModalLoginErro();
   }
+
+  if (
+    event.key === "Escape" &&
+    !modalLoginSucesso?.classList.contains("hidden")
+  ) {
+    confirmarLoginSucesso();
+  }
+});
+
+btnAppleLogin?.addEventListener("click", () => {
+  mostrarModalLoginErro("Login com Apple ainda nao esta disponivel.");
+});
+
+btnGoogleLogin?.addEventListener("click", async () => {
+  if (ehAppNativoCapacitor()) {
+    await loginComGoogleNativo();
+    return;
+  }
+
+  if (!window.google?.accounts?.id) {
+    mostrarModalLoginErro("Login com Google ainda esta carregando.");
+    return;
+  }
+
+  window.google.accounts.id.prompt();
 });
 
 const mensagemLoginPendente = sessionStorage.getItem("mynote_mensagem_login");
@@ -77,6 +175,63 @@ async function sincronizarPreferenciasDaConta(token) {
     MyNotePrefs.saveLocal(configuracoes);
   } catch (erro) {
     console.warn("Nao foi possivel sincronizar preferencias no login:", erro);
+  }
+}
+
+async function autenticarComGoogleNoBackend(credential) {
+  const resposta = await fetch(`${API_URL}/auth/google`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ credential }),
+  });
+
+  const dados = await resposta.json();
+  const usuario = dados.user || dados.usuario;
+
+  if (!resposta.ok || !usuario || !dados.token) {
+    mostrarModalLoginErro(dados.msg || "Erro ao fazer login com Google.");
+    return;
+  }
+
+  localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+  localStorage.setItem("token", dados.token);
+
+  if (String(dados.msg || "").toLowerCase().includes("criado")) {
+    localStorage.setItem(`mynote_onboarding_pendente_${usuario.id}`, "true");
+    localStorage.removeItem(`mynote_onboarding_concluido_${usuario.id}`);
+  }
+
+  await sincronizarPreferenciasDaConta(dados.token);
+  mostrarModalLoginSucesso();
+}
+
+async function loginComGoogleNativo() {
+  try {
+    const SocialLogin = await inicializarSocialLoginGoogle();
+    const login = await SocialLogin.login({
+      provider: "google",
+      options: {
+        style: "bottom",
+        filterByAuthorizedAccounts: false,
+      },
+    });
+
+    const idToken = extrairIdTokenGoogle(login);
+
+    if (!idToken) {
+      console.error("Resposta Google sem idToken:", login);
+      mostrarModalLoginErro("O Google nao retornou o token de login.");
+      return;
+    }
+
+    await autenticarComGoogleNoBackend(idToken);
+  } catch (erro) {
+    if (erro?.code === "USER_CANCELLED") return;
+
+    console.error("Erro no login nativo com Google:", erro);
+    mostrarModalLoginErro("Nao foi possivel fazer login com Google no app.");
   }
 }
 
@@ -112,8 +267,7 @@ form.addEventListener("submit", async (event) => {
       localStorage.removeItem("emailLembrado");
     }
 
-    alert(MyNotePrefs.t("Login realizado com sucesso!"));
-    window.location.href = "dashboard.html";
+    mostrarModalLoginSucesso();
   } catch (erro) {
     console.error("Erro no login:", erro);
     mostrarModalLoginErro("Nao foi possivel conectar ao servidor.");
@@ -127,35 +281,11 @@ async function loginComGoogle(response) {
       return;
     }
 
-    const resposta = await fetch(`${API_URL}/auth/google`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ credential: response.credential })
-});
-
-    const dados = await resposta.json();
-    const usuario = dados.user || dados.usuario;
-
-    if (!resposta.ok || !usuario || !dados.token) {
-      mostrarModalLoginErro(dados.msg || "Erro ao fazer login com Google.");
-      return;
-    }
-
-    localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
-    localStorage.setItem("token", dados.token);
-
-    if (String(dados.msg || "").toLowerCase().includes("criado")) {
-      localStorage.setItem(`mynote_onboarding_pendente_${usuario.id}`, "true");
-      localStorage.removeItem(`mynote_onboarding_concluido_${usuario.id}`);
-    }
-
-    await sincronizarPreferenciasDaConta(dados.token);
-
-    window.location.href = "dashboard.html";
+    await autenticarComGoogleNoBackend(response.credential);
   } catch (erro) {
     console.error("Erro no login com Google:", erro);
     mostrarModalLoginErro("Nao foi possivel fazer login com Google.");
   }
 }
+
+window.loginComGoogle = loginComGoogle;

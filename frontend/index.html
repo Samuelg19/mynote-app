@@ -34,16 +34,34 @@
             data-auto_prompt="false"
           ></div>
 
-          <div
-            class="g_id_signin"
-            data-type="standard"
-            data-size="large"
-            data-theme="outline"
-            data-text="continue_with"
-            data-shape="rectangular"
-            data-logo_alignment="left"
-            data-width="348"
-          ></div>
+          <div class="login-quick-access" aria-label="Acesso rapido">
+            <div class="login-quick-divider">
+              <span>Acesso rapido com</span>
+            </div>
+
+            <div class="login-social-icons">
+              <button
+                id="btnGoogleLogin"
+                class="login-social-btn"
+                type="button"
+                aria-label="Entrar com Google"
+                title="Entrar com Google"
+              >
+                <img src="assets/Google.png" alt="" />
+              </button>
+
+              <button
+                id="btnAppleLogin"
+                class="login-social-btn"
+                type="button"
+                aria-label="Entrar com Apple"
+                title="Entrar com Apple"
+              >
+                <img src="assets/Apple.png" alt="" />
+              </button>
+            </div>
+          </div>
+
           <label for="email">Email</label>
           <input type="email" id="email" placeholder="seu@email.com" required />
 
@@ -93,6 +111,21 @@
         <h2 id="modalLoginErroTitulo">Erro ao fazer login</h2>
         <p id="modalLoginErroMensagem">Verifique seus dados e tente novamente.</p>
         <button id="okModalLoginErro" class="login-error-ok" type="button">OK</button>
+      </div>
+    </div>
+
+    <div
+      id="modalLoginSucesso"
+      class="login-error-modal login-success-modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalLoginSucessoTitulo"
+      aria-describedby="modalLoginSucessoMensagem"
+    >
+      <div class="login-error-card login-success-card">
+        <h2 id="modalLoginSucessoTitulo">Login realizado</h2>
+        <p id="modalLoginSucessoMensagem">Login realizado com sucesso!</p>
+        <button id="okModalLoginSucesso" class="login-error-ok" type="button">OK</button>
       </div>
     </div>
     <script src="js/app-preferences.js"></script>

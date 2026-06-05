@@ -195,9 +195,56 @@
                 </div>
 
                 <div class="form-group audio-notificacao-box">
-                  <label for="somNotificacaoArquivo"
-                    >Áudio do alarme/notificação</label
+                  <label id="labelSomNotificacaoArquivo" for="somNotificacaoArquivo"
+                    >Áudio do alarme</label
                   >
+                  <div
+                    id="opcoesSomDispositivo"
+                    class="opcoes-som-dispositivo hidden"
+                    role="radiogroup"
+                    aria-label="Áudio alarme/notificação"
+                  >
+                    <label class="opcao-som-dispositivo">
+                      <input
+                        type="radio"
+                        name="modoSomDispositivo"
+                        value="device-default"
+                      />
+                      <span>
+                        <strong>Padrão do dispositivo</strong>
+                        <small>Usa os sons definidos no Android para alarme e notificação.</small>
+                      </span>
+                    </label>
+                    <label class="opcao-som-dispositivo">
+                      <input
+                        type="radio"
+                        name="modoSomDispositivo"
+                        value="mynotes"
+                      />
+                      <span>
+                        <strong>Som MyNotes</strong>
+                        <small>Usa os áudios próprios do app.</small>
+                      </span>
+                    </label>
+                    <label class="opcao-som-dispositivo">
+                      <input
+                        type="radio"
+                        name="modoSomDispositivo"
+                        value="device-picked"
+                      />
+                      <span>
+                        <strong>Escolher som do dispositivo</strong>
+                        <small id="nomeSomDispositivo">Nenhum som escolhido.</small>
+                      </span>
+                    </label>
+                    <button
+                      id="btnEscolherSomDispositivo"
+                      class="btn btn-secondary btn-escolher-som-dispositivo"
+                      type="button"
+                    >
+                      Escolher som do dispositivo
+                    </button>
+                  </div>
                   <input
                     id="somNotificacaoArquivo"
                     type="file"

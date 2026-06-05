@@ -1,4 +1,4 @@
-//Usuário e proteção de login
+﻿//Usuário e proteção de login
 const LOGIN_PAGE = "index.html";
 const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 const token = localStorage.getItem("token");
@@ -212,6 +212,8 @@ const alarmeLembreteInput = document.getElementById("alarmeLembreteInput");
 const textoAlarmeLembrete = document.getElementById("textoAlarmeLembrete");
 const corpoTabelaLembretes = document.getElementById("corpoTabelaLembretes");
 const btnMenuLembretes = document.getElementById("btnMenuLembretes");
+const menuLembretesTopo = document.querySelector(".menu-lembretes-topo");
+const cardLembretes = document.querySelector(".card-lembretes");
 const opcoesLembretes = document.getElementById("opcoesLembretes");
 const btnLimparLembretesConcluidos = document.getElementById(
   "btnLimparLembretesConcluidos",
@@ -1731,6 +1733,7 @@ function atualizarBotaoSilenciarRotina() {
     return;
   }
 
+  posicionarBotaoSilenciarRotina();
   btnSilenciarRotina.classList.remove("hidden");
 
   if (rotinaEstaSilenciada(rotinaSelecionadaId)) {
@@ -1739,6 +1742,29 @@ function atualizarBotaoSilenciarRotina() {
   } else {
     btnSilenciarRotina.classList.remove("ativo");
     btnSilenciarRotina.title = "Silenciar notificações da rotina";
+  }
+}
+
+function posicionarBotaoSilenciarRotina() {
+  if (!btnSilenciarRotina || !tabelaCard) return;
+
+  if (!APP_NATIVO_CAPACITOR) {
+    btnSilenciarRotina.classList.remove("btn-silenciar-rotina-menu");
+
+    if (btnSilenciarRotina.parentElement !== tabelaCard) {
+      tabelaCard.insertBefore(btnSilenciarRotina, tabelaCard.firstChild);
+    }
+
+    return;
+  }
+
+  const menuRotina = btnMenuRotina?.closest(".menu-rotina");
+  if (!menuRotina || !btnMenuRotina) return;
+
+  btnSilenciarRotina.classList.add("btn-silenciar-rotina-menu");
+
+  if (btnSilenciarRotina.parentElement !== menuRotina) {
+    menuRotina.insertBefore(btnSilenciarRotina, btnMenuRotina);
   }
 }
 
@@ -1932,6 +1958,35 @@ tabelaCard?.addEventListener("scroll", atualizarRolagemBotaoSilenciarRotina, {
 tabelaTarefas?.addEventListener("scroll", atualizarRolagemBotaoSilenciarRotina, {
   passive: true,
 });
+
+function posicionarMenuLembretesNoApp() {
+  if (
+    !APP_NATIVO_CAPACITOR ||
+    !secaoLembretes ||
+    !btnNovoLembrete ||
+    !menuLembretesTopo
+  ) {
+    return;
+  }
+
+  let acoesTopoLembretes = secaoLembretes.querySelector(
+    ".acoes-topo-lembretes-app",
+  );
+
+  if (!acoesTopoLembretes) {
+    acoesTopoLembretes = document.createElement("div");
+    acoesTopoLembretes.className = "acoes-topo-lembretes-app";
+    secaoLembretes.insertBefore(
+      acoesTopoLembretes,
+      cardLembretes || btnNovoLembrete.nextElementSibling,
+    );
+  }
+
+  menuLembretesTopo.classList.add("menu-lembretes-overlay-app");
+  acoesTopoLembretes.append(btnNovoLembrete, menuLembretesTopo);
+}
+
+posicionarMenuLembretesNoApp();
 
 //Classes visuais
 function obterClasseStatus(status) {
@@ -2908,6 +2963,12 @@ async function salvarCampoEditado() {
 let pedidoPermissaoNotificacaoPreparado = false;
 let somNotificacaoPreparado = false;
 let ultimoAlarmeTarefa = 0;
+const DeviceSound = window.Capacitor?.Plugins?.DeviceSound;
+const MODO_SOM_DISPOSITIVO_PADRAO = "device-default";
+const MODO_SOM_MYNOTES = "mynotes";
+const MODO_SOM_DISPOSITIVO_ESCOLHIDO = "device-picked";
+const SOM_NOTIFICACAO_PADRAO = "assets/notificacao-mynote.mp3";
+const SOM_ALARME_PADRAO = "assets/alarme-mynote-editado.mp3";
 
 function converterAntecedenciaEmMinutos(texto) {
   const valor = String(texto || "").toLowerCase();
@@ -3003,19 +3064,32 @@ function prepararSomNotificacaoPorInteracao() {
   if (somNotificacaoPreparado || !configuracoesNotificacao.somNotificacao)
     return;
 
+  if (
+    APP_NATIVO_CAPACITOR &&
+    obterPreferenciaSomDispositivo().modo !== MODO_SOM_MYNOTES
+  ) {
+    return;
+  }
+
   somNotificacaoPreparado = true;
-  const audio = new Audio(obterSomNotificacaoConfigurado());
-  audio.volume = 0;
-  audio
-    .play()
-    .then(() => {
+  const testes = [
+    obterSomNotificacaoConfigurado(),
+    obterSomAlarmeConfigurado(),
+  ].map((fonte) => {
+    const audio = new Audio(fonte);
+    audio.volume = 0;
+    return audio.play().then(() => {
       audio.pause();
       audio.currentTime = 0;
       audio.volume = 1;
-    })
-    .catch(() => {
-      somNotificacaoPreparado = false;
     });
+  });
+
+  Promise.allSettled(testes).then((resultados) => {
+    if (resultados.every((resultado) => resultado.status === "rejected")) {
+      somNotificacaoPreparado = false;
+    }
+  });
 }
 
 function prepararPedidoPermissaoNotificacaoPorInteracao() {
@@ -3044,11 +3118,56 @@ function chaveApenasNotificarTarefasUsuario() {
   return `apenasNotificarTarefas_${usuario.id}`;
 }
 
+function chaveModoSomDispositivoUsuario() {
+  return `modoSomDispositivo_${usuario.id}`;
+}
+
+function chaveUriSomDispositivoUsuario() {
+  return `uriSomDispositivo_${usuario.id}`;
+}
+
+function obterPreferenciaSomDispositivo() {
+  return {
+    modo:
+      localStorage.getItem(chaveModoSomDispositivoUsuario()) ||
+      MODO_SOM_DISPOSITIVO_PADRAO,
+    uri: localStorage.getItem(chaveUriSomDispositivoUsuario()) || "",
+  };
+}
+
 function obterSomNotificacaoConfigurado() {
+  return SOM_NOTIFICACAO_PADRAO;
+}
+
+function obterSomAlarmeConfigurado() {
+  if (APP_NATIVO_CAPACITOR) return SOM_ALARME_PADRAO;
+
   return (
     localStorage.getItem(chaveSomNotificacaoUsuario()) ||
-    "assets/alarme-calmo.wav"
+    SOM_ALARME_PADRAO
   );
+}
+
+function tocarSomDispositivoNativo({ alarme = false } = {}) {
+  if (!APP_NATIVO_CAPACITOR || !DeviceSound) return false;
+
+  const pref = obterPreferenciaSomDispositivo();
+  if (pref.modo === MODO_SOM_MYNOTES) return false;
+
+  const opcoes = {
+    type: alarme ? "alarm" : "notification",
+    mode: "system",
+  };
+
+  if (pref.modo === MODO_SOM_DISPOSITIVO_ESCOLHIDO && pref.uri) {
+    opcoes.mode = "selected";
+    opcoes.uri = pref.uri;
+  }
+
+  DeviceSound.play(opcoes).catch((erro) =>
+    console.warn("Nao foi possivel tocar o som nativo do dispositivo:", erro),
+  );
+  return true;
 }
 
 function vibrarNotificacao({ alarme = false } = {}) {
@@ -3064,24 +3183,18 @@ function tocarSomNotificacao({ alarme = false } = {}) {
   if (configuracoesNotificacao.modoFoco) return;
   if (!configuracoesNotificacao.somNotificacao) return;
 
-  const repeticoes = alarme ? 4 : 1;
-  const intervalo = alarme ? 1500 : 0;
+  if (tocarSomDispositivoNativo({ alarme })) return;
 
-  const tocar = (tentativa = 1) => {
-    const som = new Audio(obterSomNotificacaoConfigurado());
-    som.volume = alarme ? 1 : 0.82;
-    som
-      .play()
-      .catch((erro) =>
-        console.warn("Nao foi possivel tocar o som da notificacao:", erro),
-      );
+  const som = new Audio(
+    alarme ? obterSomAlarmeConfigurado() : obterSomNotificacaoConfigurado(),
+  );
+  som.volume = alarme ? 1 : 0.82;
 
-    if (tentativa < repeticoes) {
-      setTimeout(() => tocar(tentativa + 1), intervalo);
-    }
-  };
-
-  tocar();
+  som
+    .play()
+    .catch((erro) =>
+      console.warn("Nao foi possivel tocar o som da notificacao:", erro),
+    );
 }
 
 function deveAlarmarNotificacao(opcoes = {}) {
@@ -10028,3 +10141,4 @@ async function inicializarDashboard() {
 }
 
 inicializarDashboard();
+

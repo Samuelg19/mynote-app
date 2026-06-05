@@ -7,6 +7,11 @@ const senhaCadastro = document.getElementById("senhaCadastro");
 const confirmarSenhaCadastro = document.getElementById(
   "confirmarSenhaCadastro",
 );
+const btnAppleCadastro = document.getElementById("btnAppleCadastro");
+
+btnAppleCadastro?.addEventListener("click", () => {
+  alert("Cadastro com Apple ainda nao esta disponivel.");
+});
 
 formCadastro.addEventListener("submit", async (event) => {
   event.preventDefault();

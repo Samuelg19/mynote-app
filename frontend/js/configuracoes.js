@@ -114,6 +114,17 @@ const somNotificacaoArquivo = document.getElementById("somNotificacaoArquivo");
 const nomeSomNotificacao = document.getElementById("nomeSomNotificacao");
 const testarSomNotificacao = document.getElementById("testarSomNotificacao");
 const limparSomNotificacao = document.getElementById("limparSomNotificacao");
+const labelSomNotificacaoArquivo = document.getElementById(
+  "labelSomNotificacaoArquivo",
+);
+const opcoesSomDispositivo = document.getElementById("opcoesSomDispositivo");
+const opcoesModoSomDispositivo = document.querySelectorAll(
+  'input[name="modoSomDispositivo"]',
+);
+const btnEscolherSomDispositivo = document.getElementById(
+  "btnEscolherSomDispositivo",
+);
+const nomeSomDispositivo = document.getElementById("nomeSomDispositivo");
 const btnLogoutConta = document.getElementById("btnLogoutConta");
 const btnAlterarSenha = document.getElementById("btnAlterarSenha");
 const btnExcluirConta = document.getElementById("btnExcluirConta");
@@ -150,6 +161,17 @@ const opcoesFundo = document.querySelectorAll(".cor-opcao");
 
 let temaFundoSelecionado = "creme";
 let preferenciasGerais = MyNotePrefs.loadLocal();
+const APP_NATIVO_CAPACITOR =
+  !!window.Capacitor?.isNativePlatform?.() ||
+  window.location.protocol === "capacitor:" ||
+  window.location.origin === "https://localhost";
+const DeviceSound = window.Capacitor?.Plugins?.DeviceSound;
+const MODO_SOM_DISPOSITIVO_PADRAO = "device-default";
+const MODO_SOM_MYNOTES = "mynotes";
+const MODO_SOM_DISPOSITIVO_ESCOLHIDO = "device-picked";
+const SOM_ALARME_PADRAO = "assets/alarme-mynote-editado.mp3";
+
+document.body?.classList.toggle("app-nativo-capacitor", APP_NATIVO_CAPACITOR);
 
 function chaveSomNotificacaoUsuario() {
   return `somNotificacaoPersonalizado_${usuario.id}`;
@@ -157,6 +179,18 @@ function chaveSomNotificacaoUsuario() {
 
 function chaveNomeSomNotificacaoUsuario() {
   return `nomeSomNotificacaoPersonalizado_${usuario.id}`;
+}
+
+function chaveModoSomDispositivoUsuario() {
+  return `modoSomDispositivo_${usuario.id}`;
+}
+
+function chaveUriSomDispositivoUsuario() {
+  return `uriSomDispositivo_${usuario.id}`;
+}
+
+function chaveNomeSomDispositivoUsuario() {
+  return `nomeSomDispositivo_${usuario.id}`;
 }
 
 function chaveApenasNotificarTarefasUsuario() {
@@ -210,18 +244,74 @@ function aplicarPadraoBackupAutomatico(config = {}) {
   };
 }
 
+function obterPreferenciaSomDispositivo() {
+  return {
+    modo:
+      localStorage.getItem(chaveModoSomDispositivoUsuario()) ||
+      MODO_SOM_DISPOSITIVO_PADRAO,
+    uri: localStorage.getItem(chaveUriSomDispositivoUsuario()) || "",
+    nome: localStorage.getItem(chaveNomeSomDispositivoUsuario()) || "",
+  };
+}
+
+function salvarPreferenciaSomDispositivo({ modo, uri, nome } = {}) {
+  if (modo) localStorage.setItem(chaveModoSomDispositivoUsuario(), modo);
+  if (uri !== undefined) {
+    if (uri) localStorage.setItem(chaveUriSomDispositivoUsuario(), uri);
+    else localStorage.removeItem(chaveUriSomDispositivoUsuario());
+  }
+  if (nome !== undefined) {
+    if (nome) localStorage.setItem(chaveNomeSomDispositivoUsuario(), nome);
+    else localStorage.removeItem(chaveNomeSomDispositivoUsuario());
+  }
+}
+
 function obterSomNotificacaoConfigurado() {
+  if (APP_NATIVO_CAPACITOR) return SOM_ALARME_PADRAO;
+
   return (
     localStorage.getItem(chaveSomNotificacaoUsuario()) ||
-    "assets/alarme-calmo.wav"
+    SOM_ALARME_PADRAO
   );
 }
 
+function atualizarControleSomDispositivo() {
+  const boxAudio = somNotificacaoArquivo?.closest(".audio-notificacao-box");
+  boxAudio?.classList.toggle("modo-app-nativo", APP_NATIVO_CAPACITOR);
+
+  if (labelSomNotificacaoArquivo) {
+    labelSomNotificacaoArquivo.textContent = APP_NATIVO_CAPACITOR
+      ? "Áudio alarme/notificação"
+      : "Áudio do alarme";
+  }
+
+  opcoesSomDispositivo?.classList.toggle("hidden", !APP_NATIVO_CAPACITOR);
+
+  if (!APP_NATIVO_CAPACITOR) return;
+
+  const pref = obterPreferenciaSomDispositivo();
+  opcoesModoSomDispositivo.forEach((opcao) => {
+    opcao.checked = opcao.value === pref.modo;
+  });
+
+  if (nomeSomDispositivo) {
+    nomeSomDispositivo.textContent = pref.uri
+      ? pref.nome || "Som escolhido do dispositivo."
+      : "Nenhum som escolhido.";
+  }
+
+  if (limparSomNotificacao) {
+    limparSomNotificacao.textContent = "Usar padrão do dispositivo";
+  }
+}
+
 function atualizarNomeSomNotificacao() {
-  if (!nomeSomNotificacao) return;
-  nomeSomNotificacao.textContent =
-    localStorage.getItem(chaveNomeSomNotificacaoUsuario()) ||
-    MyNotePrefs.t("Som padrão");
+  if (nomeSomNotificacao) {
+    nomeSomNotificacao.textContent =
+      localStorage.getItem(chaveNomeSomNotificacaoUsuario()) ||
+      MyNotePrefs.t("Som padrão");
+  }
+  atualizarControleSomDispositivo();
 }
 
 function valorConfigAtivo(valor, padrao = true) {
@@ -240,12 +330,75 @@ function salvarApenasNotificarTarefasLocal() {
   );
 }
 
-function tocarSomNotificacaoConfigurado() {
+async function tocarSomDispositivoNativo(type = "alarm") {
+  if (!APP_NATIVO_CAPACITOR || !DeviceSound) return false;
+
+  const pref = obterPreferenciaSomDispositivo();
+  if (pref.modo === MODO_SOM_MYNOTES) return false;
+
+  const opcoes = { type, mode: "system" };
+  if (pref.modo === MODO_SOM_DISPOSITIVO_ESCOLHIDO && pref.uri) {
+    opcoes.mode = "selected";
+    opcoes.uri = pref.uri;
+  }
+
+  await DeviceSound.play(opcoes);
+  return true;
+}
+
+async function tocarSomNotificacaoConfigurado() {
   if (!somNotificacao.checked) return;
+
+  try {
+    if (await tocarSomDispositivoNativo("alarm")) return;
+  } catch (erro) {
+    console.warn("Não foi possível tocar o som do dispositivo:", erro);
+  }
+
   const audio = new Audio(obterSomNotificacaoConfigurado());
   audio
     .play()
     .catch((erro) => console.warn("Não foi possível tocar o som:", erro));
+}
+
+async function escolherSomDispositivo() {
+  if (!APP_NATIVO_CAPACITOR || !DeviceSound) {
+    mostrarModalFeedbackConfiguracoes({
+      titulo: MyNotePrefs.t("Recurso indisponível"),
+      mensagem: MyNotePrefs.t("Este recurso só funciona no app Android."),
+      tipo: "erro",
+    });
+    return;
+  }
+
+  try {
+    const pref = obterPreferenciaSomDispositivo();
+    const resultado = await DeviceSound.pick({
+      type: "alarm",
+      currentUri: pref.uri || "",
+    });
+
+    if (resultado?.cancelled) {
+      atualizarControleSomDispositivo();
+      return;
+    }
+
+    if (resultado?.uri) {
+      salvarPreferenciaSomDispositivo({
+        modo: MODO_SOM_DISPOSITIVO_ESCOLHIDO,
+        uri: resultado.uri,
+        nome: resultado.name || "Som escolhido do dispositivo.",
+      });
+      atualizarControleSomDispositivo();
+    }
+  } catch (erro) {
+    console.warn("Não foi possível escolher som do dispositivo:", erro);
+    mostrarModalFeedbackConfiguracoes({
+      titulo: MyNotePrefs.t("Erro ao escolher som"),
+      mensagem: MyNotePrefs.t("Não foi possível abrir os sons do dispositivo."),
+      tipo: "erro",
+    });
+  }
 }
 
 function aplicarTema(tema) {
@@ -476,6 +629,7 @@ corDestaque.addEventListener("change", () => {
 });
 
 somNotificacaoArquivo?.addEventListener("change", () => {
+  if (APP_NATIVO_CAPACITOR) return;
   const arquivo = somNotificacaoArquivo.files?.[0];
   if (!arquivo) return;
 
@@ -491,11 +645,40 @@ somNotificacaoArquivo?.addEventListener("change", () => {
 testarSomNotificacao?.addEventListener("click", tocarSomNotificacaoConfigurado);
 
 limparSomNotificacao?.addEventListener("click", () => {
+  if (APP_NATIVO_CAPACITOR) {
+    salvarPreferenciaSomDispositivo({
+      modo: MODO_SOM_DISPOSITIVO_PADRAO,
+      uri: "",
+      nome: "",
+    });
+    atualizarControleSomDispositivo();
+    return;
+  }
+
   localStorage.removeItem(chaveSomNotificacaoUsuario());
   localStorage.removeItem(chaveNomeSomNotificacaoUsuario());
   if (somNotificacaoArquivo) somNotificacaoArquivo.value = "";
   atualizarNomeSomNotificacao();
 });
+
+opcoesModoSomDispositivo.forEach((opcao) => {
+  opcao.addEventListener("change", async () => {
+    if (!opcao.checked) return;
+
+    if (opcao.value === MODO_SOM_DISPOSITIVO_ESCOLHIDO) {
+      const pref = obterPreferenciaSomDispositivo();
+      if (!pref.uri) {
+        await escolherSomDispositivo();
+        return;
+      }
+    }
+
+    salvarPreferenciaSomDispositivo({ modo: opcao.value });
+    atualizarControleSomDispositivo();
+  });
+});
+
+btnEscolherSomDispositivo?.addEventListener("click", escolherSomDispositivo);
 
 [idioma, fusoHorario, formatoHora, inicioSemana].forEach((select) => {
   select.addEventListener("change", () => {
@@ -988,4 +1171,5 @@ body: JSON.stringify({
 });
 
 carregarConfiguracoes();
+
 

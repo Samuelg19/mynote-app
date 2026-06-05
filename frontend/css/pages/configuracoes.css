@@ -824,6 +824,55 @@ select {
   margin-top: 8px;
 }
 
+.opcoes-som-dispositivo {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.opcoes-som-dispositivo.hidden {
+  display: none;
+}
+
+.audio-notificacao-box.modo-app-nativo input[type="file"],
+.audio-notificacao-box.modo-app-nativo > #nomeSomNotificacao {
+  display: none;
+}
+
+.opcao-som-dispositivo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.44);
+  cursor: pointer;
+}
+
+.opcao-som-dispositivo input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.opcao-som-dispositivo span,
+.opcao-som-dispositivo small {
+  display: block;
+}
+
+.opcao-som-dispositivo small {
+  margin-top: 3px;
+  color: #cbd5e1;
+  line-height: 1.35;
+}
+
+.btn-escolher-som-dispositivo {
+  width: 100%;
+  justify-content: center;
+}
+
 .tema-escuro {
   background: #111827;
   color: #f9fafb;
@@ -915,6 +964,16 @@ body:not(.tema-escuro) .audio-notificacao-box input[type="file"] {
 }
 
 body:not(.tema-escuro) .audio-notificacao-box small {
+  color: #4b5563 !important;
+}
+
+body:not(.tema-escuro) .opcao-som-dispositivo {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+body:not(.tema-escuro) .opcao-som-dispositivo small {
   color: #4b5563 !important;
 }
 

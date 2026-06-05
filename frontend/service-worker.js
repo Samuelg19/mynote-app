@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v12";
+﻿const CACHE_NAME = "mynote-cache-v13";
 
 const FILES_TO_CACHE = [
   "/",
@@ -22,10 +22,8 @@ const FILES_TO_CACHE = [
   "/assets/icon-192.png",
   "/assets/icon-512.png",
   "/assets/favicon.png",
-  "/assets/alarme-calmo.wav",
-  "/assets/alarme-digital.wav",
-  "/assets/alarme-suave.wav",
-  "/assets/notificacao.wav"
+  "/assets/notificacao-mynote.mp3",
+  "/assets/alarme-mynote-editado.mp3"
 ];
 
 self.addEventListener("install", (event) => {
@@ -158,3 +156,4 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
+
