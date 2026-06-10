@@ -4,6 +4,7 @@ const lembrarUsuario = document.getElementById("lembrarUsuario");
 const emailInput = document.getElementById("email");
 const senhaInput = document.getElementById("senha");
 const modalLoginErro = document.getElementById("modalLoginErro");
+const modalLoginErroTitulo = document.getElementById("modalLoginErroTitulo");
 const modalLoginErroMensagem = document.getElementById("modalLoginErroMensagem");
 const fecharModalLoginErro = document.getElementById("fecharModalLoginErro");
 const okModalLoginErro = document.getElementById("okModalLoginErro");
@@ -15,7 +16,9 @@ const API_URL = "https://mynote-app-production-cb61.up.railway.app";
 const GOOGLE_WEB_CLIENT_ID =
   "889270972410-j0gvc2qd8ls2ssrkig8187kf95rdnthb.apps.googleusercontent.com";
 let focoAntesDoModalLoginErro = null;
+let destinoAposModalLoginErro = "";
 let loginConfirmado = false;
+const GOOGLE_CADASTRO_CREDENTIAL_KEY = "mynote_google_cadastro_credential";
 let socialLoginGoogleInicializado = null;
 
 function ehAppNativoCapacitor() {
@@ -60,6 +63,13 @@ function esconderModalLoginErro() {
   if (!modalLoginErro) return;
 
   modalLoginErro.classList.add("hidden");
+  const destino = destinoAposModalLoginErro;
+  destinoAposModalLoginErro = "";
+
+  if (destino) {
+    window.location.href = destino;
+    return;
+  }
 
   if (focoAntesDoModalLoginErro) {
     focoAntesDoModalLoginErro.focus();
@@ -67,13 +77,19 @@ function esconderModalLoginErro() {
   }
 }
 
-function mostrarModalLoginErro(mensagem) {
+function mostrarModalLoginErro(
+  mensagem,
+  { titulo = "Erro ao fazer login", destino = "" } = {},
+) {
   if (!modalLoginErro || !modalLoginErroMensagem) {
     alert(mensagem);
+    if (destino) window.location.href = destino;
     return;
   }
 
   focoAntesDoModalLoginErro = document.activeElement;
+  destinoAposModalLoginErro = destino;
+  if (modalLoginErroTitulo) modalLoginErroTitulo.textContent = titulo;
   modalLoginErroMensagem.textContent =
     mensagem || MyNotePrefs.t("Erro ao fazer login");
   modalLoginErro.classList.remove("hidden");
@@ -184,11 +200,23 @@ async function autenticarComGoogleNoBackend(credential) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ credential }),
+    body: JSON.stringify({ credential, mode: "login" }),
   });
 
   const dados = await resposta.json();
   const usuario = dados.user || dados.usuario;
+
+  if (dados.code === "GOOGLE_ACCOUNT_NOT_REGISTERED") {
+    sessionStorage.setItem(GOOGLE_CADASTRO_CREDENTIAL_KEY, credential);
+    mostrarModalLoginErro(
+      "Esta conta do Google ainda não foi cadastrada. Você será levado para criar sua conta.",
+      {
+        titulo: "Conta não cadastrada",
+        destino: "cadastro.html",
+      },
+    );
+    return;
+  }
 
   if (!resposta.ok || !usuario || !dados.token) {
     mostrarModalLoginErro(dados.msg || "Erro ao fazer login com Google.");

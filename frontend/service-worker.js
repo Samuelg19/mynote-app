@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "mynote-cache-v13";
+const CACHE_NAME = "mynote-cache-v14";
 
 const FILES_TO_CACHE = [
   "/",
@@ -156,4 +156,3 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
-

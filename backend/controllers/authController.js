@@ -443,13 +443,20 @@ exports.redefinirSenha = (req, res) => {
 exports.googleLogin = async (req, res) => {
   try {
     const credential = req.body.credential || req.body.id_token || req.body.token;
+    const mode = req.body.mode === "register" ? "register" : "login";
 
     if (!credential) {
-      return res.status(400).json({ msg: "Token do Google não recebido." });
+      return res.status(400).json({
+        code: "GOOGLE_TOKEN_MISSING",
+        msg: "Token do Google nao recebido.",
+      });
     }
 
     if (!process.env.GOOGLE_CLIENT_ID) {
-      return res.status(500).json({ msg: "GOOGLE_CLIENT_ID n�o configurado no backend." });
+      return res.status(500).json({
+        code: "GOOGLE_CLIENT_ID_MISSING",
+        msg: "GOOGLE_CLIENT_ID nao configurado no backend.",
+      });
     }
 
     const ticket = await googleClient.verifyIdToken({
@@ -458,76 +465,92 @@ exports.googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    const nome = payload.name;
     const email = payload.email;
+    const nome = payload.name || payload.given_name || email?.split("@")[0];
     const foto = payload.picture;
 
     if (!email) {
-      return res.status(400).json({ msg: "Email do Google n�o recebido." });
+      return res.status(400).json({
+        code: "GOOGLE_EMAIL_MISSING",
+        msg: "Email do Google nao recebido.",
+      });
     }
 
-    db.query(
-      "SELECT * FROM usuarios WHERE email = ?",
-      [email],
-      (err, results) => {
-        if (err) {
-          console.error("Erro ao buscar usu�rio Google:", err);
-          return res.status(500).json({
-            msg: "Erro ao buscar usu�rio Google.",
-            erro: err.message || err,
+    db.query("SELECT * FROM usuarios WHERE email = ?", [email], (err, results) => {
+      if (err) {
+        console.error("Erro ao buscar usuario Google:", err);
+        return res.status(500).json({
+          code: "GOOGLE_USER_LOOKUP_ERROR",
+          msg: "Erro ao buscar usuario Google.",
+          erro: err.message || err,
+        });
+      }
+
+      if (results.length > 0) {
+        if (mode === "register") {
+          return res.status(409).json({
+            code: "GOOGLE_ACCOUNT_ALREADY_EXISTS",
+            msg: "Esta conta do Google ja esta cadastrada.",
           });
         }
 
-        if (results.length > 0) {
-          const user = results[0];
+        const user = results[0];
+        const usuario = {
+          id: user.id,
+          nome: user.nome,
+          email: user.email,
+          foto: user.foto || foto,
+        };
+
+        return res.json({
+          msg: "Login Google realizado com sucesso.",
+          token: gerarTokenUsuario(usuario),
+          usuario,
+          user: usuario,
+        });
+      }
+
+      if (mode === "login") {
+        return res.status(404).json({
+          code: "GOOGLE_ACCOUNT_NOT_REGISTERED",
+          msg: "Esta conta do Google ainda nao foi cadastrada.",
+        });
+      }
+
+      db.query(
+        "INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)",
+        [nome, email, "GOOGLE_LOGIN"],
+        (insertError, result) => {
+          if (insertError) {
+            console.error("Erro ao criar usuario Google:", insertError);
+            return res.status(500).json({
+              code: "GOOGLE_USER_CREATE_ERROR",
+              msg: "Erro ao criar usuario Google.",
+              erro: insertError.message || insertError,
+            });
+          }
+
           const usuario = {
-            id: user.id,
-            nome: user.nome,
-            email: user.email,
-            foto: user.foto || foto,
+            id: result.insertId,
+            nome,
+            email,
+            foto,
           };
 
-          return res.json({
-            msg: "Login Google ok",
+          return res.status(201).json({
+            msg: "Usuario Google criado com sucesso.",
             token: gerarTokenUsuario(usuario),
             usuario,
             user: usuario,
           });
-        }
-
-        db.query(
-          "INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)",
-          [nome, email, "GOOGLE_LOGIN"],
-          (err, result) => {
-            if (err) {
-              console.error("Erro ao criar usu�rio Google:", err);
-              return res.status(500).json({
-                msg: "Erro ao criar usu�rio Google.",
-                erro: err.message || err,
-              });
-            }
-
-            const usuario = {
-              id: result.insertId,
-              nome,
-              email,
-              foto,
-            };
-
-            res.json({
-              msg: "Usu�rio Google criado",
-              token: gerarTokenUsuario(usuario),
-              usuario,
-              user: usuario,
-            });
-          },
-        );
-      },
-    );
+        },
+      );
+    });
   } catch (err) {
-    console.error("Erro geral no login Google:", err);
-    res.status(500).json({
-      msg: "Erro ao fazer login com Google.",
+    console.error("Erro geral na autenticacao Google:", err);
+    return res.status(401).json({
+      code: "GOOGLE_AUTH_INVALID",
+      msg: "Nao foi possivel validar a conta do Google.",
       erro: err.message,
     });
   }

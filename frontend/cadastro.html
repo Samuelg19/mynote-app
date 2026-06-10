@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/apple-touch-icon.png">
     <link rel="stylesheet" href="css/style.css" />
     <link rel="manifest" href="/manifest.json">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
 
   <body class="cadastro-body">
@@ -28,8 +29,15 @@
 
       <section class="cadastro-card">
         <form id="formCadastro">
+          <div
+            id="g_id_onload"
+            data-client_id="889270972410-j0gvc2qd8ls2ssrkig8187kf95rdnthb.apps.googleusercontent.com"
+            data-callback="cadastroComGoogle"
+            data-auto_prompt="false"
+          ></div>
+
           <div class="social-cadastro">
-            <button type="button" class="btn-social">
+            <button id="btnGoogleCadastro" type="button" class="btn-social">
               <img src="assets/Google.png" class="social-icon-img" />
               Continuar com Google
             </button>
@@ -92,6 +100,32 @@
 
       <button class="btn-ajuda" type="button">?</button>
     </main>
+
+
+    <div
+      id="modalCadastroAviso"
+      class="login-error-modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalCadastroAvisoTitulo"
+      aria-describedby="modalCadastroAvisoMensagem"
+    >
+      <div class="login-error-card">
+        <button
+          id="fecharModalCadastroAviso"
+          class="login-error-close"
+          type="button"
+          aria-label="Fechar aviso"
+        >
+          &times;
+        </button>
+        <h2 id="modalCadastroAvisoTitulo">Aviso</h2>
+        <p id="modalCadastroAvisoMensagem"></p>
+        <button id="okModalCadastroAviso" class="login-error-ok" type="button">
+          OK
+        </button>
+      </div>
+    </div>
 
     <script src="js/app-preferences.js"></script>
     <script src="js/cadastro.js"></script>

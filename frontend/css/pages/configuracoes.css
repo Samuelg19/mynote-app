@@ -835,7 +835,8 @@ select {
 }
 
 .audio-notificacao-box.modo-app-nativo input[type="file"],
-.audio-notificacao-box.modo-app-nativo > #nomeSomNotificacao {
+.audio-notificacao-box.modo-app-nativo > #nomeSomNotificacao,
+.audio-notificacao-box.modo-app-nativo #limparSomNotificacao {
   display: none;
 }
 

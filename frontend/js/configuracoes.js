@@ -300,9 +300,6 @@ function atualizarControleSomDispositivo() {
       : "Nenhum som escolhido.";
   }
 
-  if (limparSomNotificacao) {
-    limparSomNotificacao.textContent = "Usar padrão do dispositivo";
-  }
 }
 
 function atualizarNomeSomNotificacao() {
