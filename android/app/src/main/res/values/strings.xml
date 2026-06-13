@@ -4,4 +4,7 @@
     <string name="title_activity_main">MyNotes</string>
     <string name="package_name">com.mynotes.app</string>
     <string name="custom_url_scheme">com.mynotes.app</string>
+    <string name="alarm_logo_description">Logo do MyNotes</string>
+    <string name="alarm_do_task">Vou fazer esta tarefa</string>
+    <string name="alarm_task_done">Já fiz esta tarefa</string>
 </resources>

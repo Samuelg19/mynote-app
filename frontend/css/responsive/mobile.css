@@ -294,7 +294,7 @@
 }
 
 @media (max-width: 900px) {
-  body.dashboard-body.app-nativo-capacitor #cardTabelaTarefas {
+  body.dashboard-body.app-mobile-instalado #cardTabelaTarefas {
     --rolagem-tabela-x: 0px;
     overflow-x: auto !important;
     overflow-y: visible !important;
@@ -302,7 +302,7 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     #cardTabelaTarefas
     .tabela-tarefas {
     display: table !important;
@@ -312,28 +312,28 @@
     white-space: nowrap;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     #cardTabelaTarefas
     .tabela-tarefas
     :is(th, td) {
     min-width: 108px;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     #cardTabelaTarefas
     .tabela-tarefas
     :is(th:first-child, td:first-child) {
     min-width: 180px;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     #cardTabelaTarefas
     .tabela-tarefas
     :is(th:last-child, td:last-child) {
     min-width: 92px;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     #cardTabelaTarefas
     .tabela-tarefas
     td:last-child {
@@ -342,7 +342,7 @@
     vertical-align: middle;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     #cardTabelaTarefas
     .tabela-tarefas
     td[colspan] {
@@ -350,14 +350,14 @@
     min-width: 760px;
   }
 
-  body.dashboard-body.app-nativo-capacitor .menu-rotina {
+  body.dashboard-body.app-mobile-instalado .menu-rotina {
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     .btn-silenciar-rotina.btn-silenciar-rotina-menu {
     position: static !important;
     width: 44px;
@@ -374,18 +374,18 @@
     transform: none;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     .btn-silenciar-rotina.btn-silenciar-rotina-menu:hover {
     transform: scale(1.05);
   }
 
-  body.dashboard-body.app-nativo-capacitor .card-lembretes {
+  body.dashboard-body.app-mobile-instalado .card-lembretes {
     overflow-x: auto !important;
     overflow-y: visible !important;
     -webkit-overflow-scrolling: touch;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     .card-lembretes
     .tabela-tarefas {
     display: table !important;
@@ -395,14 +395,14 @@
     white-space: nowrap;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     .card-lembretes
     .cabecalho-acoes-lembretes {
     min-width: 128px;
     padding-right: 14px !important;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     .acoes-topo-lembretes-app {
     position: relative;
     display: flex;
@@ -413,7 +413,7 @@
     padding-right: 58px;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     .acoes-topo-lembretes-app
     .menu-lembretes-topo.menu-lembretes-overlay-app {
     position: absolute;
@@ -427,7 +427,7 @@
     justify-content: center;
   }
 
-  body.dashboard-body.app-nativo-capacitor
+  body.dashboard-body.app-mobile-instalado
     .acoes-topo-lembretes-app
     .menu-lembretes-topo.menu-lembretes-overlay-app
     #opcoesLembretes {
@@ -435,7 +435,7 @@
     top: 42px;
   }
 
-  body.dashboard-body.app-nativo-capacitor[data-mobile-tela="lembretes"]
+  body.dashboard-body.app-mobile-instalado[data-mobile-tela="lembretes"]
     #btnNovoLembrete {
     width: auto !important;
     min-width: 0;

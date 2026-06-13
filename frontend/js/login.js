@@ -22,8 +22,35 @@ const GOOGLE_CADASTRO_CREDENTIAL_KEY = "mynote_google_cadastro_credential";
 let socialLoginGoogleInicializado = null;
 
 function ehAppNativoCapacitor() {
-  return Boolean(window.Capacitor?.isNativePlatform?.());
+  return Boolean(
+    window.Capacitor?.isNativePlatform?.() ||
+      window.location.protocol === "capacitor:" ||
+      window.location.origin === "https://localhost",
+  );
 }
+
+function restaurarSessaoSalvaNoApp() {
+  if (!ehAppNativoCapacitor()) return false;
+
+  const tokenSalvo = localStorage.getItem("token");
+  const usuarioSalvo = localStorage.getItem("usuarioLogado");
+
+  if (!tokenSalvo || !usuarioSalvo) return false;
+
+  try {
+    const usuario = JSON.parse(usuarioSalvo);
+    if (!usuario?.id) throw new Error("Usuario salvo invalido.");
+  } catch {
+    localStorage.removeItem("usuarioLogado");
+    localStorage.removeItem("token");
+    return false;
+  }
+
+  window.location.replace("dashboard.html");
+  return true;
+}
+
+restaurarSessaoSalvaNoApp();
 
 function obterSocialLoginPlugin() {
   return window.Capacitor?.Plugins?.SocialLogin;

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/alarm_screen_background"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingLeft="32dp"
+    android:paddingTop="56dp"
+    android:paddingRight="32dp"
+    android:paddingBottom="44dp">
+
+    <TextView
+        android:id="@+id/alarmRoutineLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.24"
+        android:text="ROTINA"
+        android:textColor="#7F89A6"
+        android:textSize="13sp" />
+
+    <Space
+        android:layout_width="1dp"
+        android:layout_height="112dp" />
+
+    <ImageView
+        android:layout_width="92dp"
+        android:layout_height="92dp"
+        android:contentDescription="@string/alarm_logo_description"
+        android:src="@mipmap/ic_launcher" />
+
+    <Space
+        android:layout_width="1dp"
+        android:layout_height="32dp" />
+
+    <TextView
+        android:id="@+id/alarmTaskTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif"
+        android:gravity="center"
+        android:maxLines="2"
+        android:text="Tarefa"
+        android:textColor="#F4F2FA"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/alarmTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-light"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="06:45"
+        android:textColor="#F7F7FB"
+        android:textSize="72sp" />
+
+    <Space
+        android:layout_width="1dp"
+        android:layout_height="48dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:text="Vou fazer"
+                android:textColor="#73809D"
+                android:textSize="13sp" />
+
+            <ImageButton
+                android:id="@+id/alarmDoTaskButton"
+                android:layout_width="112dp"
+                android:layout_height="112dp"
+                android:background="@drawable/alarm_button_do"
+                android:contentDescription="@string/alarm_do_task"
+                android:elevation="10dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="27dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/alarm_icon_do"
+                android:tint="@null" />
+        </LinearLayout>
+
+        <Space
+            android:layout_width="28dp"
+            android:layout_height="1dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:text="J&#225; fiz"
+                android:textColor="#73809D"
+                android:textSize="13sp" />
+
+            <ImageButton
+                android:id="@+id/alarmDoneButton"
+                android:layout_width="112dp"
+                android:layout_height="112dp"
+                android:background="@drawable/alarm_button_done"
+                android:contentDescription="@string/alarm_task_done"
+                android:elevation="10dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="27dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/alarm_icon_done"
+                android:tint="@null" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <Space
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

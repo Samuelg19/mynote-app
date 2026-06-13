@@ -10,8 +10,18 @@ const APP_NATIVO_CAPACITOR =
   !!window.Capacitor?.isNativePlatform?.() ||
   window.location.protocol === "capacitor:" ||
   window.location.origin === "https://localhost";
+const PWA_INSTALADO =
+  window.matchMedia?.("(display-mode: standalone)")?.matches ||
+  window.navigator.standalone === true;
+const EXPERIENCIA_MOBILE_INSTALADA =
+  APP_NATIVO_CAPACITOR || PWA_INSTALADO;
 
 document.body?.classList.toggle("app-nativo-capacitor", APP_NATIVO_CAPACITOR);
+document.body?.classList.toggle(
+  "app-mobile-instalado",
+  EXPERIENCIA_MOBILE_INSTALADA,
+);
+document.body?.classList.toggle("pwa-instalado", PWA_INSTALADO);
 
 let sessaoExpiradaTratada = false;
 let timerRedirecionamentoSessaoExpirada = null;
@@ -384,6 +394,8 @@ async function atualizarTarefa(id, dados) {
 async function concluirTarefaPelaNotificacao(tarefaId, rotinaId = "") {
   if (!tarefaId) return;
 
+  interromperFeedbackSonoroAtivo();
+
   try {
     const resposta = await atualizarTarefa(tarefaId, {
       concluida: true,
@@ -424,16 +436,31 @@ async function processarAcaoInicialNotificacao() {
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data?.type !== "MYNOTE_CONCLUIR_TAREFA") return;
+    if (event.data?.type === "MYNOTE_ABRIR_FILA_ALARMES") {
+      const tarefas = Array.isArray(event.data.tarefas)
+        ? event.data.tarefas.map((tarefa) => ({
+            id: tarefa.tarefaId,
+            rotina_id: tarefa.rotinaId,
+            rotinaNome: tarefa.rotinaNome,
+            titulo: tarefa.titulo,
+            horario: tarefa.horario,
+          }))
+        : [];
+      iniciarFilaAlarmesWeb(tarefas);
+      return;
+    }
 
-    concluirTarefaPelaNotificacao(
-      event.data.tarefaId,
-      event.data.rotinaId || "",
-    );
+    if (event.data?.type === "MYNOTE_CONCLUIR_TAREFA") {
+      concluirTarefaPelaNotificacao(
+        event.data.tarefaId,
+        event.data.rotinaId || "",
+      );
+    }
   });
 }
 
 function logout() {
+  window.MyNoteNativeAlarms?.cancelAll?.().catch(() => {});
   localStorage.clear();
   window.location.href = LOGIN_PAGE;
 }
@@ -692,6 +719,8 @@ function limparAgrupamentoEventosCalendario() {
 }
 
 function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
+  agendarSincronizacaoAlarmesNativos();
+
   if (rotinaId) {
     delete cacheTarefasPorRotina[rotinaId];
   }
@@ -699,6 +728,7 @@ function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
 }
 
 function invalidarCacheRotinas() {
+  agendarSincronizacaoAlarmesNativos();
   cacheRotinas = null;
   limparAgrupamentoEventosCalendario();
 }
@@ -1748,7 +1778,7 @@ function atualizarBotaoSilenciarRotina() {
 function posicionarBotaoSilenciarRotina() {
   if (!btnSilenciarRotina || !tabelaCard) return;
 
-  if (!APP_NATIVO_CAPACITOR) {
+  if (!EXPERIENCIA_MOBILE_INSTALADA) {
     btnSilenciarRotina.classList.remove("btn-silenciar-rotina-menu");
 
     if (btnSilenciarRotina.parentElement !== tabelaCard) {
@@ -1942,7 +1972,7 @@ if (consultaMobileDashboard.addEventListener) {
 }
 
 function atualizarRolagemBotaoSilenciarRotina() {
-  if (!APP_NATIVO_CAPACITOR || !tabelaCard) return;
+  if (!EXPERIENCIA_MOBILE_INSTALADA || !tabelaCard) return;
 
   const rolagemTabela = Math.max(
     tabelaCard.scrollLeft || 0,
@@ -1961,7 +1991,7 @@ tabelaTarefas?.addEventListener("scroll", atualizarRolagemBotaoSilenciarRotina, 
 
 function posicionarMenuLembretesNoApp() {
   if (
-    !APP_NATIVO_CAPACITOR ||
+    !EXPERIENCIA_MOBILE_INSTALADA ||
     !secaoLembretes ||
     !btnNovoLembrete ||
     !menuLembretesTopo
@@ -2963,7 +2993,15 @@ async function salvarCampoEditado() {
 let pedidoPermissaoNotificacaoPreparado = false;
 let somNotificacaoPreparado = false;
 let ultimoAlarmeTarefa = 0;
+let audioAlarmeWeb = null;
+let audioNotificacaoWeb = null;
+let alarmeWebTocando = false;
+let filaAlarmesWeb = [];
+let chavesAlarmesWeb = new Set();
+let respondendoAlarmeWeb = false;
+let timerAvisoTarefaWeb = null;
 const DeviceSound = window.Capacitor?.Plugins?.DeviceSound;
+const NativeTaskAlarms = window.MyNoteNativeAlarms;
 const MODO_SOM_DISPOSITIVO_PADRAO = "device-default";
 const MODO_SOM_MYNOTES = "mynotes";
 const MODO_SOM_DISPOSITIVO_ESCOLHIDO = "device-picked";
@@ -3071,24 +3109,22 @@ function prepararSomNotificacaoPorInteracao() {
     return;
   }
 
-  somNotificacaoPreparado = true;
   const testes = [
-    obterSomNotificacaoConfigurado(),
-    obterSomAlarmeConfigurado(),
-  ].map((fonte) => {
-    const audio = new Audio(fonte);
+    obterAudioWebPreparado(false),
+    obterAudioWebPreparado(true),
+  ].map((audio) => {
     audio.volume = 0;
     return audio.play().then(() => {
       audio.pause();
       audio.currentTime = 0;
-      audio.volume = 1;
+      audio.volume = audio === audioAlarmeWeb ? 1 : 0.82;
     });
   });
 
   Promise.allSettled(testes).then((resultados) => {
-    if (resultados.every((resultado) => resultado.status === "rejected")) {
-      somNotificacaoPreparado = false;
-    }
+    somNotificacaoPreparado = resultados.some(
+      (resultado) => resultado.status === "fulfilled",
+    );
   });
 }
 
@@ -3148,6 +3184,22 @@ function obterSomAlarmeConfigurado() {
   );
 }
 
+function obterAudioWebPreparado(alarme) {
+  if (alarme) {
+    if (!audioAlarmeWeb) {
+      audioAlarmeWeb = new Audio(obterSomAlarmeConfigurado());
+      audioAlarmeWeb.preload = "auto";
+    }
+    return audioAlarmeWeb;
+  }
+
+  if (!audioNotificacaoWeb) {
+    audioNotificacaoWeb = new Audio(obterSomNotificacaoConfigurado());
+    audioNotificacaoWeb.preload = "auto";
+  }
+  return audioNotificacaoWeb;
+}
+
 function tocarSomDispositivoNativo({ alarme = false } = {}) {
   if (!APP_NATIVO_CAPACITOR || !DeviceSound) return false;
 
@@ -3185,9 +3237,14 @@ function tocarSomNotificacao({ alarme = false } = {}) {
 
   if (tocarSomDispositivoNativo({ alarme })) return;
 
-  const som = new Audio(
-    alarme ? obterSomAlarmeConfigurado() : obterSomNotificacaoConfigurado(),
-  );
+  const som = obterAudioWebPreparado(alarme);
+  if (alarme && audioNotificacaoWeb) {
+    audioNotificacaoWeb.pause();
+    audioNotificacaoWeb.currentTime = 0;
+  }
+  som.pause();
+  som.currentTime = 0;
+  som.loop = false;
   som.volume = alarme ? 1 : 0.82;
 
   som
@@ -3195,6 +3252,219 @@ function tocarSomNotificacao({ alarme = false } = {}) {
     .catch((erro) =>
       console.warn("Nao foi possivel tocar o som da notificacao:", erro),
     );
+}
+
+function interromperFeedbackSonoroAtivo() {
+  pararSomAlarmeWeb();
+
+  if (audioNotificacaoWeb) {
+    audioNotificacaoWeb.pause();
+    audioNotificacaoWeb.currentTime = 0;
+  }
+
+  if (APP_NATIVO_CAPACITOR && DeviceSound?.stop) {
+    DeviceSound.stop().catch((erro) =>
+      console.warn("Nao foi possivel interromper o som nativo:", erro),
+    );
+  }
+
+  if ("vibrate" in navigator) {
+    navigator.vibrate(0);
+  }
+}
+
+function garantirInterfaceAlarmesWeb() {
+  if (document.getElementById("webTaskAlarmModal")) return;
+
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    `
+      <div id="webTaskAlarmModal" class="web-task-alarm hidden" role="dialog" aria-modal="true" aria-labelledby="webTaskAlarmTitle">
+        <section class="web-task-alarm-card">
+          <header class="web-task-alarm-header">
+            <span id="webTaskAlarmRoutine" class="web-task-alarm-routine">ROTINA</span>
+            <span id="webTaskAlarmProgress" class="web-task-alarm-progress"></span>
+          </header>
+          <img class="web-task-alarm-logo" src="assets/logo.png" alt="" />
+          <h2 id="webTaskAlarmTitle">Tarefa</h2>
+          <time id="webTaskAlarmTime">--:--</time>
+          <div class="web-task-alarm-actions">
+            <button id="webTaskAlarmDo" class="web-task-alarm-action web-task-alarm-do" type="button">
+              <span class="web-task-alarm-check" aria-hidden="true"></span>
+              <strong>Vou fazer</strong>
+            </button>
+            <button id="webTaskAlarmDone" class="web-task-alarm-action web-task-alarm-done" type="button">
+              <span class="web-task-alarm-check web-task-alarm-check-done" aria-hidden="true"></span>
+              <strong>Já fiz</strong>
+            </button>
+          </div>
+        </section>
+      </div>
+      <aside id="webTaskReminderPopup" class="web-task-reminder hidden" role="status" aria-live="polite">
+        <button id="webTaskReminderClose" type="button" aria-label="Fechar aviso">&times;</button>
+        <span id="webTaskReminderKicker">Tarefa próxima</span>
+        <strong id="webTaskReminderTitle"></strong>
+        <p id="webTaskReminderText"></p>
+      </aside>
+    `,
+  );
+
+  document
+    .getElementById("webTaskAlarmDo")
+    ?.addEventListener("click", () => responderAlarmeWeb(false));
+  document
+    .getElementById("webTaskAlarmDone")
+    ?.addEventListener("click", () => responderAlarmeWeb(true));
+  document
+    .getElementById("webTaskReminderClose")
+    ?.addEventListener("click", ocultarAvisoTarefaWeb);
+}
+
+function iniciarSomAlarmeWeb() {
+  if (alarmeWebTocando || configuracoesNotificacao.modoFoco) return;
+  if (!configuracoesNotificacao.somNotificacao) return;
+
+  if (audioNotificacaoWeb) {
+    audioNotificacaoWeb.pause();
+    audioNotificacaoWeb.currentTime = 0;
+  }
+
+  const audio = obterAudioWebPreparado(true);
+  audio.pause();
+  audio.currentTime = 0;
+  audio.loop = true;
+  audio.volume = 1;
+  alarmeWebTocando = true;
+  audio.play().catch((erro) => {
+    console.warn("Nao foi possivel iniciar o alarme do site:", erro);
+    alarmeWebTocando = false;
+  });
+}
+
+function pararSomAlarmeWeb() {
+  if (!audioAlarmeWeb) return;
+  audioAlarmeWeb.pause();
+  audioAlarmeWeb.currentTime = 0;
+  audioAlarmeWeb.loop = false;
+  alarmeWebTocando = false;
+}
+
+function renderizarAlarmeWebAtual() {
+  garantirInterfaceAlarmesWeb();
+  const modal = document.getElementById("webTaskAlarmModal");
+  const tarefa = filaAlarmesWeb[0];
+
+  if (!tarefa) {
+    modal?.classList.add("hidden");
+    pararSomAlarmeWeb();
+    chavesAlarmesWeb.clear();
+    return;
+  }
+
+  document.getElementById("webTaskAlarmRoutine").textContent =
+    String(tarefa.rotinaNome || "Rotina").toUpperCase();
+  document.getElementById("webTaskAlarmTitle").textContent =
+    tarefa.titulo || "Tarefa";
+  document.getElementById("webTaskAlarmTime").textContent =
+    tarefa.horario || "--:--";
+  document.getElementById("webTaskAlarmProgress").textContent =
+    filaAlarmesWeb.length > 1
+      ? `${filaAlarmesWeb.length} tarefas neste horário`
+      : "";
+
+  modal?.classList.remove("hidden");
+}
+
+function iniciarFilaAlarmesWeb(tarefas) {
+  if (APP_NATIVO_CAPACITOR || !Array.isArray(tarefas)) return;
+
+  tarefas.forEach((tarefa) => {
+    const chave = `${tarefa.id}-${dataHojeISO()}-${tarefa.horario || ""}`;
+    if (chavesAlarmesWeb.has(chave)) return;
+    chavesAlarmesWeb.add(chave);
+    filaAlarmesWeb.push(tarefa);
+  });
+
+  if (!filaAlarmesWeb.length) return;
+  garantirInterfaceAlarmesWeb();
+  iniciarSomAlarmeWeb();
+  vibrarNotificacao({ alarme: true });
+  renderizarAlarmeWebAtual();
+}
+
+async function responderAlarmeWeb(concluida) {
+  if (respondendoAlarmeWeb || !filaAlarmesWeb.length) return;
+
+  respondendoAlarmeWeb = true;
+  const tarefa = filaAlarmesWeb[0];
+  const botoes = document.querySelectorAll(".web-task-alarm-action");
+  botoes.forEach((botao) => {
+    botao.disabled = true;
+  });
+
+  try {
+    if (concluida) {
+      const resposta = await atualizarTarefa(tarefa.id, {
+        concluida: true,
+        status: "Concluida",
+      });
+
+      if (!resposta.ok) {
+        throw new Error("Nao foi possivel concluir a tarefa.");
+      }
+
+      invalidarCacheTarefas(tarefa.rotina_id || tarefa.rotinaId);
+      if (
+        String(rotinaSelecionadaId) ===
+        String(tarefa.rotina_id || tarefa.rotinaId)
+      ) {
+        carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+      }
+    }
+
+    filaAlarmesWeb.shift();
+    renderizarAlarmeWebAtual();
+  } catch (erro) {
+    console.error("Erro ao responder alarme do site:", erro);
+    mostrarAviso("erro", "Nao foi possivel atualizar esta tarefa.");
+  } finally {
+    respondendoAlarmeWeb = false;
+    botoes.forEach((botao) => {
+      botao.disabled = false;
+    });
+  }
+}
+
+function ocultarAvisoTarefaWeb() {
+  clearTimeout(timerAvisoTarefaWeb);
+  document.getElementById("webTaskReminderPopup")?.classList.add("hidden");
+}
+
+function mostrarAvisoTarefaWeb(tarefas, { agora = false } = {}) {
+  if (APP_NATIVO_CAPACITOR || !tarefas.length) return;
+
+  garantirInterfaceAlarmesWeb();
+  const popup = document.getElementById("webTaskReminderPopup");
+  const titulos = tarefas.map((tarefa) => tarefa.titulo).filter(Boolean);
+  const primeira = tarefas[0];
+
+  document.getElementById("webTaskReminderKicker").textContent = agora
+    ? "Começando agora"
+    : tarefas.length > 1
+      ? "Tarefas próximas"
+      : "Tarefa próxima";
+  document.getElementById("webTaskReminderTitle").textContent =
+    tarefas.length > 1
+      ? `${tarefas.length} tarefas`
+      : primeira.titulo || "Tarefa";
+  document.getElementById("webTaskReminderText").textContent =
+    tarefas.length > 1
+      ? titulos.join(" • ")
+      : `${primeira.rotinaNome || "Rotina"}${primeira.horario ? ` às ${primeira.horario}` : ""}`;
+
+  popup?.classList.remove("hidden");
+  clearTimeout(timerAvisoTarefaWeb);
+  timerAvisoTarefaWeb = setTimeout(ocultarAvisoTarefaWeb, agora ? 15000 : 10000);
 }
 
 function deveAlarmarNotificacao(opcoes = {}) {
@@ -3210,7 +3480,7 @@ function deveAlarmarNotificacao(opcoes = {}) {
   );
 }
 
-function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaId = "", horario = "", tarefa = false } = {}) {
+function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaId = "", horario = "", tarefa = false, silenciosa = false } = {}) {
   const ehTarefa = tarefa && tarefaId;
   const alarmeAtivo = alarme === true;
   const tag = ehTarefa
@@ -3231,7 +3501,7 @@ function montarOpcoesNotificacao(corpo, { alarme = false, tarefaId = "", rotinaI
       : undefined,
     requireInteraction: alarmeAtivo || ehTarefa,
     renotify: false,
-    silent: false,
+    silent: silenciosa,
     tag,
     timestamp: Date.now(),
     vibrate: alarmeAtivo ? [520, 160, 520, 160, 720] : [180, 80, 180],
@@ -3259,6 +3529,7 @@ async function exibirNotificacaoNavegador(titulo, corpo, opcoes = {}) {
   const opcoesNotificacao = montarOpcoesNotificacao(corpo, {
     ...opcoes,
     alarme,
+    silenciosa: opcoes.silenciosa === true,
   });
 
   if ("serviceWorker" in navigator) {
@@ -3294,6 +3565,14 @@ function mostrarNotificacao(titulo, corpo, opcoes = {}) {
   const corpoTraduzido = MyNotePrefs.t(corpo);
   const alarme = deveAlarmarNotificacao(opcoes);
 
+  if (
+    APP_NATIVO_CAPACITOR &&
+    alarme &&
+    NativeTaskAlarms?.isAvailable?.()
+  ) {
+    return true;
+  }
+
   if (alarme) {
     const agora = Date.now();
     if (agora - ultimoAlarmeTarefa > 4000) {
@@ -3306,7 +3585,10 @@ function mostrarNotificacao(titulo, corpo, opcoes = {}) {
     tocarSomNotificacao();
   }
 
-  exibirNotificacaoNavegador(tituloTraduzido, corpoTraduzido, opcoes).catch(
+  exibirNotificacaoNavegador(tituloTraduzido, corpoTraduzido, {
+    ...opcoes,
+    silenciosa: true,
+  }).catch(
     (erro) => console.warn("Erro ao exibir notificacao:", erro),
   );
 
@@ -3595,7 +3877,15 @@ function estaNaJanelaDeAviso(minutosRestantes, antecedenciaMinutos) {
   return (
     minutosRestantes !== null &&
     minutosRestantes <= antecedenciaMinutos &&
-    minutosRestantes > antecedenciaMinutos - 1
+    minutosRestantes > 0
+  );
+}
+
+function estaNaJanelaDeInicio(minutosRestantes) {
+  return (
+    minutosRestantes !== null &&
+    minutosRestantes <= 0 &&
+    minutosRestantes > -2
   );
 }
 
@@ -4031,6 +4321,7 @@ function salvarEAtualizarTarefaFrequencia(tarefa, dados, mensagem) {
   fecharModalGradeFrequencia();
   fecharModalNumeroFrequencia();
   atualizarModalFrequenciaRotinaAberto();
+  agendarSincronizacaoAlarmesNativos();
   mostrarMensagem(mensagem || "Frequência atualizada!");
 }
 
@@ -5295,6 +5586,13 @@ async function carregarTarefasUsuarioParaNotificacoes() {
 
 async function verificarTarefasComAntecedencia() {
   if (
+    APP_NATIVO_CAPACITOR &&
+    NativeTaskAlarms?.isAvailable?.()
+  ) {
+    return;
+  }
+
+  if (
     !configuracoesNotificacao.notificacoesGerais ||
     !configuracoesNotificacao.notificacoesPorRotina
   )
@@ -5303,6 +5601,8 @@ async function verificarTarefasComAntecedencia() {
   try {
     const tarefas = await carregarTarefasUsuarioParaNotificacoes();
     const hoje = dataHojeISO();
+    const tarefasProximas = [];
+    const tarefasAgora = [];
 
     tarefas.forEach((tarefa) => {
       if (String(tarefa.status).toLowerCase().includes("conclu")) return;
@@ -5317,7 +5617,7 @@ async function verificarTarefasComAntecedencia() {
       if (tarefaTemPrazo(tarefa)) {
         const alvo = obterDataPrazoComHorario(tarefa.prazo, tarefa.horario);
         const minutosRestantes = diferencaEmMinutosAteData(alvo);
-        if (minutosRestantes === null || minutosRestantes < 0) return;
+        if (minutosRestantes === null || minutosRestantes <= -2) return;
 
         const dataAlvo = alvo.toISOString();
         const chave = `tarefa-prazo-${tarefa.id}-${dataAlvo}-${antecedenciaMinutos}`;
@@ -5326,40 +5626,27 @@ async function verificarTarefasComAntecedencia() {
           estaNaJanelaDeAviso(minutosRestantes, antecedenciaMinutos) &&
           !notificacoesJaEnviadas.has(chave)
         ) {
-          mostrarNotificacao(
-            "Prazo proximo",
-            `${tarefa.titulo} vence em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-            {
-              rotina: true,
-              tarefa: true,
-              tarefaId: tarefa.id,
-              rotinaId: tarefa.rotina_id || tarefa.rotinaId,
-              horario: tarefa.horario,
-              alarme: false,
-            },
-          );
-          notificacoesJaEnviadas.add(chave);
+          tarefasProximas.push({
+            ...tarefa,
+            chaveNotificacao: chave,
+            textoAntecedencia: rotuloAntecedencia(pref.antecedencia)
+              .replace(" antes", "")
+              .toLowerCase(),
+          });
         }
 
         if (
           tarefa.horario &&
-          minutosRestantes <= 0 &&
-          minutosRestantes > -1 &&
+          estaNaJanelaDeInicio(minutosRestantes) &&
           !notificacoesJaEnviadas.has(`${chave}-hora`)
         ) {
-          mostrarNotificacao(
-            "Agora!",
-            `${tarefa.titulo} esta acontecendo agora.`,
-            {
-              rotina: true,
-              tarefa: true,
-              tarefaId: tarefa.id,
-              rotinaId: tarefa.rotina_id || tarefa.rotinaId,
-              horario: tarefa.horario,
-              alarme: pref.alarme !== false,
-            },
-          );
-          notificacoesJaEnviadas.add(`${chave}-hora`);
+          tarefasAgora.push({
+            ...tarefa,
+            chaveNotificacao: `${chave}-hora`,
+            alarmeAtivo:
+              pref.alarme !== false &&
+              !configuracoesNotificacao.apenasNotificarTarefas,
+          });
         }
 
         return;
@@ -5377,43 +5664,388 @@ async function verificarTarefasComAntecedencia() {
         estaNaJanelaDeAviso(minutosRestantes, antecedenciaMinutos) &&
         !notificacoesJaEnviadas.has(chave)
       ) {
-        mostrarNotificacao(
-          "Tarefa proxima",
-          `${tarefa.titulo} comeca em ${rotuloAntecedencia(pref.antecedencia).replace(" antes", "").toLowerCase()}.`,
-          {
-            rotina: true,
-            tarefa: true,
-            tarefaId: tarefa.id,
-            rotinaId: tarefa.rotina_id || tarefa.rotinaId,
-            horario: tarefa.horario,
-            alarme: false,
-          },
-        );
-        notificacoesJaEnviadas.add(chave);
+        tarefasProximas.push({
+          ...tarefa,
+          chaveNotificacao: chave,
+          textoAntecedencia: rotuloAntecedencia(pref.antecedencia)
+            .replace(" antes", "")
+            .toLowerCase(),
+        });
       }
 
       if (
-        minutosRestantes <= 0 &&
-        minutosRestantes > -1 &&
+        estaNaJanelaDeInicio(minutosRestantes) &&
         !notificacoesJaEnviadas.has(`${chave}-hora`)
       ) {
-        mostrarNotificacao(
-          "Agora!",
-          `${tarefa.titulo} esta acontecendo agora.`,
-          {
-            rotina: true,
-            tarefa: true,
-            tarefaId: tarefa.id,
-            rotinaId: tarefa.rotina_id || tarefa.rotinaId,
-            horario: tarefa.horario,
-            alarme: pref.alarme !== false,
-          },
-        );
-        notificacoesJaEnviadas.add(`${chave}-hora`);
+        tarefasAgora.push({
+          ...tarefa,
+          chaveNotificacao: `${chave}-hora`,
+          alarmeAtivo:
+            pref.alarme !== false &&
+            !configuracoesNotificacao.apenasNotificarTarefas,
+        });
       }
     });
+
+    if (tarefasProximas.length) {
+      const primeira = tarefasProximas[0];
+      const corpo =
+        tarefasProximas.length > 1
+          ? tarefasProximas.map((tarefa) => tarefa.titulo).join(" • ")
+          : `${primeira.titulo} comeca em ${primeira.textoAntecedencia}.`;
+
+      mostrarNotificacao(
+        tarefasProximas.length > 1
+          ? `${tarefasProximas.length} tarefas proximas`
+          : "Tarefa proxima",
+        corpo,
+        { rotina: true, alarme: false },
+      );
+      mostrarAvisoTarefaWeb(tarefasProximas);
+      tarefasProximas.forEach((tarefa) =>
+        notificacoesJaEnviadas.add(tarefa.chaveNotificacao),
+      );
+    }
+
+    const tarefasComAlarme = tarefasAgora.filter(
+      (tarefa) => tarefa.alarmeAtivo,
+    );
+    const tarefasSomenteAviso = tarefasAgora.filter(
+      (tarefa) => !tarefa.alarmeAtivo,
+    );
+
+    if (tarefasComAlarme.length) {
+      const primeira = tarefasComAlarme[0];
+      const corpo =
+        tarefasComAlarme.length > 1
+          ? tarefasComAlarme
+              .map(
+                (tarefa) =>
+                  `${tarefa.titulo} - ${tarefa.rotinaNome || "Rotina"}`,
+              )
+              .join(" • ")
+          : `${primeira.titulo} esta acontecendo agora.`;
+
+      exibirNotificacaoNavegador(
+        tarefasComAlarme.length > 1
+          ? `${tarefasComAlarme.length} tarefas acontecendo agora`
+          : "Agora!",
+        corpo,
+        {
+          rotina: true,
+          tarefa: true,
+          tarefaId: primeira.id,
+          rotinaId: primeira.rotina_id || primeira.rotinaId,
+          horario: primeira.horario,
+          alarme: true,
+          silenciosa: true,
+        },
+      ).catch((erro) =>
+        console.warn("Erro ao exibir notificacao agrupada:", erro),
+      );
+      iniciarFilaAlarmesWeb(tarefasComAlarme);
+    }
+
+    if (tarefasSomenteAviso.length) {
+      const primeira = tarefasSomenteAviso[0];
+      mostrarNotificacao(
+        tarefasSomenteAviso.length > 1
+          ? `${tarefasSomenteAviso.length} tarefas comecando agora`
+          : "Agora!",
+        tarefasSomenteAviso.map((tarefa) => tarefa.titulo).join(" • "),
+        {
+          rotina: true,
+          tarefa: true,
+          tarefaId: primeira.id,
+          rotinaId: primeira.rotina_id || primeira.rotinaId,
+          horario: primeira.horario,
+          alarme: false,
+        },
+      );
+      mostrarAvisoTarefaWeb(tarefasSomenteAviso, { agora: true });
+    }
+
+    tarefasAgora.forEach((tarefa) =>
+      notificacoesJaEnviadas.add(tarefa.chaveNotificacao),
+    );
   } catch (erro) {
     console.error("Erro ao verificar tarefas com antecedência:", erro);
+  }
+}
+
+let timerSincronizacaoAlarmesNativos = null;
+let sincronizacaoAlarmesNativosEmExecucao = false;
+let permissaoAlarmesNativosOferecida = false;
+
+function agendarSincronizacaoAlarmesNativos() {
+  if (!NativeTaskAlarms?.isAvailable?.()) return;
+
+  clearTimeout(timerSincronizacaoAlarmesNativos);
+  timerSincronizacaoAlarmesNativos = setTimeout(() => {
+    sincronizarAlarmesNativos().catch((erro) =>
+      console.warn("Nao foi possivel atualizar os alarmes nativos:", erro),
+    );
+  }, 900);
+}
+
+function adicionarDiasISO(dataISO, quantidade) {
+  const [ano, mes, dia] = String(dataISO).split("-").map(Number);
+  const data = new Date(Date.UTC(ano, mes - 1, dia, 12, 0, 0));
+  data.setUTCDate(data.getUTCDate() + quantidade);
+  return data.toISOString().slice(0, 10);
+}
+
+function diaSemanaISO(dataISO) {
+  const [ano, mes, dia] = String(dataISO).split("-").map(Number);
+  return new Date(Date.UTC(ano, mes - 1, dia, 12, 0, 0)).getUTCDay();
+}
+
+function normalizarTextoComparacao(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function diaSemanaDaTarefa(tarefa) {
+  const mapa = {
+    domingo: 0,
+    segunda: 1,
+    terca: 2,
+    quarta: 3,
+    quinta: 4,
+    sexta: 5,
+    sabado: 6,
+  };
+  return mapa[normalizarTextoComparacao(tarefa?.dia_semana)];
+}
+
+function tarefaOcorreNaData(tarefa, preferencia, dataISO) {
+  const preferenciaSalva = obterPreferenciaTarefa(tarefa.id);
+  const diasConfigurados = preferenciaSalva?.repeticao?.dias;
+
+  if (Array.isArray(diasConfigurados) && diasConfigurados.length) {
+    return diasConfigurados.map(Number).includes(diaSemanaISO(dataISO));
+  }
+
+  const diaDaTarefa = diaSemanaDaTarefa(tarefa);
+  if (Number.isInteger(diaDaTarefa)) {
+    return diaDaTarefa === diaSemanaISO(dataISO);
+  }
+
+  const diasPadrao = preferencia?.repeticao?.dias;
+  if (Array.isArray(diasPadrao) && diasPadrao.length) {
+    return diasPadrao.map(Number).includes(diaSemanaISO(dataISO));
+  }
+
+  return true;
+}
+
+function montarAlarmeNativo({
+  tarefa,
+  rotina,
+  dataISO,
+  horario,
+  triggerAt,
+  preferenciaSom,
+  kind = "alarm",
+  reminderMinutes = 0,
+}) {
+  return {
+    id: `${kind}-task-${usuario.id}-${tarefa.id}-${dataISO}`,
+    kind,
+    taskId: String(tarefa.id),
+    routineId: String(tarefa.rotina_id || tarefa.rotinaId || rotina.id),
+    routineName: rotina.nome || "Rotina",
+    taskTitle: tarefa.titulo || "Tarefa",
+    date: dataISO,
+    time: String(horario).slice(0, 5),
+    triggerAt,
+    reminderMinutes,
+    apiUrl: API_BASE_URL,
+    authToken: token || "",
+    soundMode: preferenciaSom.modo,
+    soundUri: preferenciaSom.uri || "",
+  };
+}
+
+function adicionarEventosNativosDaOcorrencia({
+  alarmes,
+  tarefa,
+  rotina,
+  dataISO,
+  horario,
+  triggerAt,
+  preferencia,
+  preferenciaSom,
+  agora,
+}) {
+  const reminderMinutes = converterAntecedenciaParaMinutos(
+    preferencia.antecedencia,
+  );
+  const reminderTriggerAt = triggerAt - reminderMinutes * 60 * 1000;
+
+  if (reminderTriggerAt > agora + 5000) {
+    alarmes.push(
+      montarAlarmeNativo({
+        tarefa,
+        rotina,
+        dataISO,
+        horario,
+        triggerAt: reminderTriggerAt,
+        preferenciaSom,
+        kind: "reminder",
+        reminderMinutes,
+      }),
+    );
+  }
+
+  if (preferencia.alarme !== false && triggerAt > agora + 5000) {
+    alarmes.push(
+      montarAlarmeNativo({
+        tarefa,
+        rotina,
+        dataISO,
+        horario,
+        triggerAt,
+        preferenciaSom,
+        kind: "alarm",
+      }),
+    );
+  }
+}
+
+async function construirAlarmesNativos() {
+  const rotinas = await buscarRotinas({ force: true });
+  const tarefasPorRotina = await Promise.all(
+    rotinas.map(async (rotina) => ({
+      rotina,
+      tarefas: await buscarTarefasDaRotina(rotina.id, { force: true }),
+    })),
+  );
+  const preferenciaSom = obterPreferenciaSomDispositivo();
+  const hoje = dataHojeISO();
+  const agora = Date.now();
+  const limite = agora + 30 * 24 * 60 * 60 * 1000;
+  const alarmes = [];
+
+  tarefasPorRotina.forEach(({ rotina, tarefas }) => {
+    tarefas.forEach((tarefa) => {
+      if (!tarefa?.horario || !tarefa.notificacao) return;
+      if (tarefa.concluida) return;
+      if (String(tarefa.status || "").toLowerCase().includes("conclu")) return;
+
+      const preferencia = obterPreferenciaEfetivaTarefa(tarefa);
+
+      if (tarefaTemPrazo(tarefa)) {
+        const alvo = obterDataPrazoComHorario(tarefa.prazo, tarefa.horario);
+        if (!alvo || alvo.getTime() <= agora || alvo.getTime() > limite) return;
+
+        adicionarEventosNativosDaOcorrencia({
+          alarmes,
+          tarefa,
+          rotina,
+          dataISO: MyNotePrefs.formatDateISO(alvo),
+          horario: tarefa.horario,
+          triggerAt: alvo.getTime(),
+          preferencia,
+          preferenciaSom,
+          agora,
+        });
+        return;
+      }
+
+      for (let deslocamento = 0; deslocamento < 30; deslocamento += 1) {
+        const dataISO = adicionarDiasISO(hoje, deslocamento);
+        if (!tarefaOcorreNaData(tarefa, preferencia, dataISO)) continue;
+
+        const alvo = MyNotePrefs.zonedDateFromISOTime(dataISO, tarefa.horario);
+        if (!alvo || alvo.getTime() <= agora + 5000) continue;
+        if (alvo.getTime() > limite) continue;
+
+        adicionarEventosNativosDaOcorrencia({
+          alarmes,
+          tarefa,
+          rotina,
+          dataISO,
+          horario: tarefa.horario,
+          triggerAt: alvo.getTime(),
+          preferencia,
+          preferenciaSom,
+          agora,
+        });
+      }
+    });
+  });
+
+  return alarmes;
+}
+
+async function oferecerPermissoesAlarmesNativos(status, quantidadeAlarmes) {
+  if (
+    !quantidadeAlarmes ||
+    permissaoAlarmesNativosOferecida ||
+    (status.notifications && status.exactAlarms && status.fullScreen)
+  ) {
+    return;
+  }
+
+  permissaoAlarmesNativosOferecida = true;
+  mostrarConfirmacaoComOpcoes(
+    "Permitir alarmes",
+    "Para tocar no horario e abrir a tela de alarme mesmo com o app fechado, permita notificacoes, alarmes exatos e tela cheia no Android.",
+    [
+      {
+        texto: "Permitir",
+        classe: "btn-primario",
+        acao: async () => {
+          await NativeTaskAlarms.requestAccess();
+          await sincronizarAlarmesNativos();
+        },
+      },
+      {
+        texto: "Agora nao",
+        classe: "btn-secundario",
+      },
+    ],
+  );
+}
+
+async function sincronizarAlarmesNativos({ oferecerPermissoes = false } = {}) {
+  if (
+    !NativeTaskAlarms?.isAvailable?.() ||
+    sincronizacaoAlarmesNativosEmExecucao
+  ) {
+    return;
+  }
+
+  sincronizacaoAlarmesNativosEmExecucao = true;
+  try {
+    const alarmes = await construirAlarmesNativos();
+    await NativeTaskAlarms.sync(alarmes);
+
+    if (oferecerPermissoes) {
+      const status = await NativeTaskAlarms.getStatus();
+      await oferecerPermissoesAlarmesNativos(status, alarmes.length);
+    }
+  } finally {
+    sincronizacaoAlarmesNativosEmExecucao = false;
+  }
+}
+
+async function consumirAcaoAlarmeNativo() {
+  if (!NativeTaskAlarms?.isAvailable?.()) return;
+
+  try {
+    const acao = await NativeTaskAlarms.consumeAction();
+    if (!acao?.action) return;
+
+    if (acao.action === "complete") {
+      await concluirTarefaPelaNotificacao(acao.taskId, acao.routineId || "");
+    }
+  } catch (erro) {
+    console.warn("Nao foi possivel processar a acao do alarme:", erro);
   }
 }
 
@@ -10099,6 +10731,8 @@ async function executarVerificacoesNotificacao() {
 }
 
 async function inicializarDashboard() {
+  await consumirAcaoAlarmeNativo();
+
   await carregarTemaDashboard();
   registrarServiceWorkerDashboard().catch((erro) => {
     console.warn("Nao foi possivel registrar service worker:", erro);
@@ -10130,14 +10764,20 @@ async function inicializarDashboard() {
   iniciarOnboardingPrimeiroAcesso();
 
   setTimeout(executarVerificacoesNotificacao, 2000);
+  setTimeout(() => sincronizarAlarmesNativos({ oferecerPermissoes: true }), 2400);
   setInterval(executarVerificacoesNotificacao, 30000);
   setInterval(() => sincronizarDadosCompartilhados(), 60000);
   window.addEventListener("focus", () =>
     sincronizarDadosCompartilhados({ force: true }),
   );
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) sincronizarDadosCompartilhados({ force: true });
+    if (!document.hidden) {
+      sincronizarDadosCompartilhados({ force: true });
+      consumirAcaoAlarmeNativo();
+    }
   });
+  window.addEventListener("focus", consumirAcaoAlarmeNativo);
+  setInterval(agendarSincronizacaoAlarmesNativos, 15 * 60 * 1000);
 }
 
 inicializarDashboard();

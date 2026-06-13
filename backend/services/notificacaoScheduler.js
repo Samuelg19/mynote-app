@@ -8,6 +8,7 @@ function partesAgoraBrasil() {
     timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -17,6 +18,7 @@ function partesAgoraBrasil() {
   return {
     hora: `${obter("hour")}:${obter("minute")}`,
     diaMes: `${obter("day")}/${obter("month")}`,
+    dataISO: `${obter("year")}-${obter("month")}-${obter("day")}`,
   };
 }
 
@@ -52,6 +54,74 @@ function tarefaValeParaHoje(tarefa, diaSemanaHoje) {
 function valorAlarmeAtivo(valor) {
   if (valor === undefined || valor === null) return true;
   return valor !== false && valor !== 0 && valor !== "0";
+}
+
+function minutosDoHorario(horario) {
+  const [hora, minuto] = String(horario || "")
+    .slice(0, 5)
+    .split(":")
+    .map(Number);
+  if (!Number.isInteger(hora) || !Number.isInteger(minuto)) return null;
+  return hora * 60 + minuto;
+}
+
+function minutosAteHorario(horario, horaAtual) {
+  const alvo = minutosDoHorario(horario);
+  const atual = minutosDoHorario(horaAtual);
+  if (alvo === null || atual === null) return null;
+  return alvo - atual;
+}
+
+function antecedenciaEmMinutos(valor) {
+  const texto = String(valor || "").toLowerCase();
+  const numero = Number(texto.match(/\d+/)?.[0] || 15);
+
+  if (texto.includes("hora")) return numero * 60;
+  if (texto.includes("dia")) return numero * 1440;
+  return numero;
+}
+
+function configuracaoAtiva(valor, padrao = true) {
+  if (valor === undefined || valor === null) return padrao;
+  return valor !== false && valor !== 0 && valor !== "0";
+}
+
+function agruparPorUsuario(itens) {
+  return itens.reduce((grupos, item) => {
+    const chave = String(item.usuario_id);
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(item);
+    return grupos;
+  }, new Map());
+}
+
+function listarTarefasAtivas() {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `
+      SELECT
+        t.*,
+        r.usuario_id,
+        r.nome AS rotina_nome,
+        c.notificacoes_gerais,
+        c.notificacoes_navegador,
+        c.notificacoes_por_rotina,
+        c.antecedencia_lembrete
+      FROM tarefas t
+      JOIN rotinas r ON t.rotina_id = r.id
+      LEFT JOIN configuracoes c ON c.usuario_id = r.usuario_id
+      WHERE t.horario IS NOT NULL
+      AND t.horario <> ''
+      AND (t.status IS NULL OR t.status NOT LIKE 'Conclu%')
+      AND (t.concluida = false OR t.concluida IS NULL)
+      AND (t.notificacao = true OR t.notificacao = 1)
+      `,
+      (err, tarefas) => {
+        if (err) return reject(err);
+        resolve(tarefas || []);
+      },
+    );
+  });
 }
 
 function listarSubscriptions(usuarioId) {
@@ -110,10 +180,81 @@ async function enviarPushParaUsuario(usuarioId, titulo, mensagem, extras = {}) {
   }
 }
 
+async function filtrarNaoEnviadas(itens, tipo, chavePorItem) {
+  const resultado = [];
+
+  for (const item of itens) {
+    const chaveEnvio = chavePorItem(item);
+    const enviada = await jaEnviouNotificacao({
+      usuarioId: item.usuario_id,
+      tipo,
+      referenciaId: item.id,
+      chaveEnvio,
+    });
+    if (!enviada) resultado.push({ item, chaveEnvio });
+  }
+
+  return resultado;
+}
+
+function registrarGrupoEnviado(itens, tipo) {
+  itens.forEach(({ item, chaveEnvio }) => {
+    registrarNotificacaoEnviada({
+      usuarioId: item.usuario_id,
+      tipo,
+      referenciaId: item.id,
+      chaveEnvio,
+    });
+  });
+}
+
+async function enviarGrupoTarefas(usuarioId, tarefas, { antecipado = false } = {}) {
+  if (!tarefas.length) return;
+
+  const titulo = antecipado
+    ? tarefas.length > 1
+      ? `${tarefas.length} tarefas proximas`
+      : "Tarefa proxima"
+    : tarefas.length > 1
+      ? `${tarefas.length} tarefas acontecendo agora`
+      : "Agora!";
+  const mensagem = tarefas
+    .map((tarefa) =>
+      antecipado
+        ? `${tarefa.titulo} as ${String(tarefa.horario).slice(0, 5)}`
+        : `${tarefa.titulo} - ${tarefa.rotina_nome || "Rotina"}`,
+    )
+    .join(" • ");
+  const primeira = tarefas[0];
+
+  await enviarPushParaUsuario(usuarioId, titulo, mensagem, {
+    alarme:
+      !antecipado && tarefas.some((tarefa) => valorAlarmeAtivo(tarefa.alarme)),
+    tipo: "tarefa",
+    tarefaId: primeira.id,
+    rotinaId: primeira.rotina_id,
+    horario: String(primeira.horario).slice(0, 5),
+    antecipado,
+    tarefas: tarefas.map((tarefa) => ({
+      tarefaId: tarefa.id,
+      rotinaId: tarefa.rotina_id,
+      titulo: tarefa.titulo,
+      rotinaNome: tarefa.rotina_nome,
+      horario: String(tarefa.horario).slice(0, 5),
+      alarme: valorAlarmeAtivo(tarefa.alarme),
+    })),
+    url: "/dashboard.html",
+  });
+}
+
 function iniciarSchedulerNotificacoes() {
   cron.schedule("* * * * *", async () => {
     try {
-      const { hora: horaAtual, diaMes: diaMesHoje } = partesAgoraBrasil();
+      const {
+        hora: horaAtual,
+        diaMes: diaMesHoje,
+        dataISO,
+      } = partesAgoraBrasil();
       const diaSemanaHoje = diaSemanaAtualBrasil();
 
       db.query(
@@ -134,7 +275,7 @@ function iniciarSchedulerNotificacoes() {
           for (const lembrete of lembretes.filter((item) =>
             lembreteValeParaHoje(item, diaMesHoje),
           )) {
-            const chaveEnvio = `lembrete-${lembrete.id}-${horaAtual}`;
+            const chaveEnvio = `lembrete-${lembrete.id}-${dataISO}-${horaAtual}`;
 
             db.query(
               `
@@ -210,59 +351,57 @@ function iniciarSchedulerNotificacoes() {
         },
       );
 
-      db.query(
-        `
-        SELECT t.*, r.usuario_id, r.nome AS rotina_nome
-        FROM tarefas t
-        JOIN rotinas r ON t.rotina_id = r.id
-        WHERE t.horario = ?
-        AND (t.status IS NULL OR t.status NOT LIKE 'Conclu%')
-        AND (t.concluida = false OR t.concluida IS NULL)
-        AND (t.notificacao = true OR t.notificacao = 1)
-        `,
-        [horaAtual],
-        async (err, tarefas) => {
-          if (err) {
-            console.error("Erro scheduler tarefas:", err);
-            return;
-          }
-
-          for (const tarefa of (tarefas || []).filter((item) =>
-            tarefaValeParaHoje(item, diaSemanaHoje),
-          )) {
-            const chaveEnvio = `tarefa-${tarefa.id}-${horaAtual}`;
-            const jaExiste = await jaEnviouNotificacao({
-              usuarioId: tarefa.usuario_id,
-              tipo: "tarefa",
-              referenciaId: tarefa.id,
-              chaveEnvio,
-            });
-
-            if (jaExiste) continue;
-
-            await enviarPushParaUsuario(
-              tarefa.usuario_id,
-              "Agora!",
-              tarefa.titulo,
-              {
-                alarme: valorAlarmeAtivo(tarefa.alarme),
-                tipo: "tarefa",
-                tarefaId: tarefa.id,
-                rotinaId: tarefa.rotina_id,
-                horario: tarefa.horario,
-                url: "/dashboard.html",
-              },
-            );
-
-            registrarNotificacaoEnviada({
-              usuarioId: tarefa.usuario_id,
-              tipo: "tarefa",
-              referenciaId: tarefa.id,
-              chaveEnvio,
-            });
-          }
-        },
+      const tarefas = (await listarTarefasAtivas()).filter(
+        (tarefa) =>
+          tarefaValeParaHoje(tarefa, diaSemanaHoje) &&
+          configuracaoAtiva(tarefa.notificacoes_gerais) &&
+          configuracaoAtiva(tarefa.notificacoes_navegador) &&
+          configuracaoAtiva(tarefa.notificacoes_por_rotina),
       );
+
+      const tarefasNoHorario = tarefas.filter(
+        (tarefa) => minutosAteHorario(tarefa.horario, horaAtual) === 0,
+      );
+      const tarefasAntecipadas = tarefas.filter((tarefa) => {
+        const antecedencia = antecedenciaEmMinutos(
+          tarefa.antecedencia_lembrete,
+        );
+        return minutosAteHorario(tarefa.horario, horaAtual) === antecedencia;
+      });
+
+      for (const [usuarioId, grupo] of agruparPorUsuario(
+        tarefasNoHorario,
+      )) {
+        const naoEnviadas = await filtrarNaoEnviadas(
+          grupo,
+          "tarefa",
+          (tarefa) => `tarefa-${tarefa.id}-${dataISO}-${horaAtual}`,
+        );
+        if (!naoEnviadas.length) continue;
+        await enviarGrupoTarefas(
+          usuarioId,
+          naoEnviadas.map(({ item }) => item),
+        );
+        registrarGrupoEnviado(naoEnviadas, "tarefa");
+      }
+
+      for (const [usuarioId, grupo] of agruparPorUsuario(
+        tarefasAntecipadas,
+      )) {
+        const naoEnviadas = await filtrarNaoEnviadas(
+          grupo,
+          "tarefa-antecipada",
+          (tarefa) =>
+            `tarefa-antecipada-${tarefa.id}-${dataISO}-${horaAtual}`,
+        );
+        if (!naoEnviadas.length) continue;
+        await enviarGrupoTarefas(
+          usuarioId,
+          naoEnviadas.map(({ item }) => item),
+          { antecipado: true },
+        );
+        registrarGrupoEnviado(naoEnviadas, "tarefa-antecipada");
+      }
     } catch (erro) {
       console.error("Erro geral scheduler:", erro);
     }

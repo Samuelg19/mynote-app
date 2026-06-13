@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v14";
+const CACHE_NAME = "mynote-cache-v17";
 
 const FILES_TO_CACHE = [
   "/",
@@ -15,6 +15,7 @@ const FILES_TO_CACHE = [
   "/css/responsive/mobile.css",
   "/js/api.js",
   "/js/app-preferences.js",
+  "/js/native-alarms.js",
   "/js/dashboard.js",
   "/js/configuracoes.js",
   "/js/login.js",
@@ -71,6 +72,10 @@ self.addEventListener("notificationclick", (event) => {
 
   const dados = event.notification.data || {};
   const deveConcluirTarefa = event.action === "ja-fiz" && dados.tarefaId;
+  const tarefasParaFila =
+    Array.isArray(dados.tarefas) && event.action
+      ? dados.tarefas.slice(1)
+      : dados.tarefas;
   const destino =
     deveConcluirTarefa
       ? `/dashboard.html?acao=concluir-tarefa&tarefaId=${encodeURIComponent(dados.tarefaId)}&rotinaId=${encodeURIComponent(dados.rotinaId || "")}`
@@ -85,6 +90,13 @@ self.addEventListener("notificationclick", (event) => {
         );
 
         if (dashboardClient) {
+          if (Array.isArray(tarefasParaFila) && tarefasParaFila.length) {
+            dashboardClient.postMessage({
+              type: "MYNOTE_ABRIR_FILA_ALARMES",
+              tarefas: tarefasParaFila,
+            });
+          }
+
           if (deveConcluirTarefa) {
             dashboardClient.postMessage({
               type: "MYNOTE_CONCLUIR_TAREFA",
@@ -115,8 +127,10 @@ self.addEventListener("push", (event) => {
   }
 
   const title = dados.title || "MyNote";
+  const tarefas = Array.isArray(dados.tarefas) ? dados.tarefas : [];
+  const tarefaPrincipal = tarefas[0] || dados;
   const actions =
-    dados.tipo === "tarefa"
+    dados.tipo === "tarefa" && tarefaPrincipal.tarefaId
       ? [
           { action: "vou-fazer", title: "Vou fazer" },
           { action: "ja-fiz", title: "Ja fiz" },
@@ -125,8 +139,10 @@ self.addEventListener("push", (event) => {
   const alarmeAtivo =
     dados.alarme === true || dados.alarme === 1 || dados.alarme === "true";
   const tag =
-    dados.tipo === "tarefa" && dados.tarefaId
-      ? `mynote-tarefa-${dados.tarefaId}`
+    dados.tipo === "tarefa" && tarefas.length > 1
+      ? `mynote-tarefas-${dados.horario || "agora"}`
+      : dados.tipo === "tarefa" && tarefaPrincipal.tarefaId
+        ? `mynote-tarefa-${tarefaPrincipal.tarefaId}`
       : dados.tipo === "lembrete" && dados.lembreteId
         ? `mynote-lembrete-${dados.lembreteId}`
         : alarmeAtivo
@@ -146,11 +162,12 @@ self.addEventListener("push", (event) => {
     data: {
       url: dados.url || "/dashboard.html",
       tipo: dados.tipo || "",
-      tarefaId: dados.tarefaId || "",
+      tarefaId: tarefaPrincipal.tarefaId || "",
       lembreteId: dados.lembreteId || "",
-      rotinaId: dados.rotinaId || "",
+      rotinaId: tarefaPrincipal.rotinaId || "",
       horario: dados.horario || "",
       alarme: alarmeAtivo,
+      tarefas,
     },
   };
 
