@@ -10,6 +10,7 @@ const lembreteRoutes = require("./routes/lembreteRoutes");
 const configuracaoRoutes = require("./routes/configuracaoRoutes");
 const eventoCalendarioRoutes = require("./routes/eventoCalendarioRoutes");
 const pushRoutes = require("./routes/pushRoutes");
+const anotacaoRoutes = require("./routes/anotacaoRoutes");
 const {
   iniciarSchedulerNotificacoes,
 } = require("./services/notificacaoScheduler");
@@ -51,7 +52,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "512kb" }));
 
 app.get("/", (req, res) => {
   res.json({ status: "ok", app: "MyNote API" });
@@ -64,6 +65,7 @@ app.use("/lembretes", lembreteRoutes);
 app.use("/configuracoes", configuracaoRoutes);
 app.use("/eventos-calendario", eventoCalendarioRoutes);
 app.use("/push", pushRoutes);
+app.use("/anotacoes", anotacaoRoutes);
 
 const PORT = process.env.PORT || 3000;
 

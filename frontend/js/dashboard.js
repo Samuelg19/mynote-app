@@ -40,11 +40,13 @@ const campoNotas = document.getElementById("campoNotas");
 const listaRotinas = document.getElementById("listaRotinas");
 const btnConfiguracoes = document.getElementById("btnConfiguracoes");
 const btnLembretes = document.getElementById("btnLembretes");
+const btnAnotacoes = document.getElementById("btnAnotacoes");
 const btnLogout = document.getElementById("btnLogout");
 
 //Seções principais
 const secaoRotinas = document.getElementById("secaoRotinas");
 const secaoLembretes = document.getElementById("secaoLembretes");
+const secaoAnotacoes = document.getElementById("secaoAnotacoes");
 const btnVoltarMobile = document.getElementById("btnVoltarMobile");
 const cardNotasRotina = document.getElementById("cardNotasRotina");
 const consultaMobileDashboard = window.matchMedia("(max-width: 900px)");
@@ -1915,12 +1917,21 @@ function ativarItemSidebar(elemento) {
 function mostrarSecaoRotinas() {
   if (secaoRotinas) secaoRotinas.style.display = "block";
   if (secaoLembretes) secaoLembretes.style.display = "none";
+  if (secaoAnotacoes) secaoAnotacoes.hidden = true;
 }
 
 function mostrarSecaoLembretes() {
   if (secaoRotinas) secaoRotinas.style.display = "none";
   if (secaoLembretes) secaoLembretes.style.display = "block";
+  if (secaoAnotacoes) secaoAnotacoes.hidden = true;
   definirTelaMobileDashboard("lembretes");
+}
+
+function mostrarSecaoAnotacoes() {
+  if (secaoRotinas) secaoRotinas.style.display = "none";
+  if (secaoLembretes) secaoLembretes.style.display = "none";
+  if (secaoAnotacoes) secaoAnotacoes.hidden = false;
+  definirTelaMobileDashboard("anotacoes");
 }
 
 function estaEmMobileDashboard() {
@@ -9677,10 +9688,30 @@ btnLembretes.addEventListener("click", () => {
   carregarLembretes();
 });
 
+btnAnotacoes?.addEventListener("click", () => {
+  btnHojeCalendario?.classList.add("hidden");
+  btnAdicionarEventoCalendario?.classList.add("hidden");
+  ativarItemSidebar(btnAnotacoes);
+  mostrarSecaoAnotacoes();
+  window.MyNoteAnotacoes?.abrir();
+});
+
 btnConfiguracoes.addEventListener("click", () => {
   ativarItemSidebar(btnConfiguracoes);
   window.location.href = "configuracoes.html";
 });
+
+window.MyNoteDashboardContext = {
+  apiBaseUrl: API_BASE_URL,
+  headersAuth,
+  validarRespostaAutenticada,
+  lerRespostaJsonSegura,
+  mostrarAviso,
+  mostrarConfirmacao,
+  definirTelaMobileDashboard,
+  estaEmMobileDashboard,
+  btnVoltarMobile,
+};
 
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {

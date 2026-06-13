@@ -3,6 +3,9 @@ const bcrypt = require("bcrypt");
 const { OAuth2Client } = require("google-auth-library");
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const jwt = require("jsonwebtoken");
+const {
+  garantirTabelasAnotacoes,
+} = require("./anotacaoController");
 
 function gerarTokenUsuario(user) {
   return jwt.sign(
@@ -135,62 +138,94 @@ exports.alterarSenha = (req, res) => {
   );
 };
 
-exports.excluirConta = (req, res) => {
+exports.excluirConta = async (req, res) => {
   const usuario_id = req.usuario?.id;
 
   if (!usuario_id) {
     return res.status(400).json({ msg: "Usuário inválido." });
   }
 
-  db.query(
-    "DELETE FROM tarefas WHERE rotina_id IN (SELECT id FROM rotinas WHERE usuario_id = ?)",
-    [usuario_id],
-    (err) => {
-      if (err) return res.status(500).json(err);
+  try {
+    await garantirTabelasAnotacoes();
+  } catch (err) {
+    return res.status(500).json(err);
+  }
 
-      db.query(
-        "DELETE FROM lembretes WHERE usuario_id = ?",
-        [usuario_id],
-        (err) => {
-          if (err) return res.status(500).json(err);
+  db.getConnection((err, connection) => {
+    if (err) return res.status(500).json(err);
 
-          db.query(
-            "DELETE FROM configuracoes WHERE usuario_id = ?",
-            [usuario_id],
-            (err) => {
-              if (err) return res.status(500).json(err);
+    const responderErro = (erro) => {
+      connection.rollback(() => {
+        connection.release();
+        res.status(500).json(erro);
+      });
+    };
 
-              db.query(
-                "DELETE FROM rotinas WHERE usuario_id = ?",
-                [usuario_id],
-                (err) => {
-                  if (err) return res.status(500).json(err);
+    connection.beginTransaction(async (erroTransacao) => {
+      if (erroTransacao) {
+        connection.release();
+        return res.status(500).json(erroTransacao);
+      }
 
-                  db.query(
-                    "DELETE FROM usuarios WHERE id = ?",
-                    [usuario_id],
-                    (err) => {
-                      if (err) return res.status(500).json(err);
+      try {
+        await queryAsync(
+          connection,
+          "DELETE FROM anotacoes WHERE usuario_id = ?",
+          [usuario_id],
+        );
+        await queryAsync(
+          connection,
+          "DELETE FROM categorias_anotacoes WHERE usuario_id = ?",
+          [usuario_id],
+        );
+        await queryAsync(
+          connection,
+          "DELETE FROM tarefas WHERE rotina_id IN (SELECT id FROM rotinas WHERE usuario_id = ?)",
+          [usuario_id],
+        );
+        await queryAsync(
+          connection,
+          "DELETE FROM lembretes WHERE usuario_id = ?",
+          [usuario_id],
+        );
+        await queryAsync(
+          connection,
+          "DELETE FROM configuracoes WHERE usuario_id = ?",
+          [usuario_id],
+        );
+        await queryAsync(
+          connection,
+          "DELETE FROM rotinas WHERE usuario_id = ?",
+          [usuario_id],
+        );
+        await queryAsync(connection, "DELETE FROM usuarios WHERE id = ?", [
+          usuario_id,
+        ]);
 
-                      res.json({ msg: "Conta excluída com sucesso." });
-                    },
-                  );
-                },
-              );
-            },
-          );
-        },
-      );
-    },
-  );
+        connection.commit((erroCommit) => {
+          if (erroCommit) return responderErro(erroCommit);
+          connection.release();
+          res.json({ msg: "Conta excluída com sucesso." });
+        });
+      } catch (erro) {
+        responderErro(erro);
+      }
+    });
+  });
 };
 
-exports.restaurarBackup = (req, res) => {
+exports.restaurarBackup = async (req, res) => {
   const { backup } = req.body;
   const usuario_id = req.usuario?.id;
 
   if (!usuario_id || !backup || !Array.isArray(backup.rotinas)) {
     return res.status(400).json({ msg: "Backup inválido." });
+  }
+
+  try {
+    await garantirTabelasAnotacoes();
+  } catch (err) {
+    return res.status(500).json(err);
   }
 
   db.getConnection((err, connection) => {
@@ -210,6 +245,16 @@ exports.restaurarBackup = (req, res) => {
       }
 
       try {
+        await queryAsync(
+          connection,
+          "DELETE FROM anotacoes WHERE usuario_id = ?",
+          [usuario_id],
+        );
+        await queryAsync(
+          connection,
+          "DELETE FROM categorias_anotacoes WHERE usuario_id = ?",
+          [usuario_id],
+        );
         await queryAsync(
           connection,
           "DELETE FROM tarefas WHERE rotina_id IN (SELECT id FROM rotinas WHERE usuario_id = ?)",
@@ -239,6 +284,19 @@ exports.restaurarBackup = (req, res) => {
           connection,
           usuario_id,
           Array.isArray(backup.lembretes) ? backup.lembretes : [],
+        );
+        const categoriasMapeadas = await inserirCategoriasBackup(
+          connection,
+          usuario_id,
+          Array.isArray(backup.categorias_anotacoes)
+            ? backup.categorias_anotacoes
+            : [],
+        );
+        await inserirAnotacoesBackup(
+          connection,
+          usuario_id,
+          Array.isArray(backup.anotacoes) ? backup.anotacoes : [],
+          categoriasMapeadas,
         );
 
         connection.commit((err) => {
@@ -342,6 +400,66 @@ async function inserirLembretesBackup(connection, usuario_id, lembretes) {
       VALUES ?`,
     [lembretes.map((lembrete) => valoresLembreteBackup(usuario_id, lembrete))],
   );
+}
+
+function normalizarDataBackup(valor) {
+  if (!valor) return null;
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return null;
+  return data.toISOString().slice(0, 19).replace("T", " ");
+}
+
+async function inserirCategoriasBackup(connection, usuario_id, categorias) {
+  const idsMapeados = new Map();
+
+  for (const categoria of categorias) {
+    const result = await queryAsync(
+      connection,
+      `INSERT INTO categorias_anotacoes
+        (usuario_id, nome, emoji, criado_em, atualizado_em)
+      VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
+      [
+        usuario_id,
+        String(categoria.nome || "Categoria restaurada").slice(0, 80),
+        String(categoria.emoji || "📁").slice(0, 32),
+        normalizarDataBackup(categoria.criado_em),
+        normalizarDataBackup(categoria.atualizado_em),
+      ],
+    );
+
+    idsMapeados.set(String(categoria.id), result.insertId);
+  }
+
+  return idsMapeados;
+}
+
+async function inserirAnotacoesBackup(
+  connection,
+  usuario_id,
+  anotacoes,
+  categoriasMapeadas,
+) {
+  for (const anotacao of anotacoes) {
+    const categoriaId =
+      anotacao.categoria_id === null || anotacao.categoria_id === undefined
+        ? null
+        : categoriasMapeadas.get(String(anotacao.categoria_id)) || null;
+
+    await queryAsync(
+      connection,
+      `INSERT INTO anotacoes
+        (usuario_id, categoria_id, titulo, conteudo, criado_em, atualizado_em)
+      VALUES (?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
+      [
+        usuario_id,
+        categoriaId,
+        String(anotacao.titulo || "").slice(0, 160),
+        String(anotacao.conteudo || "").slice(0, 100000),
+        normalizarDataBackup(anotacao.criado_em),
+        normalizarDataBackup(anotacao.atualizado_em),
+      ],
+    );
+  }
 }
 
 const crypto = require("crypto");

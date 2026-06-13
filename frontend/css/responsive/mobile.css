@@ -132,7 +132,8 @@
 
   body.dashboard-body[data-mobile-tela="home"] .sidebar-top,
   body.dashboard-body[data-mobile-tela="home"] .sidebar-extra,
-  body.dashboard-body[data-mobile-tela="home"] .sidebar-footer {
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-footer,
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-fixed-nav {
     flex: 0 0 auto;
   }
 
@@ -163,6 +164,11 @@
 
   body.dashboard-body[data-mobile-tela="home"] .sidebar-footer {
     margin-top: 12px;
+  }
+
+  body.dashboard-body[data-mobile-tela="home"] .sidebar-fixed-nav {
+    margin-top: 8px;
+    padding-top: 14px;
   }
 
   body.dashboard-body[data-mobile-tela="home"] .item-rotina,

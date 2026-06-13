@@ -207,6 +207,16 @@ body[data-fundo="marrom"] {
   background: transparent;
 }
 
+.sidebar-fixed-nav {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
 .lista-rotinas {
   list-style: none;
   padding: 0;
@@ -3046,13 +3056,28 @@ body[data-fundo="coral"] #cardTabelaTarefas {
 
 .sidebar {
   min-height: 100vh !important;
-  height: auto !important;
+  height: 100vh !important;
+  max-height: 100vh;
   align-self: stretch;
+  padding-bottom: 24px;
+  overflow: hidden;
 }
 
 .sidebar-footer {
   margin-top: auto !important;
   padding-top: 20px;
+}
+
+.sidebar .lista-rotinas {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.sidebar .lista-rotinas::-webkit-scrollbar {
+  width: 0;
+  display: none;
 }
 
 body[data-fundo="marrom"] .sidebar .item-rotina:not(.ativo),

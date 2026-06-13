@@ -1071,15 +1071,23 @@ btnExportarExcel?.addEventListener("click", async () => {
 
 btnSincronizarBackup?.addEventListener("click", async () => {
   try {
-    const [rotinasComTarefas, lembretes, configuracoes] = await Promise.all([
+    const [
+      rotinasComTarefas,
+      lembretes,
+      configuracoes,
+      anotacoes,
+      categoriasAnotacoes,
+    ] = await Promise.all([
       carregarRotinasComTarefas(),
       fetchJson("/lembretes").then(garantirLista),
       fetchJson("/configuracoes"),
+      fetchJson("/anotacoes").then(garantirLista),
+      fetchJson("/anotacoes/categorias").then(garantirLista),
     ]);
 
     const backup = {
       app: "MyNote",
-      versao: "2.6.0",
+      versao: "3.0.0",
       exportado_em: new Date().toISOString(),
       usuario: {
         id: usuario.id,
@@ -1089,6 +1097,8 @@ btnSincronizarBackup?.addEventListener("click", async () => {
       configuracoes,
       rotinas: rotinasComTarefas,
       lembretes,
+      anotacoes,
+      categorias_anotacoes: categoriasAnotacoes,
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], {

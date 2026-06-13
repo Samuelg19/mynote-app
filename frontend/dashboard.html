@@ -41,14 +41,17 @@
 
         <ul id="listaRotinas" class="lista-rotinas"></ul>
 
-        <div class="sidebar-extra">
+        <div class="sidebar-fixed-nav">
+          <button id="btnAnotacoes" class="item-menu" type="button">
+            <span class="icone-menu">📓</span>
+            <span>Anotações</span>
+          </button>
+
           <button id="btnLembretes" class="item-menu" type="button">
             <span class="icone-menu">🔔</span>
             <span>Lembretes</span>
           </button>
-        </div>
 
-        <div class="sidebar-footer">
           <button id="btnConfiguracoes" class="item-menu" type="button">
             <span class="icone-menu">⚙️</span>
             <span>Configurações</span>
@@ -279,6 +282,204 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <!-- ================= ANOTAÇÕES ================= -->
+        <section id="secaoAnotacoes" class="secao-anotacoes" hidden>
+          <div id="anotacoesInicio" class="anotacoes-view">
+            <h1>Anotações</h1>
+
+            <div
+              class="anotacoes-tabs"
+              role="tablist"
+              aria-label="Tipos de anotações"
+            >
+              <button
+                id="tabAnotacoesGerais"
+                class="anotacoes-tab ativo"
+                type="button"
+                role="tab"
+                aria-selected="true"
+              >
+                Gerais
+              </button>
+              <button
+                id="tabAnotacoesCategorias"
+                class="anotacoes-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+              >
+                Categorias
+              </button>
+            </div>
+
+            <div
+              id="painelAnotacoesGerais"
+              class="anotacoes-painel"
+              role="tabpanel"
+            >
+              <div id="listaAnotacoesGerais" class="anotacoes-lista"></div>
+            </div>
+
+            <div
+              id="painelAnotacoesCategorias"
+              class="anotacoes-painel"
+              role="tabpanel"
+              hidden
+            >
+              <div id="listaCategoriasAnotacoes" class="categorias-lista"></div>
+            </div>
+
+            <button
+              id="btnAdicionarAnotacao"
+              class="btn-adicionar-anotacao"
+              type="button"
+              aria-label="Criar anotação"
+              title="Criar anotação"
+            >
+              +
+            </button>
+          </div>
+
+          <div id="detalheCategoriaAnotacoes" class="anotacoes-view" hidden>
+            <header class="anotacoes-subheader">
+              <button
+                id="btnVoltarCategorias"
+                class="btn-anotacoes-voltar"
+                type="button"
+              >
+                ← Voltar
+              </button>
+              <div class="categoria-detalhe-titulo">
+                <span id="categoriaDetalheEmoji" aria-hidden="true">📁</span>
+                <div>
+                  <h1 id="categoriaDetalheNome">Categoria</h1>
+                  <p id="categoriaDetalheContagem">0 anotações</p>
+                </div>
+              </div>
+            </header>
+
+            <div id="listaAnotacoesCategoria" class="anotacoes-lista"></div>
+
+            <button
+              id="btnAdicionarAnotacaoCategoria"
+              class="btn-adicionar-anotacao"
+              type="button"
+              aria-label="Criar anotação nesta categoria"
+              title="Criar anotação nesta categoria"
+            >
+              +
+            </button>
+          </div>
+
+          <div id="editorAnotacao" class="anotacoes-view editor-anotacao" hidden>
+            <header class="editor-anotacao-header">
+              <button
+                id="btnVoltarEditorAnotacao"
+                class="btn-anotacoes-voltar"
+                type="button"
+              >
+                ← Voltar
+              </button>
+              <div class="editor-anotacao-acoes">
+                <button
+                  id="btnExcluirAnotacaoEditor"
+                  class="btn-editor-excluir"
+                  type="button"
+                  hidden
+                >
+                  Excluir
+                </button>
+                <button
+                  id="btnSalvarAnotacao"
+                  class="btn-editor-salvar"
+                  type="button"
+                >
+                  Salvar
+                </button>
+              </div>
+            </header>
+
+            <label class="sr-only" for="tituloAnotacaoInput">
+              Título da anotação
+            </label>
+            <input
+              id="tituloAnotacaoInput"
+              class="editor-anotacao-titulo"
+              type="text"
+              maxlength="160"
+              placeholder="Título"
+            />
+
+            <div class="editor-anotacao-meta">
+              <span id="dataAnotacaoEditor">Nova anotação</span>
+              <span aria-hidden="true">|</span>
+              <span id="contadorAnotacaoEditor">0 caracteres</span>
+            </div>
+
+            <label class="sr-only" for="conteudoAnotacaoInput">
+              Conteúdo da anotação
+            </label>
+            <textarea
+              id="conteudoAnotacaoInput"
+              class="editor-anotacao-conteudo"
+              maxlength="100000"
+              placeholder="Comece a escrever..."
+            ></textarea>
+          </div>
+
+          <div id="modalCategoriaAnotacao" class="modal hidden">
+            <div class="modal-content modal-categoria-anotacao">
+              <button
+                id="fecharModalCategoriaAnotacao"
+                class="btn-fechar"
+                type="button"
+                aria-label="Fechar"
+              >
+                &times;
+              </button>
+
+              <h2 id="tituloModalCategoriaAnotacao">Nova categoria</h2>
+
+              <div class="categoria-form-grid">
+                <label for="emojiCategoriaAnotacao">Emoji</label>
+                <input
+                  id="emojiCategoriaAnotacao"
+                  class="categoria-emoji-input"
+                  type="text"
+                  maxlength="32"
+                  value="📁"
+                  aria-label="Emoji da categoria"
+                />
+
+                <label for="nomeCategoriaAnotacao">Nome da categoria</label>
+                <input
+                  id="nomeCategoriaAnotacao"
+                  type="text"
+                  maxlength="80"
+                  placeholder="Ex.: Estudos"
+                />
+              </div>
+
+              <div class="categoria-form-acoes">
+                <button
+                  id="cancelarCategoriaAnotacao"
+                  class="btn-secundario"
+                  type="button"
+                >
+                  Cancelar
+                </button>
+                <button
+                  id="salvarCategoriaAnotacao"
+                  class="btn-primario"
+                  type="button"
+                >
+                  Criar
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       </main>
@@ -1240,6 +1441,7 @@
 <script src="js/app-preferences.js"></script>
 <script src="js/native-alarms.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/anotacoes.js"></script>
     <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker
