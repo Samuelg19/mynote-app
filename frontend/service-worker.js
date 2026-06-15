@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v18";
+const CACHE_NAME = "mynote-cache-v19";
 
 const FILES_TO_CACHE = [
   "/",
@@ -13,12 +13,15 @@ const FILES_TO_CACHE = [
   "/css/pages/configuracoes.css",
   "/css/pages/auth.css",
   "/css/features/anotacoes.css",
+  "/vendor/quill/quill.snow.css",
   "/css/responsive/mobile.css",
   "/js/api.js",
   "/js/app-preferences.js",
   "/js/native-alarms.js",
   "/js/dashboard.js",
   "/js/anotacoes.js",
+  "/vendor/quill/quill.js",
+  "/vendor/dompurify/purify.min.js",
   "/js/configuracoes.js",
   "/js/login.js",
   "/js/cadastro.js",

@@ -4,6 +4,31 @@
 
   if (!contexto || !secao) return;
 
+  const LIMITE_ANEXOS = 5;
+  const LIMITE_ANEXO_BYTES = 1_500_000;
+  const LIMITE_TOTAL_ANEXOS_BYTES = 4_000_000;
+  const LIMITE_IMAGEM_BYTES = 950_000;
+  const LIMITE_CONTEUDO = 4_000_000;
+  const EXTENSOES_BLOQUEADAS =
+    /\.(?:exe|msi|bat|cmd|com|scr|js|mjs|cjs|html?|svg)$/i;
+  const TIPOS_ANEXO_PERMITIDOS = new Set([
+    "application/pdf",
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "text/csv",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ]);
+
   const elementos = {
     inicio: document.getElementById("anotacoesInicio"),
     detalheCategoria: document.getElementById("detalheCategoriaAnotacoes"),
@@ -27,7 +52,15 @@
     btnSalvar: document.getElementById("btnSalvarAnotacao"),
     btnExcluirEditor: document.getElementById("btnExcluirAnotacaoEditor"),
     tituloInput: document.getElementById("tituloAnotacaoInput"),
-    conteudoInput: document.getElementById("conteudoAnotacaoInput"),
+    conteudoEditor: document.getElementById("conteudoAnotacaoEditor"),
+    toolbar: document.getElementById("toolbarAnotacao"),
+    btnDesfazer: document.getElementById("btnDesfazerAnotacao"),
+    btnRefazer: document.getElementById("btnRefazerAnotacao"),
+    btnAnexar: document.getElementById("btnAnexarArquivoAnotacao"),
+    inputImagem: document.getElementById("inputImagemAnotacao"),
+    inputArquivo: document.getElementById("inputArquivoAnotacao"),
+    areaAnexos: document.getElementById("areaAnexosAnotacao"),
+    listaAnexos: document.getElementById("listaAnexosAnotacao"),
     dataEditor: document.getElementById("dataAnotacaoEditor"),
     contadorEditor: document.getElementById("contadorAnotacaoEditor"),
     modalCategoria: document.getElementById("modalCategoriaAnotacao"),
@@ -41,6 +74,7 @@
     ),
     nomeCategoriaInput: document.getElementById("nomeCategoriaAnotacao"),
     emojiCategoriaInput: document.getElementById("emojiCategoriaAnotacao"),
+    opcoesEmoji: document.getElementById("opcoesEmojiCategoriaAnotacao"),
   };
 
   let abaAtual = "gerais";
@@ -51,9 +85,18 @@
   let origemEditor = "gerais";
   let snapshotEditor = "";
   let carregamentoInicialFeito = false;
+  let editorQuill = null;
+  let anexosEditor = [];
 
   function plural(quantidade, singular, pluralTexto) {
     return `${quantidade} ${quantidade === 1 ? singular : pluralTexto}`;
+  }
+
+  function formatarBytes(bytes) {
+    const valor = Number(bytes || 0);
+    if (valor < 1024) return `${valor} B`;
+    if (valor < 1024 * 1024) return `${(valor / 1024).toFixed(0)} KB`;
+    return `${(valor / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   function formatarDataRelativa(valor) {
@@ -78,15 +121,13 @@
       return `${semanas} ${semanas === 1 ? "semana" : "semanas"} atrás`;
     }
 
-    const opcoes = {
+    return new Intl.DateTimeFormat("pt-BR", {
       day: "2-digit",
       month: "short",
       ...(data.getFullYear() === agora.getFullYear()
         ? {}
         : { year: "numeric" }),
-    };
-
-    return new Intl.DateTimeFormat("pt-BR", opcoes)
+    })
       .format(data)
       .replace(/\./g, "");
   }
@@ -117,7 +158,6 @@
     container.replaceChildren();
     const vazio = document.createElement("div");
     vazio.className = "anotacoes-vazio";
-
     const conteudo = document.createElement("div");
     const destaque = document.createElement("strong");
     const descricao = document.createElement("span");
@@ -167,6 +207,21 @@
     return botao;
   }
 
+  function sanitizarHtml(html) {
+    const limpo = window.DOMPurify
+      ? window.DOMPurify.sanitize(String(html || ""), {
+          ADD_ATTR: ["target", "rel", "data-list"],
+        })
+      : String(html || "");
+    const recipiente = document.createElement("div");
+    recipiente.innerHTML = limpo;
+    recipiente.querySelectorAll("a").forEach((link) => {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    });
+    return recipiente.innerHTML;
+  }
+
   function criarCardAnotacao(nota) {
     const card = document.createElement("article");
     card.className = "anotacao-card";
@@ -182,14 +237,25 @@
     const preview = document.createElement("p");
     preview.className = "anotacao-card-preview";
     preview.textContent =
-      nota.conteudo?.replace(/\s+/g, " ").trim() || "Anotação sem conteúdo.";
+      nota.resumo?.replace(/\s+/g, " ").trim() || "Anotação sem texto.";
 
+    const rodape = document.createElement("div");
+    rodape.className = "anotacao-card-rodape";
     const data = document.createElement("time");
     data.className = "anotacao-card-data";
     data.dateTime = nota.criado_em || "";
     data.textContent = formatarDataRelativa(nota.criado_em);
+    rodape.appendChild(data);
 
-    abrir.append(titulo, preview, data);
+    if (nota.anexos?.length) {
+      const anexos = document.createElement("span");
+      anexos.className = "anotacao-card-anexos";
+      anexos.textContent = `📎 ${nota.anexos.length}`;
+      anexos.title = plural(nota.anexos.length, "anexo", "anexos");
+      rodape.appendChild(anexos);
+    }
+
+    abrir.append(titulo, preview, rodape);
 
     const excluir = criarBotaoIcone(
       "anotacao-card-excluir",
@@ -206,11 +272,7 @@
     container.replaceChildren();
 
     if (!notas.length) {
-      mostrarVazio(
-        container,
-        contextoVazio.titulo,
-        contextoVazio.descricao,
-      );
+      mostrarVazio(container, contextoVazio.titulo, contextoVazio.descricao);
       return;
     }
 
@@ -357,10 +419,7 @@
     elementos.tabGerais.classList.toggle("ativo", geraisAtiva);
     elementos.tabCategorias.classList.toggle("ativo", !geraisAtiva);
     elementos.tabGerais.setAttribute("aria-selected", String(geraisAtiva));
-    elementos.tabCategorias.setAttribute(
-      "aria-selected",
-      String(!geraisAtiva),
-    );
+    elementos.tabCategorias.setAttribute("aria-selected", String(!geraisAtiva));
     elementos.painelGerais.hidden = !geraisAtiva;
     elementos.painelCategorias.hidden = geraisAtiva;
     elementos.btnAdicionar.setAttribute(
@@ -371,11 +430,8 @@
       ? "Criar anotação"
       : "Criar categoria";
 
-    if (geraisAtiva) {
-      carregarNotasGerais();
-    } else {
-      carregarCategorias();
-    }
+    if (geraisAtiva) carregarNotasGerais();
+    else carregarCategorias();
   }
 
   function ajustarVoltarGlobal(visivel) {
@@ -404,10 +460,93 @@
     await carregarNotasCategoria();
   }
 
+  function inicializarEditorRico() {
+    if (editorQuill) return true;
+
+    if (!window.Quill || !window.DOMPurify) {
+      contexto.mostrarAviso(
+        "erro",
+        "O editor de anotações não pôde ser carregado. Atualize a página.",
+      );
+      return false;
+    }
+
+    editorQuill = new window.Quill(elementos.conteudoEditor, {
+      theme: "snow",
+      placeholder: "Comece a escrever...",
+      modules: {
+        history: {
+          delay: 700,
+          maxStack: 100,
+          userOnly: true,
+        },
+        toolbar: {
+          container: elementos.toolbar,
+          handlers: {
+            image: () => elementos.inputImagem.click(),
+          },
+        },
+      },
+    });
+
+    const rotulosToolbar = {
+      ".ql-bold": "Negrito",
+      ".ql-italic": "Itálico",
+      ".ql-underline": "Sublinhado",
+      ".ql-strike": "Tachado",
+      '.ql-list[value="ordered"]': "Lista numerada",
+      '.ql-list[value="bullet"]': "Lista com marcadores",
+      '.ql-list[value="check"]': "Checklist",
+      ".ql-blockquote": "Citação",
+      ".ql-link": "Inserir link",
+      ".ql-image": "Inserir imagem",
+      ".ql-clean": "Limpar formatação",
+    };
+    Object.entries(rotulosToolbar).forEach(([seletor, rotulo]) => {
+      const controle = elementos.toolbar.querySelector(seletor);
+      if (!controle) return;
+      controle.title = rotulo;
+      controle.setAttribute("aria-label", rotulo);
+    });
+
+    editorQuill.on("text-change", atualizarContadorEditor);
+    elementos.btnDesfazer.addEventListener("click", () =>
+      editorQuill.history.undo(),
+    );
+    elementos.btnRefazer.addEventListener("click", () =>
+      editorQuill.history.redo(),
+    );
+    elementos.btnAnexar.addEventListener("click", () =>
+      elementos.inputArquivo.click(),
+    );
+    return true;
+  }
+
+  function htmlEditor() {
+    if (!editorQuill) return "";
+    const html = sanitizarHtml(editorQuill.root.innerHTML);
+    return html === "<p><br></p>" ? "" : html;
+  }
+
+  function textoEditor() {
+    return editorQuill?.getText().replace(/\s+/g, " ").trim() || "";
+  }
+
+  function assinaturaAnexos() {
+    return anexosEditor.map((anexo) => ({
+      id: anexo.id,
+      nome: anexo.nome,
+      tipo: anexo.tipo,
+      tamanho: anexo.tamanho,
+      tamanhoDados: anexo.dados?.length || 0,
+    }));
+  }
+
   function snapshotAtual() {
     return JSON.stringify({
       titulo: elementos.tituloInput.value,
-      conteudo: elementos.conteudoInput.value,
+      conteudo: htmlEditor(),
+      anexos: assinaturaAnexos(),
       categoria_id: categoriaDestinoEditor,
     });
   }
@@ -417,7 +556,9 @@
   }
 
   function atualizarContadorEditor() {
-    const quantidade = elementos.conteudoInput.value.length;
+    const quantidade = editorQuill
+      ? Math.max(0, editorQuill.getLength() - 1)
+      : 0;
     elementos.contadorEditor.textContent = plural(
       quantidade,
       "caractere",
@@ -425,23 +566,130 @@
     );
   }
 
-  function abrirEditor(nota = null, categoriaId = undefined) {
-    notaEmEdicao = nota ? { ...nota } : null;
+  function carregarConteudoNoEditor(conteudo) {
+    editorQuill.setText("");
+    const valor = String(conteudo || "");
+
+    if (!valor) return;
+    if (/<[a-z][\s\S]*>/i.test(valor)) {
+      editorQuill.clipboard.dangerouslyPasteHTML(sanitizarHtml(valor));
+    } else {
+      editorQuill.setText(valor);
+    }
+  }
+
+  function iconeAnexo(tipo, nome) {
+    if (tipo?.startsWith("image/")) return "🖼️";
+    if (tipo === "application/pdf") return "📕";
+    if (/spreadsheet|excel|csv/i.test(tipo || nome)) return "📊";
+    if (/presentation|powerpoint/i.test(tipo || nome)) return "📽️";
+    if (/word|document/i.test(tipo || nome)) return "📘";
+    if (/zip/i.test(tipo || nome)) return "🗜️";
+    return "📄";
+  }
+
+  function renderizarAnexosEditor() {
+    elementos.listaAnexos.replaceChildren();
+    elementos.areaAnexos.hidden = !anexosEditor.length;
+
+    const fragmento = document.createDocumentFragment();
+    anexosEditor.forEach((anexo) => {
+      const item = document.createElement("article");
+      item.className = "anexo-anotacao-item";
+
+      const icone = document.createElement("span");
+      icone.className = "anexo-anotacao-icone";
+      icone.textContent = iconeAnexo(anexo.tipo, anexo.nome);
+
+      const dados = document.createElement("div");
+      dados.className = "anexo-anotacao-dados";
+      const nome = document.createElement("strong");
+      nome.textContent = anexo.nome;
+      const tamanho = document.createElement("span");
+      tamanho.textContent = formatarBytes(anexo.tamanho);
+      dados.append(nome, tamanho);
+
+      const acoes = document.createElement("div");
+      acoes.className = "anexo-anotacao-acoes";
+
+      if (anexo.dados) {
+        const baixar = document.createElement("a");
+        baixar.className = "anexo-anotacao-acao";
+        baixar.href = anexo.dados;
+        baixar.download = anexo.nome;
+        baixar.title = "Baixar anexo";
+        baixar.setAttribute("aria-label", `Baixar ${anexo.nome}`);
+        baixar.textContent = "↓";
+        acoes.appendChild(baixar);
+      }
+
+      const remover = criarBotaoIcone(
+        "anexo-anotacao-acao anexo-anotacao-remover",
+        "×",
+        `Remover ${anexo.nome}`,
+        () => {
+          anexosEditor = anexosEditor.filter((itemAtual) => itemAtual.id !== anexo.id);
+          renderizarAnexosEditor();
+        },
+      );
+      acoes.appendChild(remover);
+      item.append(icone, dados, acoes);
+      fragmento.appendChild(item);
+    });
+
+    elementos.listaAnexos.appendChild(fragmento);
+  }
+
+  async function abrirEditor(nota = null, categoriaId = undefined) {
+    if (!inicializarEditorRico()) return;
+
     origemEditor = categoriaAtiva ? "categoria" : "gerais";
     categoriaDestinoEditor =
       categoriaId !== undefined
         ? categoriaId
         : nota?.categoria_id ?? categoriaAtiva?.id ?? null;
+    notaEmEdicao = nota ? { ...nota } : null;
 
     elementos.tituloInput.value = nota?.titulo || "";
-    elementos.conteudoInput.value = nota?.conteudo || "";
-    elementos.dataEditor.textContent = formatarDataEditor(nota?.criado_em);
+    carregarConteudoNoEditor("");
+    anexosEditor = [];
+    renderizarAnexosEditor();
+    elementos.dataEditor.textContent = nota
+      ? "Carregando anotação..."
+      : formatarDataEditor();
     elementos.btnExcluirEditor.hidden = !nota;
-    elementos.btnSalvar.disabled = false;
-    elementos.btnSalvar.textContent = "Salvar";
+    elementos.btnSalvar.disabled = Boolean(nota);
+    elementos.btnSalvar.textContent = nota ? "Carregando..." : "Salvar";
+    atualizarContadorEditor();
+    mostrarSomente("editor");
+
+    if (nota?.id) {
+      try {
+        const completa = await requisicao(`/anotacoes/${nota.id}`);
+        notaEmEdicao = completa;
+        categoriaDestinoEditor = completa.categoria_id ?? null;
+        elementos.tituloInput.value = completa.titulo || "";
+        carregarConteudoNoEditor(completa.conteudo || "");
+        anexosEditor = Array.isArray(completa.anexos)
+          ? completa.anexos.map((anexo) => ({ ...anexo }))
+          : [];
+        renderizarAnexosEditor();
+        elementos.dataEditor.textContent = formatarDataEditor(completa.criado_em);
+        elementos.btnSalvar.disabled = false;
+        elementos.btnSalvar.textContent = "Salvar";
+      } catch (erro) {
+        tratarErro(erro, "Não foi possível abrir a anotação.");
+        if (origemEditor === "categoria" && categoriaAtiva) {
+          mostrarSomente("categoria");
+        } else {
+          mostrarSomente("inicio");
+        }
+        return;
+      }
+    }
+
     atualizarContadorEditor();
     snapshotEditor = snapshotAtual();
-    mostrarSomente("editor");
     elementos.tituloInput.focus();
   }
 
@@ -466,12 +714,21 @@
 
   async function salvarNota() {
     const titulo = elementos.tituloInput.value.trim();
-    const conteudo = elementos.conteudoInput.value;
+    const conteudo = htmlEditor();
+    const resumo = textoEditor().slice(0, 500);
+    const temImagem = /<img\b/i.test(conteudo);
 
-    if (!titulo && !conteudo.trim()) {
+    if (!titulo && !resumo && !temImagem && !anexosEditor.length) {
       contexto.mostrarAviso(
         "aviso",
-        "Escreva um título ou algum conteúdo antes de salvar.",
+        "Escreva um título, conteúdo ou adicione um anexo antes de salvar.",
+      );
+      return;
+    }
+    if (conteudo.length > LIMITE_CONTEUDO) {
+      contexto.mostrarAviso(
+        "aviso",
+        "A anotação ficou muito grande. Remova ou reduza algumas imagens.",
       );
       return;
     }
@@ -490,6 +747,8 @@
         body: JSON.stringify({
           titulo,
           conteudo,
+          resumo,
+          anexos: anexosEditor,
           categoria_id: categoriaDestinoEditor,
         }),
       });
@@ -526,6 +785,17 @@
     );
   }
 
+  function marcarEmojiSelecionado(emoji) {
+    const selecionado = emoji || "📁";
+    elementos.opcoesEmoji
+      .querySelectorAll("[data-emoji]")
+      .forEach((botao) => {
+        const ativo = botao.dataset.emoji === selecionado;
+        botao.classList.toggle("ativo", ativo);
+        botao.setAttribute("aria-pressed", String(ativo));
+      });
+  }
+
   function abrirModalCategoria(categoria = null) {
     categoriaEmEdicao = categoria ? { ...categoria } : null;
     elementos.tituloModalCategoria.textContent = categoria
@@ -534,8 +804,9 @@
     elementos.salvarCategoria.textContent = categoria ? "Salvar" : "Criar";
     elementos.nomeCategoriaInput.value = categoria?.nome || "";
     elementos.emojiCategoriaInput.value = categoria?.emoji || "📁";
+    marcarEmojiSelecionado(elementos.emojiCategoriaInput.value);
     elementos.modalCategoria.classList.remove("hidden");
-    elementos.nomeCategoriaInput.focus();
+    window.setTimeout(() => elementos.nomeCategoriaInput.focus(), 40);
   }
 
   function fecharModalCategoria() {
@@ -605,10 +876,151 @@
     );
   }
 
+  function lerArquivoComoDataUrl(arquivo) {
+    return new Promise((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onload = () => resolve(String(leitor.result || ""));
+      leitor.onerror = () => reject(new Error(`Não foi possível ler ${arquivo.name}.`));
+      leitor.readAsDataURL(arquivo);
+    });
+  }
+
+  function carregarImagem(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const imagem = new Image();
+      imagem.onload = () => resolve(imagem);
+      imagem.onerror = () => reject(new Error("A imagem selecionada é inválida."));
+      imagem.src = dataUrl;
+    });
+  }
+
+  function tamanhoDataUrl(dataUrl) {
+    const base64 = String(dataUrl).split(",")[1] || "";
+    return Math.ceil((base64.length * 3) / 4);
+  }
+
+  async function comprimirImagem(arquivo) {
+    const original = await lerArquivoComoDataUrl(arquivo);
+    const imagem = await carregarImagem(original);
+    const escala = Math.min(1, 1280 / Math.max(imagem.width, imagem.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(imagem.width * escala));
+    canvas.height = Math.max(1, Math.round(imagem.height * escala));
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+
+    let qualidade = 0.88;
+    let resultado = canvas.toDataURL("image/webp", qualidade);
+    while (tamanhoDataUrl(resultado) > LIMITE_IMAGEM_BYTES && qualidade > 0.5) {
+      qualidade -= 0.08;
+      resultado = canvas.toDataURL("image/webp", qualidade);
+    }
+
+    if (tamanhoDataUrl(resultado) > 1_200_000) {
+      throw new Error("A imagem ficou muito grande mesmo após a redução.");
+    }
+    return resultado;
+  }
+
+  async function inserirImagemSelecionada() {
+    const arquivo = elementos.inputImagem.files?.[0];
+    elementos.inputImagem.value = "";
+    if (!arquivo) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(arquivo.type)) {
+      contexto.mostrarAviso("aviso", "Escolha uma imagem JPG, PNG ou WebP.");
+      return;
+    }
+
+    try {
+      const dataUrl = await comprimirImagem(arquivo);
+      const selecao = editorQuill.getSelection(true);
+      const indice = selecao?.index ?? editorQuill.getLength();
+      editorQuill.insertEmbed(indice, "image", dataUrl, "user");
+      editorQuill.setSelection(indice + 1, 0, "silent");
+    } catch (erro) {
+      tratarErro(erro, "Não foi possível inserir a imagem.");
+    }
+  }
+
+  function tipoArquivo(arquivo) {
+    if (arquivo.type) return arquivo.type.toLowerCase();
+    const extensao = arquivo.name.split(".").pop()?.toLowerCase();
+    const mapa = {
+      pdf: "application/pdf",
+      zip: "application/zip",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      xls: "application/vnd.ms-excel",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ppt: "application/vnd.ms-powerpoint",
+      pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      txt: "text/plain",
+      csv: "text/csv",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      gif: "image/gif",
+    };
+    return mapa[extensao] || "";
+  }
+
+  async function adicionarArquivosSelecionados() {
+    const arquivos = Array.from(elementos.inputArquivo.files || []);
+    elementos.inputArquivo.value = "";
+    if (!arquivos.length) return;
+
+    if (anexosEditor.length + arquivos.length > LIMITE_ANEXOS) {
+      contexto.mostrarAviso(
+        "aviso",
+        `Cada anotação pode ter no máximo ${LIMITE_ANEXOS} anexos.`,
+      );
+      return;
+    }
+
+    let total = anexosEditor.reduce(
+      (soma, anexo) => soma + Number(anexo.tamanho || 0),
+      0,
+    );
+
+    try {
+      for (const arquivo of arquivos) {
+        const tipo = tipoArquivo(arquivo);
+        if (
+          EXTENSOES_BLOQUEADAS.test(arquivo.name) ||
+          !TIPOS_ANEXO_PERMITIDOS.has(tipo)
+        ) {
+          throw new Error(`O arquivo "${arquivo.name}" não é permitido.`);
+        }
+        if (!arquivo.size || arquivo.size > LIMITE_ANEXO_BYTES) {
+          throw new Error(`"${arquivo.name}" deve ter no máximo 1,5 MB.`);
+        }
+
+        total += arquivo.size;
+        if (total > LIMITE_TOTAL_ANEXOS_BYTES) {
+          throw new Error("Os anexos ultrapassam o limite total de 4 MB.");
+        }
+
+        anexosEditor.push({
+          id: `anexo-${Date.now()}-${anexosEditor.length}`,
+          nome: arquivo.name.slice(0, 180),
+          tipo,
+          tamanho: arquivo.size,
+          dados: await lerArquivoComoDataUrl(arquivo),
+        });
+      }
+      renderizarAnexosEditor();
+    } catch (erro) {
+      tratarErro(erro, "Não foi possível anexar o arquivo.");
+    }
+  }
+
   async function abrir() {
     categoriaAtiva = null;
     mostrarSomente("inicio");
     contexto.definirTelaMobileDashboard("anotacoes");
+    inicializarEditorRico();
 
     if (!carregamentoInicialFeito) {
       carregamentoInicialFeito = true;
@@ -616,11 +1028,8 @@
       return;
     }
 
-    if (abaAtual === "gerais") {
-      await carregarNotasGerais();
-    } else {
-      await carregarCategorias();
-    }
+    if (abaAtual === "gerais") await carregarNotasGerais();
+    else await carregarCategorias();
   }
 
   elementos.tabGerais.addEventListener("click", () => alternarAba("gerais"));
@@ -628,11 +1037,8 @@
     alternarAba("categorias"),
   );
   elementos.btnAdicionar.addEventListener("click", () => {
-    if (abaAtual === "categorias") {
-      abrirModalCategoria();
-    } else {
-      abrirEditor(null, null);
-    }
+    if (abaAtual === "categorias") abrirModalCategoria();
+    else abrirEditor(null, null);
   });
   elementos.btnAdicionarCategoria.addEventListener("click", () =>
     abrirEditor(null, categoriaAtiva?.id ?? null),
@@ -648,11 +1054,9 @@
     if (notaEmEdicao) confirmarExclusaoNota(notaEmEdicao);
   });
   elementos.tituloInput.addEventListener("input", atualizarContadorEditor);
-  elementos.conteudoInput.addEventListener("input", atualizarContadorEditor);
-  elementos.fecharModalCategoria.addEventListener(
-    "click",
-    fecharModalCategoria,
-  );
+  elementos.inputImagem.addEventListener("change", inserirImagemSelecionada);
+  elementos.inputArquivo.addEventListener("change", adicionarArquivosSelecionados);
+  elementos.fecharModalCategoria.addEventListener("click", fecharModalCategoria);
   elementos.cancelarCategoria.addEventListener("click", fecharModalCategoria);
   elementos.salvarCategoria.addEventListener("click", salvarCategoria);
   elementos.modalCategoria.addEventListener("click", (evento) => {
@@ -661,6 +1065,15 @@
   elementos.nomeCategoriaInput.addEventListener("keydown", (evento) => {
     if (evento.key === "Enter") salvarCategoria();
   });
+  elementos.opcoesEmoji.addEventListener("click", (evento) => {
+    const botao = evento.target.closest("[data-emoji]");
+    if (!botao) return;
+    elementos.emojiCategoriaInput.value = botao.dataset.emoji;
+    marcarEmojiSelecionado(botao.dataset.emoji);
+  });
+  elementos.emojiCategoriaInput.addEventListener("input", () =>
+    marcarEmojiSelecionado(elementos.emojiCategoriaInput.value.trim()),
+  );
 
   window.addEventListener("beforeunload", (evento) => {
     if (!elementos.editor.hidden && editorTemAlteracoes()) {

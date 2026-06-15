@@ -1,6 +1,31 @@
 const db = require("../config/db");
+const sanitizeHtml = require("sanitize-html");
 
 let tabelasPromise = null;
+
+const LIMITE_CONTEUDO = 4_000_000;
+const LIMITE_ANEXOS = 5;
+const LIMITE_ANEXO_BYTES = 1_500_000;
+const LIMITE_TOTAL_ANEXOS_BYTES = 4_000_000;
+const EXTENSOES_BLOQUEADAS =
+  /\.(?:exe|msi|bat|cmd|com|scr|js|mjs|cjs|html?|svg)$/i;
+const TIPOS_ANEXO_PERMITIDOS = new Set([
+  "application/pdf",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+  "text/csv",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 
 function queryAsync(sql, params = []) {
   return new Promise((resolve, reject) => {
@@ -9,6 +34,14 @@ function queryAsync(sql, params = []) {
       resolve(results);
     });
   });
+}
+
+async function garantirColuna(sql) {
+  try {
+    await queryAsync(sql);
+  } catch (err) {
+    if (err?.code !== "ER_DUP_FIELDNAME") throw err;
+  }
 }
 
 function garantirTabelasAnotacoes() {
@@ -37,6 +70,8 @@ function garantirTabelasAnotacoes() {
         categoria_id INT NULL,
         titulo VARCHAR(160) NOT NULL DEFAULT '',
         conteudo LONGTEXT NOT NULL,
+        resumo_texto VARCHAR(500) NOT NULL DEFAULT '',
+        anexos_json LONGTEXT NULL,
         criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
           ON UPDATE CURRENT_TIMESTAMP,
@@ -49,6 +84,13 @@ function garantirTabelasAnotacoes() {
           ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    await garantirColuna(
+      "ALTER TABLE anotacoes ADD COLUMN resumo_texto VARCHAR(500) NOT NULL DEFAULT '' AFTER conteudo",
+    );
+    await garantirColuna(
+      "ALTER TABLE anotacoes ADD COLUMN anexos_json LONGTEXT NULL AFTER resumo_texto",
+    );
   })().catch((err) => {
     tabelasPromise = null;
     throw err;
@@ -62,6 +104,10 @@ garantirTabelasAnotacoes().catch((err) => {
 });
 
 function responderErro(res, err, mensagem) {
+  if (err?.status) {
+    return res.status(err.status).json({ msg: err.message });
+  }
+
   console.error(mensagem, err);
   return res.status(500).json({
     msg: mensagem,
@@ -74,7 +120,142 @@ function textoLimitado(valor, limite) {
 }
 
 function conteudoLimitado(valor) {
-  return String(valor ?? "").slice(0, 100000);
+  const conteudo = String(valor ?? "").slice(0, LIMITE_CONTEUDO);
+
+  return sanitizeHtml(conteudo, {
+    allowedTags: [
+      "p",
+      "br",
+      "strong",
+      "em",
+      "u",
+      "s",
+      "blockquote",
+      "pre",
+      "ol",
+      "ul",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "a",
+      "img",
+      "span",
+      "sub",
+      "sup",
+    ],
+    allowedAttributes: {
+      "*": ["class"],
+      a: ["href", "target", "rel"],
+      img: ["src", "alt", "width", "height"],
+      li: ["data-list"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    allowedSchemesByTag: {
+      img: ["data", "http", "https"],
+    },
+    transformTags: {
+      a: (tagName, attribs) => ({
+        tagName,
+        attribs: {
+          ...attribs,
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+      }),
+    },
+  });
+}
+
+function resumoLimitado(valor, conteudo = "") {
+  const resumoInformado = String(valor ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const resumoDerivado = sanitizeHtml(conteudo, {
+    allowedTags: [],
+    allowedAttributes: {},
+  })
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return (resumoInformado || resumoDerivado).slice(0, 500);
+}
+
+function erroValidacao(mensagem) {
+  const erro = new Error(mensagem);
+  erro.status = 400;
+  return erro;
+}
+
+function normalizarAnexos(valor) {
+  if (valor === undefined || valor === null || valor === "") return [];
+  if (!Array.isArray(valor)) {
+    throw erroValidacao("A lista de anexos e invalida.");
+  }
+  if (valor.length > LIMITE_ANEXOS) {
+    throw erroValidacao(`Cada anotacao pode ter no maximo ${LIMITE_ANEXOS} anexos.`);
+  }
+
+  let totalBytes = 0;
+
+  return valor.map((anexo, indice) => {
+    const nome = String(anexo?.nome || `arquivo-${indice + 1}`)
+      .trim()
+      .slice(0, 180);
+    const dados = String(anexo?.dados || "");
+    const encontrado = dados.match(
+      /^data:([^;,]+);base64,([a-z0-9+/=\r\n]+)$/i,
+    );
+
+    if (!encontrado || EXTENSOES_BLOQUEADAS.test(nome)) {
+      throw erroValidacao(`O arquivo "${nome}" nao e permitido.`);
+    }
+
+    const tipo = encontrado[1].toLowerCase();
+    if (!TIPOS_ANEXO_PERMITIDOS.has(tipo)) {
+      throw erroValidacao(`O tipo do arquivo "${nome}" nao e permitido.`);
+    }
+
+    const base64 = encontrado[2].replace(/\s/g, "");
+    const tamanho = Buffer.from(base64, "base64").length;
+    if (!tamanho || tamanho > LIMITE_ANEXO_BYTES) {
+      throw erroValidacao(
+        `O arquivo "${nome}" deve ter no maximo 1,5 MB.`,
+      );
+    }
+
+    totalBytes += tamanho;
+    if (totalBytes > LIMITE_TOTAL_ANEXOS_BYTES) {
+      throw erroValidacao("Os anexos da nota ultrapassam o limite total de 4 MB.");
+    }
+
+    const idInformado = String(anexo?.id || "");
+    const id = /^[a-z0-9_-]{1,80}$/i.test(idInformado)
+      ? idInformado
+      : `anexo-${Date.now()}-${indice}`;
+
+    return {
+      id,
+      nome,
+      tipo,
+      tamanho,
+      dados: `data:${tipo};base64,${base64}`,
+    };
+  });
+}
+
+function lerAnexosBanco(valor) {
+  if (!valor) return [];
+
+  try {
+    const anexos = JSON.parse(valor);
+    return Array.isArray(anexos) ? anexos : [];
+  } catch {
+    return [];
+  }
 }
 
 function emojiValido(valor) {
@@ -98,23 +279,43 @@ async function buscarCategoriaDoUsuario(categoriaId, usuarioId) {
   return categorias[0] || false;
 }
 
-function normalizarNota(nota) {
-  return {
+function normalizarNota(nota, { incluirDadosAnexos = true } = {}) {
+  const anexos = lerAnexosBanco(nota.anexos_json).map((anexo) =>
+    incluirDadosAnexos
+      ? anexo
+      : {
+          id: anexo.id,
+          nome: anexo.nome,
+          tipo: anexo.tipo,
+          tamanho: Number(anexo.tamanho || 0),
+        },
+  );
+  const normalizada = {
     ...nota,
     id: Number(nota.id),
     usuario_id: Number(nota.usuario_id),
     categoria_id:
       nota.categoria_id === null ? null : Number(nota.categoria_id),
+    resumo: nota.resumo || nota.resumo_texto || "",
+    anexos,
   };
+
+  delete normalizada.anexos_json;
+  delete normalizada.resumo_texto;
+  return normalizada;
 }
 
 exports.garantirTabelasAnotacoes = garantirTabelasAnotacoes;
+exports.sanitizarConteudoAnotacao = conteudoLimitado;
+exports.criarResumoAnotacao = resumoLimitado;
+exports.normalizarAnexosAnotacao = normalizarAnexos;
 
 exports.listar = async (req, res) => {
   try {
     await garantirTabelasAnotacoes();
 
     const usuarioId = req.usuario.id;
+    const completo = String(req.query.completo || "") === "1";
     const categoria = String(req.query.categoria ?? "").trim();
     const params = [usuarioId];
     let filtro = "";
@@ -136,7 +337,9 @@ exports.listar = async (req, res) => {
         n.usuario_id,
         n.categoria_id,
         n.titulo,
-        n.conteudo,
+        ${completo ? "n.conteudo," : ""}
+        COALESCE(NULLIF(n.resumo_texto, ''), LEFT(n.conteudo, 500)) AS resumo,
+        n.anexos_json,
         n.criado_em,
         n.atualizado_em,
         c.nome AS categoria_nome,
@@ -150,7 +353,11 @@ exports.listar = async (req, res) => {
       params,
     );
 
-    res.json(notas.map(normalizarNota));
+    res.json(
+      notas.map((nota) =>
+        normalizarNota(nota, { incluirDadosAnexos: completo }),
+      ),
+    );
   } catch (err) {
     responderErro(res, err, "Nao foi possivel listar as anotacoes.");
   }
@@ -190,12 +397,14 @@ exports.criar = async (req, res) => {
     const usuarioId = req.usuario.id;
     const titulo = textoLimitado(req.body?.titulo, 160);
     const conteudo = conteudoLimitado(req.body?.conteudo);
+    const resumo = resumoLimitado(req.body?.resumo, conteudo);
+    const anexos = normalizarAnexos(req.body?.anexos);
     const categoria = await buscarCategoriaDoUsuario(
       req.body?.categoria_id,
       usuarioId,
     );
 
-    if (!titulo && !conteudo.trim()) {
+    if (!titulo && !resumo && !/<img\b/i.test(conteudo) && !anexos.length) {
       return res
         .status(400)
         .json({ msg: "Escreva um titulo ou algum conteudo antes de salvar." });
@@ -207,9 +416,16 @@ exports.criar = async (req, res) => {
 
     const result = await queryAsync(
       `INSERT INTO anotacoes
-        (usuario_id, categoria_id, titulo, conteudo)
-      VALUES (?, ?, ?, ?)`,
-      [usuarioId, categoria?.id || null, titulo, conteudo],
+        (usuario_id, categoria_id, titulo, conteudo, resumo_texto, anexos_json)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        usuarioId,
+        categoria?.id || null,
+        titulo,
+        conteudo,
+        resumo,
+        JSON.stringify(anexos),
+      ],
     );
 
     const notas = await queryAsync(
@@ -246,6 +462,14 @@ exports.atualizar = async (req, res) => {
       req.body?.conteudo === undefined
         ? atual.conteudo
         : conteudoLimitado(req.body.conteudo);
+    const resumo =
+      req.body?.resumo === undefined && req.body?.conteudo === undefined
+        ? atual.resumo_texto
+        : resumoLimitado(req.body?.resumo, conteudo);
+    const anexos =
+      req.body?.anexos === undefined
+        ? lerAnexosBanco(atual.anexos_json)
+        : normalizarAnexos(req.body.anexos);
     let categoriaId = atual.categoria_id;
 
     if (Object.prototype.hasOwnProperty.call(req.body || {}, "categoria_id")) {
@@ -261,7 +485,7 @@ exports.atualizar = async (req, res) => {
       categoriaId = categoria?.id || null;
     }
 
-    if (!titulo && !conteudo.trim()) {
+    if (!titulo && !resumo && !/<img\b/i.test(conteudo) && !anexos.length) {
       return res
         .status(400)
         .json({ msg: "Uma anotacao nao pode ficar totalmente vazia." });
@@ -269,9 +493,17 @@ exports.atualizar = async (req, res) => {
 
     await queryAsync(
       `UPDATE anotacoes
-      SET titulo = ?, conteudo = ?, categoria_id = ?
+      SET titulo = ?, conteudo = ?, resumo_texto = ?, anexos_json = ?, categoria_id = ?
       WHERE id = ? AND usuario_id = ?`,
-      [titulo, conteudo, categoriaId, req.params.id, usuarioId],
+      [
+        titulo,
+        conteudo,
+        resumo,
+        JSON.stringify(anexos),
+        categoriaId,
+        req.params.id,
+        usuarioId,
+      ],
     );
 
     const notas = await queryAsync(

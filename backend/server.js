@@ -52,7 +52,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: "512kb" }));
+app.use(express.json({ limit: "50mb" }));
 
 app.get("/", (req, res) => {
   res.json({ status: "ok", app: "MyNote API" });

@@ -1081,7 +1081,7 @@ btnSincronizarBackup?.addEventListener("click", async () => {
       carregarRotinasComTarefas(),
       fetchJson("/lembretes").then(garantirLista),
       fetchJson("/configuracoes"),
-      fetchJson("/anotacoes").then(garantirLista),
+      fetchJson("/anotacoes?completo=1").then(garantirLista),
       fetchJson("/anotacoes/categorias").then(garantirLista),
     ]);
 

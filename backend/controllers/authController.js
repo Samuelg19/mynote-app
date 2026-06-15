@@ -5,6 +5,9 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const jwt = require("jsonwebtoken");
 const {
   garantirTabelasAnotacoes,
+  sanitizarConteudoAnotacao,
+  criarResumoAnotacao,
+  normalizarAnexosAnotacao,
 } = require("./anotacaoController");
 
 function gerarTokenUsuario(user) {
@@ -445,16 +448,24 @@ async function inserirAnotacoesBackup(
         ? null
         : categoriasMapeadas.get(String(anotacao.categoria_id)) || null;
 
+    const conteudo = sanitizarConteudoAnotacao(anotacao.conteudo || "");
+    const resumo = criarResumoAnotacao(anotacao.resumo, conteudo);
+    const anexos = normalizarAnexosAnotacao(
+      Array.isArray(anotacao.anexos) ? anotacao.anexos : [],
+    );
+
     await queryAsync(
       connection,
       `INSERT INTO anotacoes
-        (usuario_id, categoria_id, titulo, conteudo, criado_em, atualizado_em)
-      VALUES (?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
+        (usuario_id, categoria_id, titulo, conteudo, resumo_texto, anexos_json, criado_em, atualizado_em)
+      VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
       [
         usuario_id,
         categoriaId,
         String(anotacao.titulo || "").slice(0, 160),
-        String(anotacao.conteudo || "").slice(0, 100000),
+        conteudo,
+        resumo,
+        JSON.stringify(anexos),
         normalizarDataBackup(anotacao.criado_em),
         normalizarDataBackup(anotacao.atualizado_em),
       ],

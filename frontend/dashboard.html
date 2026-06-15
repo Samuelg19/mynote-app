@@ -12,6 +12,7 @@
 
     <link rel="icon" type="image/png" href="assets/favicon.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="vendor/quill/quill.snow.css" />
     <link rel="stylesheet" href="css/style.css" />
     <link rel="manifest" href="/manifest.json">
   </head>
@@ -419,42 +420,163 @@
               <span id="contadorAnotacaoEditor">0 caracteres</span>
             </div>
 
-            <label class="sr-only" for="conteudoAnotacaoInput">
-              Conteúdo da anotação
-            </label>
-            <textarea
-              id="conteudoAnotacaoInput"
+            <div
+              id="toolbarAnotacao"
+              class="editor-anotacao-toolbar"
+              role="toolbar"
+              aria-label="Formatação da anotação"
+            >
+              <span class="ql-formats">
+                <button
+                  id="btnDesfazerAnotacao"
+                  class="btn-editor-comando"
+                  type="button"
+                  title="Desfazer"
+                  aria-label="Desfazer"
+                >
+                  &#8630;
+                </button>
+                <button
+                  id="btnRefazerAnotacao"
+                  class="btn-editor-comando"
+                  type="button"
+                  title="Refazer"
+                  aria-label="Refazer"
+                >
+                  &#8631;
+                </button>
+              </span>
+              <span class="ql-formats">
+                <select class="ql-size" title="Tamanho do texto" aria-label="Tamanho do texto">
+                  <option value="small">Pequeno</option>
+                  <option selected>Normal</option>
+                  <option value="large">Grande</option>
+                  <option value="huge">Muito grande</option>
+                </select>
+              </span>
+              <span class="ql-formats">
+                <button class="ql-bold" type="button" title="Negrito"></button>
+                <button class="ql-italic" type="button" title="Itálico"></button>
+                <button class="ql-underline" type="button" title="Sublinhado"></button>
+                <button class="ql-strike" type="button" title="Tachado"></button>
+              </span>
+              <span class="ql-formats">
+                <button class="ql-list" value="ordered" type="button" title="Lista numerada"></button>
+                <button class="ql-list" value="bullet" type="button" title="Lista com marcadores"></button>
+                <button class="ql-list" value="check" type="button" title="Checklist"></button>
+                <button class="ql-blockquote" type="button" title="Citação"></button>
+              </span>
+              <span class="ql-formats">
+                <select class="ql-align" title="Alinhamento" aria-label="Alinhamento"></select>
+                <button class="ql-link" type="button" title="Inserir link"></button>
+                <button class="ql-image" type="button" title="Inserir imagem"></button>
+                <button
+                  id="btnAnexarArquivoAnotacao"
+                  class="btn-editor-comando btn-editor-anexar"
+                  type="button"
+                  title="Anexar arquivo"
+                  aria-label="Anexar arquivo"
+                >
+                  &#128206;
+                </button>
+                <button class="ql-clean" type="button" title="Limpar formatação"></button>
+              </span>
+            </div>
+
+            <div
+              id="conteudoAnotacaoEditor"
               class="editor-anotacao-conteudo"
-              maxlength="100000"
-              placeholder="Comece a escrever..."
-            ></textarea>
+              aria-label="Conteúdo da anotação"
+            ></div>
+
+            <input
+              id="inputImagemAnotacao"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+            />
+            <input
+              id="inputArquivoAnotacao"
+              type="file"
+              accept=".pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.webp,.gif"
+              multiple
+              hidden
+            />
+
+            <section
+              id="areaAnexosAnotacao"
+              class="editor-anotacao-anexos"
+              aria-labelledby="tituloAnexosAnotacao"
+              hidden
+            >
+              <div class="editor-anotacao-anexos-header">
+                <h2 id="tituloAnexosAnotacao">Anexos</h2>
+                <span>Até 5 arquivos, com 1,5 MB cada</span>
+              </div>
+              <div id="listaAnexosAnotacao" class="lista-anexos-anotacao"></div>
+            </section>
           </div>
 
           <div id="modalCategoriaAnotacao" class="modal hidden">
             <div class="modal-content modal-categoria-anotacao">
-              <button
-                id="fecharModalCategoriaAnotacao"
-                class="btn-fechar"
-                type="button"
-                aria-label="Fechar"
-              >
-                &times;
-              </button>
+              <header class="categoria-modal-header">
+                <span class="categoria-modal-icone" aria-hidden="true">📁</span>
+                <div>
+                  <h2 id="tituloModalCategoriaAnotacao">Nova categoria</h2>
+                  <p>Escolha um símbolo e dê um nome para organizar suas notas.</p>
+                </div>
+                <button
+                  id="fecharModalCategoriaAnotacao"
+                  class="btn-fechar"
+                  type="button"
+                  aria-label="Fechar"
+                >
+                  &times;
+                </button>
+              </header>
 
-              <h2 id="tituloModalCategoriaAnotacao">Nova categoria</h2>
+              <div class="categoria-form">
+                <fieldset class="categoria-emoji-fieldset">
+                  <legend>Escolha um emoji</legend>
+                  <div
+                    id="opcoesEmojiCategoriaAnotacao"
+                    class="categoria-emoji-opcoes"
+                    aria-label="Emojis sugeridos"
+                  >
+                    <button type="button" data-emoji="📁" aria-label="Pasta">📁</button>
+                    <button type="button" data-emoji="📚" aria-label="Estudos">📚</button>
+                    <button type="button" data-emoji="💼" aria-label="Trabalho">💼</button>
+                    <button type="button" data-emoji="🎓" aria-label="Faculdade">🎓</button>
+                    <button type="button" data-emoji="💡" aria-label="Ideias">💡</button>
+                    <button type="button" data-emoji="🏠" aria-label="Casa">🏠</button>
+                    <button type="button" data-emoji="❤️" aria-label="Pessoal">❤️</button>
+                    <button type="button" data-emoji="🎯" aria-label="Metas">🎯</button>
+                    <button type="button" data-emoji="💰" aria-label="Finanças">💰</button>
+                    <button type="button" data-emoji="✈️" aria-label="Viagens">✈️</button>
+                    <button type="button" data-emoji="🛒" aria-label="Compras">🛒</button>
+                    <button type="button" data-emoji="🏋️" aria-label="Treino">🏋️</button>
+                    <button type="button" data-emoji="🎨" aria-label="Criatividade">🎨</button>
+                    <button type="button" data-emoji="🎵" aria-label="Música">🎵</button>
+                    <button type="button" data-emoji="📌" aria-label="Importante">📌</button>
+                    <button type="button" data-emoji="🧠" aria-label="Conhecimento">🧠</button>
+                  </div>
 
-              <div class="categoria-form-grid">
-                <label for="emojiCategoriaAnotacao">Emoji</label>
-                <input
-                  id="emojiCategoriaAnotacao"
-                  class="categoria-emoji-input"
-                  type="text"
-                  maxlength="32"
-                  value="📁"
-                  aria-label="Emoji da categoria"
-                />
+                  <label class="categoria-emoji-personalizado">
+                    <span>Outro emoji</span>
+                    <input
+                      id="emojiCategoriaAnotacao"
+                      class="categoria-emoji-input"
+                      type="text"
+                      maxlength="32"
+                      value="📁"
+                      aria-label="Emoji personalizado da categoria"
+                    />
+                  </label>
+                </fieldset>
 
-                <label for="nomeCategoriaAnotacao">Nome da categoria</label>
+                <label class="categoria-nome-label" for="nomeCategoriaAnotacao">
+                  Nome da categoria
+                </label>
                 <input
                   id="nomeCategoriaAnotacao"
                   type="text"
@@ -1441,6 +1563,8 @@
 <script src="js/app-preferences.js"></script>
 <script src="js/native-alarms.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="vendor/dompurify/purify.min.js"></script>
+<script src="vendor/quill/quill.js"></script>
 <script src="js/anotacoes.js"></script>
     <script>
   if ("serviceWorker" in navigator) {
