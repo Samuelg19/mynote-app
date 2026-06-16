@@ -233,7 +233,6 @@ public class TaskAlarmSoundService extends Service {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setSilent(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(fullScreenIntent)
             .addAction(0, "Vou fazer", openIntent)
