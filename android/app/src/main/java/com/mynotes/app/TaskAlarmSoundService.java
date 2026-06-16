@@ -2,6 +2,7 @@ package com.mynotes.app;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
+import android.app.KeyguardManager;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -16,6 +17,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -220,7 +222,7 @@ public class TaskAlarmSoundService extends Service {
             );
         }
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title)
             .setContentText(text)
@@ -234,10 +236,32 @@ public class TaskAlarmSoundService extends Service {
             .setSilent(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(fullScreenIntent)
-            .setFullScreenIntent(fullScreenIntent, true)
             .addAction(0, "Vou fazer", openIntent)
-            .addAction(0, "Ja fiz", completeIntent)
-            .build();
+            .addAction(0, "Ja fiz", completeIntent);
+
+        if (shouldUseFullScreenAlarm()) {
+            builder.setFullScreenIntent(fullScreenIntent, true);
+        }
+
+        return builder.build();
+    }
+
+    private boolean shouldUseFullScreenAlarm() {
+        KeyguardManager keyguardManager =
+            (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+        boolean locked = keyguardManager != null &&
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                ? keyguardManager.isDeviceLocked()
+                : keyguardManager.inKeyguardRestrictedInputMode());
+
+        PowerManager powerManager =
+            (PowerManager) getSystemService(Context.POWER_SERVICE);
+        boolean interactive = powerManager != null &&
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH
+                ? powerManager.isInteractive()
+                : powerManager.isScreenOn());
+
+        return locked || !interactive;
     }
 
     private void updateNotification() {

@@ -1102,7 +1102,7 @@ body.tema-claro .btn-excluir:hover {
   box-shadow: 0 22px 60px rgba(36, 31, 24, 0.25);
 }
 
-.web-task-reminder button {
+.web-task-reminder > button {
   position: absolute;
   top: 10px;
   right: 12px;
@@ -1137,6 +1137,36 @@ body.tema-claro .btn-excluir:hover {
   margin: 8px 0 0;
   color: #52627d;
   line-height: 1.5;
+}
+
+.web-task-reminder-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.web-task-reminder-actions.hidden {
+  display: none;
+}
+
+.web-task-reminder-actions button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  background: #ef7a18;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.web-task-reminder-actions button:last-child {
+  background: #2f9e44;
+}
+
+.web-task-reminder-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 @media (max-width: 600px) {
@@ -3905,36 +3935,36 @@ body.dashboard-body :is(.btn-sidebar, .btn-primario, .btn-secundario, .btn-menu-
 }
 
 .rotina-transicao-suave :is(.rotina-header h1, #cardTabelaTarefas, #cardNotasRotina, #areaTreino) {
-  animation: rotinaEntrada var(--motion-slow) var(--motion-ease) both;
+  animation: rotinaEntrada 160ms var(--motion-ease) both;
 }
 
 .rotina-transicao-suave #cardTabelaTarefas {
-  animation-delay: 35ms;
+  animation-delay: 15ms;
 }
 
 .rotina-transicao-suave #cardNotasRotina,
 .rotina-transicao-suave #areaTreino {
-  animation-delay: 70ms;
+  animation-delay: 30ms;
 }
 
 .rotina-transicao-suave .tabela-tarefas tbody tr {
-  animation: linhaTarefaEntrada 240ms var(--motion-ease) both;
+  animation: linhaTarefaEntrada 140ms var(--motion-ease) both;
 }
 
 .rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(2) {
-  animation-delay: 22ms;
+  animation-delay: 8ms;
 }
 
 .rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(3) {
-  animation-delay: 44ms;
+  animation-delay: 16ms;
 }
 
 .rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(4) {
-  animation-delay: 66ms;
+  animation-delay: 24ms;
 }
 
 .rotina-transicao-suave .tabela-tarefas tbody tr:nth-child(n + 5) {
-  animation-delay: 88ms;
+  animation-delay: 30ms;
 }
 
 .tabela-tarefas tbody tr:hover {
@@ -4719,6 +4749,95 @@ body[data-fundo="menta"] {
   font-size: 0.62rem;
   font-weight: 700;
   line-height: 1.35;
+}
+
+.tutorial-annotations-window {
+  position: absolute;
+  inset: 14px;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.tutorial-annotations-header,
+.tutorial-annotations-category,
+.tutorial-annotations-editor,
+.tutorial-annotations-attachments {
+  border-radius: 12px;
+}
+
+.tutorial-annotations-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.tutorial-annotations-category {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--button-bg));
+}
+
+.tutorial-annotations-category span {
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.tutorial-annotations-category small {
+  color: var(--accent);
+  font-size: 0.52rem;
+  font-weight: 900;
+}
+
+.tutorial-annotations-editor {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  min-height: 34px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+}
+
+.tutorial-annotations-editor :is(b, i, u, em) {
+  min-height: 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.tutorial-annotations-editor b {
+  background: var(--accent);
+}
+
+.tutorial-annotations-attachments {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tutorial-annotations-attachments span {
+  min-height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: color-mix(in srgb, var(--accent) 82%, #f59e0b);
+  font-size: 0.52rem;
+  font-weight: 900;
 }
 
 .tutorial-settings-panel {

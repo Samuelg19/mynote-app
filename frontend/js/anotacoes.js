@@ -641,6 +641,13 @@
   }
 
   async function abrirEditor(nota = null, categoriaId = undefined) {
+    try {
+      await contexto.garantirEditorAnotacoes?.();
+    } catch (erro) {
+      tratarErro(erro, "NÃ£o foi possÃ­vel carregar o editor formatado.");
+      return;
+    }
+
     if (!inicializarEditorRico()) return;
 
     origemEditor = categoriaAtiva ? "categoria" : "gerais";
@@ -1020,7 +1027,6 @@
     categoriaAtiva = null;
     mostrarSomente("inicio");
     contexto.definirTelaMobileDashboard("anotacoes");
-    inicializarEditorRico();
 
     if (!carregamentoInicialFeito) {
       carregamentoInicialFeito = true;

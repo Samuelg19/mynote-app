@@ -1,4 +1,4 @@
-const CACHE_NAME = "mynote-cache-v19";
+const CACHE_NAME = "mynote-cache-v20";
 
 const FILES_TO_CACHE = [
   "/",
@@ -52,23 +52,72 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  const mesmaOrigem = url.origin === self.location.origin;
+  const recursoEstatico = mesmaOrigem && [
+    "audio",
+    "font",
+    "image",
+    "script",
+    "style",
+  ].includes(request.destination);
+
+  if (recursoEstatico) {
+    const atualizarCache = fetch(request).then(async (response) => {
+      if (response.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    });
+
+    event.waitUntil(atualizarCache.catch(() => undefined));
+    event.respondWith(
+      caches
+        .match(request)
+        .then((cached) => cached || atualizarCache)
+        .catch(
+          () =>
+            new Response("Offline", {
+              status: 503,
+              headers: { "Content-Type": "text/plain; charset=utf-8" },
+            }),
+        ),
+    );
+    return;
+  }
 
   event.respondWith(
-    fetch(event.request).catch(async () => {
-      const cached = await caches.match(event.request);
-      if (cached) return cached;
+    fetch(request)
+      .then(async (response) => {
+        if (mesmaOrigem && response.ok && request.mode === "navigate") {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(request, response.clone());
+        }
+        return response;
+      })
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
 
-      if (event.request.mode === "navigate") {
-        const fallback = await caches.match("/dashboard.html");
-        if (fallback) return fallback;
-      }
+        if (request.mode === "navigate") {
+          return (
+            (await caches.match("/dashboard.html")) ||
+            (await caches.match("/login.html"))
+          );
+        }
 
-      return new Response(JSON.stringify({ msg: "Recurso indisponivel offline." }), {
-        status: 503,
-        headers: { "Content-Type": "application/json" },
-      });
-    })
+        return new Response(
+          JSON.stringify({ msg: "Recurso indisponivel offline." }),
+          {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }),
   );
 });
 

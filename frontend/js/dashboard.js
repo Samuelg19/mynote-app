@@ -706,9 +706,18 @@ let configuracoesNotificacao = {
   modoFoco: false,
 };
 
-let cacheTarefasPorRotina = {};
+let cacheTarefasPorRotina = Object.create(null);
 let cacheRotinas = null;
 let cacheLembretes = null;
+let rotinasEmCarregamento = null;
+let versaoCacheRotinas = 0;
+const tarefasEmCarregamentoPorRotina = new Map();
+const versaoCacheTarefasPorRotina = new Map();
+const detalhesRotinaEmCarregamento = new Map();
+let sequenciaCarregamentoRotina = 0;
+let animacaoRotinaFrame = 0;
+let recursosEditorAnotacoesPromise = null;
+let moduloAnotacoesPromise = null;
 let eventosPorDataCalendario = new Map();
 let verificacoesNotificacaoEmExecucao = false;
 let sincronizacaoCompartilhadaEmExecucao = false;
@@ -724,7 +733,12 @@ function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
   agendarSincronizacaoAlarmesNativos();
 
   if (rotinaId) {
-    delete cacheTarefasPorRotina[rotinaId];
+    const chave = String(rotinaId);
+    delete cacheTarefasPorRotina[chave];
+    versaoCacheTarefasPorRotina.set(
+      chave,
+      (versaoCacheTarefasPorRotina.get(chave) || 0) + 1,
+    );
   }
   limparAgrupamentoEventosCalendario();
 }
@@ -732,6 +746,7 @@ function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
 function invalidarCacheRotinas() {
   agendarSincronizacaoAlarmesNativos();
   cacheRotinas = null;
+  versaoCacheRotinas += 1;
   limparAgrupamentoEventosCalendario();
 }
 
@@ -793,33 +808,149 @@ async function buscarRotinas({ force = false } = {}) {
     return cacheRotinas;
   }
 
-  const resposta = await fetchComRetry(
-    `${API_BASE_URL}/rotinas`,
-    {
-      headers: headersAuth(),
-    },
-    3,
-  );
-  cacheRotinas = await lerListaJson(resposta, { exigirOk: true });
-  limparAgrupamentoEventosCalendario();
-  return cacheRotinas;
+  if (rotinasEmCarregamento) {
+    return rotinasEmCarregamento;
+  }
+
+  const versao = versaoCacheRotinas;
+  const promessa = (async () => {
+    const resposta = await fetchComRetry(
+      `${API_BASE_URL}/rotinas`,
+      {
+        headers: headersAuth(),
+      },
+      3,
+    );
+    const rotinas = await lerListaJson(resposta, { exigirOk: true });
+
+    if (versao === versaoCacheRotinas) {
+      cacheRotinas = rotinas;
+      limparAgrupamentoEventosCalendario();
+    }
+
+    return rotinas;
+  })();
+
+  rotinasEmCarregamento = promessa;
+
+  try {
+    return await promessa;
+  } finally {
+    if (rotinasEmCarregamento === promessa) {
+      rotinasEmCarregamento = null;
+    }
+  }
 }
 
 async function buscarTarefasDaRotina(rotinaId, { force = false } = {}) {
-  if (!force && cacheTarefasPorRotina[rotinaId]) {
-    return cacheTarefasPorRotina[rotinaId];
+  const chave = String(rotinaId);
+
+  if (
+    !force &&
+    Object.prototype.hasOwnProperty.call(cacheTarefasPorRotina, chave)
+  ) {
+    return cacheTarefasPorRotina[chave];
   }
 
-  const resposta = await fetch(`${API_BASE_URL}/tarefas?rotina_id=${rotinaId}`, {
-    headers: headersAuth(),
-  });
-  const tarefas = ordenarTarefasPorPreferencia(
-    await lerListaJson(resposta),
-    preferenciasSite?.ordenacao_tarefas,
-  );
+  const versao = versaoCacheTarefasPorRotina.get(chave) || 0;
+  const carregamentoAtual = tarefasEmCarregamentoPorRotina.get(chave);
 
-  cacheTarefasPorRotina[rotinaId] = tarefas;
-  return tarefas;
+  if (carregamentoAtual?.versao === versao) {
+    return carregamentoAtual.promessa;
+  }
+
+  const promessa = (async () => {
+    const resposta = await fetchComRetry(
+      `${API_BASE_URL}/tarefas?rotina_id=${encodeURIComponent(rotinaId)}`,
+      { headers: headersAuth() },
+      2,
+    );
+    const tarefas = ordenarTarefasPorPreferencia(
+      await lerListaJson(resposta, { exigirOk: true }),
+      preferenciasSite?.ordenacao_tarefas,
+    );
+
+    if ((versaoCacheTarefasPorRotina.get(chave) || 0) === versao) {
+      cacheTarefasPorRotina[chave] = tarefas;
+    }
+
+    return tarefas;
+  })();
+
+  tarefasEmCarregamentoPorRotina.set(chave, { promessa, versao });
+
+  try {
+    return await promessa;
+  } finally {
+    if (tarefasEmCarregamentoPorRotina.get(chave)?.promessa === promessa) {
+      tarefasEmCarregamentoPorRotina.delete(chave);
+    }
+  }
+}
+
+function obterRotinaEmCache(rotinaId) {
+  if (
+    rotinaAtual &&
+    String(rotinaAtual.id) === String(rotinaId)
+  ) {
+    return rotinaAtual;
+  }
+
+  return (
+    cacheRotinas?.find(
+      (rotina) => String(rotina.id) === String(rotinaId),
+    ) || null
+  );
+}
+
+async function buscarDetalhesRotina(rotinaId, rotinaConhecida = null) {
+  const rotinaCache = rotinaConhecida || obterRotinaEmCache(rotinaId);
+  if (rotinaCache) return rotinaCache;
+
+  const chave = String(rotinaId);
+  if (detalhesRotinaEmCarregamento.has(chave)) {
+    return detalhesRotinaEmCarregamento.get(chave);
+  }
+
+  const promessa = (async () => {
+    const resposta = await fetchComRetry(
+      `${API_BASE_URL}/rotinas/${encodeURIComponent(rotinaId)}`,
+      { headers: headersAuth() },
+      2,
+    );
+    validarRespostaAutenticada(resposta);
+    const rotina = await lerRespostaJsonSegura(resposta);
+
+    if (!resposta.ok) {
+      throw new Error(rotina.msg || "Nao foi possivel carregar a rotina.");
+    }
+
+    return rotina;
+  })();
+
+  detalhesRotinaEmCarregamento.set(chave, promessa);
+
+  try {
+    return await promessa;
+  } finally {
+    if (detalhesRotinaEmCarregamento.get(chave) === promessa) {
+      detalhesRotinaEmCarregamento.delete(chave);
+    }
+  }
+}
+
+function preaquecerTarefasRotina(rotinaId) {
+  const conexao = navigator.connection;
+  if (
+    !rotinaId ||
+    document.hidden ||
+    conexao?.saveData ||
+    ["slow-2g", "2g"].includes(conexao?.effectiveType)
+  ) {
+    return;
+  }
+
+  buscarTarefasDaRotina(rotinaId).catch(() => {});
 }
 
 async function buscarLembretes({ force = false } = {}) {
@@ -1932,6 +2063,103 @@ function mostrarSecaoAnotacoes() {
   if (secaoLembretes) secaoLembretes.style.display = "none";
   if (secaoAnotacoes) secaoAnotacoes.hidden = false;
   definirTelaMobileDashboard("anotacoes");
+}
+
+function carregarScriptDinamico(src, nomeGlobal) {
+  if (nomeGlobal && window[nomeGlobal]) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const existente = document.querySelector(`script[data-src="${src}"]`);
+    if (existente) {
+      if (existente.dataset.carregado === "true") {
+        existente.remove();
+        reject(new Error(`O recurso ${src} nao foi inicializado.`));
+        return;
+      }
+
+      existente.addEventListener("load", resolve, { once: true });
+      existente.addEventListener("error", () => {
+        existente.remove();
+        reject(new Error(`Nao foi possivel carregar ${src}.`));
+      }, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.dataset.src = src;
+    script.async = true;
+    script.addEventListener("load", () => {
+      script.dataset.carregado = "true";
+      if (!nomeGlobal || window[nomeGlobal]) {
+        resolve();
+        return;
+      }
+
+      script.remove();
+      reject(new Error(`O recurso ${src} nao foi inicializado.`));
+    }, { once: true });
+    script.addEventListener("error", () => {
+      script.remove();
+      reject(new Error(`Nao foi possivel carregar ${src}.`));
+    }, { once: true });
+    document.head.appendChild(script);
+  });
+}
+
+function carregarEstiloDinamico(href) {
+  if (document.querySelector(`link[data-href="${href}"]`)) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.href = href;
+    link.addEventListener("load", resolve, { once: true });
+    link.addEventListener("error", () => {
+      link.remove();
+      reject(new Error(`Nao foi possivel carregar ${href}.`));
+    }, { once: true });
+    document.head.appendChild(link);
+  });
+}
+
+function garantirModuloAnotacoes() {
+  if (window.MyNoteAnotacoes) return Promise.resolve();
+
+  if (!moduloAnotacoesPromise) {
+    moduloAnotacoesPromise = carregarScriptDinamico(
+      "js/anotacoes.js",
+      "MyNoteAnotacoes",
+    ).catch((erro) => {
+      moduloAnotacoesPromise = null;
+      throw erro;
+    });
+  }
+
+  return moduloAnotacoesPromise;
+}
+
+function garantirEditorAnotacoes() {
+  if (window.Quill && window.DOMPurify) return Promise.resolve();
+
+  if (!recursosEditorAnotacoesPromise) {
+    recursosEditorAnotacoesPromise = Promise.all([
+      carregarEstiloDinamico("vendor/quill/quill.snow.css"),
+      carregarScriptDinamico(
+        "vendor/dompurify/purify.min.js",
+        "DOMPurify",
+      ),
+      carregarScriptDinamico("vendor/quill/quill.js", "Quill"),
+    ]).catch((erro) => {
+      recursosEditorAnotacoesPromise = null;
+      throw erro;
+    });
+  }
+
+  return recursosEditorAnotacoesPromise;
 }
 
 function estaEmMobileDashboard() {
@@ -3285,50 +3513,35 @@ function interromperFeedbackSonoroAtivo() {
 }
 
 function garantirInterfaceAlarmesWeb() {
-  if (document.getElementById("webTaskAlarmModal")) return;
+  if (document.getElementById("webTaskReminderPopup")) return;
 
   document.body.insertAdjacentHTML(
     "beforeend",
     `
-      <div id="webTaskAlarmModal" class="web-task-alarm hidden" role="dialog" aria-modal="true" aria-labelledby="webTaskAlarmTitle">
-        <section class="web-task-alarm-card">
-          <header class="web-task-alarm-header">
-            <span id="webTaskAlarmRoutine" class="web-task-alarm-routine">ROTINA</span>
-            <span id="webTaskAlarmProgress" class="web-task-alarm-progress"></span>
-          </header>
-          <img class="web-task-alarm-logo" src="assets/logo.png" alt="" />
-          <h2 id="webTaskAlarmTitle">Tarefa</h2>
-          <time id="webTaskAlarmTime">--:--</time>
-          <div class="web-task-alarm-actions">
-            <button id="webTaskAlarmDo" class="web-task-alarm-action web-task-alarm-do" type="button">
-              <span class="web-task-alarm-check" aria-hidden="true"></span>
-              <strong>Vou fazer</strong>
-            </button>
-            <button id="webTaskAlarmDone" class="web-task-alarm-action web-task-alarm-done" type="button">
-              <span class="web-task-alarm-check web-task-alarm-check-done" aria-hidden="true"></span>
-              <strong>Já fiz</strong>
-            </button>
-          </div>
-        </section>
-      </div>
       <aside id="webTaskReminderPopup" class="web-task-reminder hidden" role="status" aria-live="polite">
         <button id="webTaskReminderClose" type="button" aria-label="Fechar aviso">&times;</button>
         <span id="webTaskReminderKicker">Tarefa próxima</span>
         <strong id="webTaskReminderTitle"></strong>
         <p id="webTaskReminderText"></p>
+        <div id="webTaskReminderActions" class="web-task-reminder-actions hidden">
+          <button id="webTaskReminderDo" type="button">Vou fazer</button>
+          <button id="webTaskReminderDone" type="button">Já fiz</button>
+        </div>
       </aside>
     `,
   );
 
   document
-    .getElementById("webTaskAlarmDo")
+    .getElementById("webTaskReminderDo")
     ?.addEventListener("click", () => responderAlarmeWeb(false));
   document
-    .getElementById("webTaskAlarmDone")
+    .getElementById("webTaskReminderDone")
     ?.addEventListener("click", () => responderAlarmeWeb(true));
   document
     .getElementById("webTaskReminderClose")
-    ?.addEventListener("click", ocultarAvisoTarefaWeb);
+    ?.addEventListener("click", () =>
+      ocultarAvisoTarefaWeb({ limparFila: true }),
+    );
 }
 
 function iniciarSomAlarmeWeb() {
@@ -3362,28 +3575,19 @@ function pararSomAlarmeWeb() {
 
 function renderizarAlarmeWebAtual() {
   garantirInterfaceAlarmesWeb();
-  const modal = document.getElementById("webTaskAlarmModal");
   const tarefa = filaAlarmesWeb[0];
 
   if (!tarefa) {
-    modal?.classList.add("hidden");
-    pararSomAlarmeWeb();
+    ocultarAvisoTarefaWeb();
     chavesAlarmesWeb.clear();
     return;
   }
 
-  document.getElementById("webTaskAlarmRoutine").textContent =
-    String(tarefa.rotinaNome || "Rotina").toUpperCase();
-  document.getElementById("webTaskAlarmTitle").textContent =
-    tarefa.titulo || "Tarefa";
-  document.getElementById("webTaskAlarmTime").textContent =
-    tarefa.horario || "--:--";
-  document.getElementById("webTaskAlarmProgress").textContent =
-    filaAlarmesWeb.length > 1
-      ? `${filaAlarmesWeb.length} tarefas neste horário`
-      : "";
-
-  modal?.classList.remove("hidden");
+  mostrarAvisoTarefaWeb([tarefa], {
+    agora: true,
+    permitirAcoes: true,
+    manterVisivel: true,
+  });
 }
 
 function iniciarFilaAlarmesWeb(tarefas) {
@@ -3398,8 +3602,8 @@ function iniciarFilaAlarmesWeb(tarefas) {
 
   if (!filaAlarmesWeb.length) return;
   garantirInterfaceAlarmesWeb();
-  iniciarSomAlarmeWeb();
-  vibrarNotificacao({ alarme: true });
+  tocarSomNotificacao();
+  vibrarNotificacao();
   renderizarAlarmeWebAtual();
 }
 
@@ -3408,7 +3612,7 @@ async function responderAlarmeWeb(concluida) {
 
   respondendoAlarmeWeb = true;
   const tarefa = filaAlarmesWeb[0];
-  const botoes = document.querySelectorAll(".web-task-alarm-action");
+  const botoes = document.querySelectorAll(".web-task-reminder-actions button");
   botoes.forEach((botao) => {
     botao.disabled = true;
   });
@@ -3446,16 +3650,24 @@ async function responderAlarmeWeb(concluida) {
   }
 }
 
-function ocultarAvisoTarefaWeb() {
+function ocultarAvisoTarefaWeb({ limparFila = false } = {}) {
   clearTimeout(timerAvisoTarefaWeb);
+  if (limparFila) {
+    filaAlarmesWeb = [];
+    chavesAlarmesWeb.clear();
+  }
   document.getElementById("webTaskReminderPopup")?.classList.add("hidden");
 }
 
-function mostrarAvisoTarefaWeb(tarefas, { agora = false } = {}) {
+function mostrarAvisoTarefaWeb(
+  tarefas,
+  { agora = false, permitirAcoes = false, manterVisivel = false } = {},
+) {
   if (APP_NATIVO_CAPACITOR || !tarefas.length) return;
 
   garantirInterfaceAlarmesWeb();
   const popup = document.getElementById("webTaskReminderPopup");
+  const acoes = document.getElementById("webTaskReminderActions");
   const titulos = tarefas.map((tarefa) => tarefa.titulo).filter(Boolean);
   const primeira = tarefas[0];
 
@@ -3473,9 +3685,15 @@ function mostrarAvisoTarefaWeb(tarefas, { agora = false } = {}) {
       ? titulos.join(" • ")
       : `${primeira.rotinaNome || "Rotina"}${primeira.horario ? ` às ${primeira.horario}` : ""}`;
 
+  acoes?.classList.toggle("hidden", !permitirAcoes);
   popup?.classList.remove("hidden");
   clearTimeout(timerAvisoTarefaWeb);
-  timerAvisoTarefaWeb = setTimeout(ocultarAvisoTarefaWeb, agora ? 15000 : 10000);
+  if (!manterVisivel) {
+    timerAvisoTarefaWeb = setTimeout(
+      ocultarAvisoTarefaWeb,
+      agora ? 30000 : 10000,
+    );
+  }
 }
 
 function deveAlarmarNotificacao(opcoes = {}) {
@@ -5927,12 +6145,12 @@ function adicionarEventosNativosDaOcorrencia({
   }
 }
 
-async function construirAlarmesNativos() {
-  const rotinas = await buscarRotinas({ force: true });
+async function construirAlarmesNativos({ force = false } = {}) {
+  const rotinas = await buscarRotinas({ force });
   const tarefasPorRotina = await Promise.all(
     rotinas.map(async (rotina) => ({
       rotina,
-      tarefas: await buscarTarefasDaRotina(rotina.id, { force: true }),
+      tarefas: await buscarTarefasDaRotina(rotina.id, { force }),
     })),
   );
   const preferenciaSom = obterPreferenciaSomDispositivo();
@@ -6023,7 +6241,10 @@ async function oferecerPermissoesAlarmesNativos(status, quantidadeAlarmes) {
   );
 }
 
-async function sincronizarAlarmesNativos({ oferecerPermissoes = false } = {}) {
+async function sincronizarAlarmesNativos({
+  oferecerPermissoes = false,
+  force = false,
+} = {}) {
   if (
     !NativeTaskAlarms?.isAvailable?.() ||
     sincronizacaoAlarmesNativosEmExecucao
@@ -6033,7 +6254,7 @@ async function sincronizarAlarmesNativos({ oferecerPermissoes = false } = {}) {
 
   sincronizacaoAlarmesNativosEmExecucao = true;
   try {
-    const alarmes = await construirAlarmesNativos();
+    const alarmes = await construirAlarmesNativos({ force });
     await NativeTaskAlarms.sync(alarmes);
 
     if (oferecerPermissoes) {
@@ -6859,6 +7080,8 @@ async function carregarRotinas() {
       return indexA - indexB;
     });
 
+    const fragmentoRotinas = document.createDocumentFragment();
+
     rotinas.forEach((rotina) => {
       const li = document.createElement("li");
       li.classList.add("item-rotina");
@@ -6896,12 +7119,24 @@ async function carregarRotinas() {
         cardNotasRotina?.classList.remove("hidden");
         definirTelaMobileDashboard("rotina");
 
-        carregarTarefas(rotina.id, rotina.nome);
+        carregarTarefas(rotina.id, rotina.nome, rotina);
       });
 
-      listaRotinas.appendChild(li);
+      li.addEventListener(
+        "pointerenter",
+        () => preaquecerTarefasRotina(rotina.id),
+        { once: true },
+      );
+      li.addEventListener(
+        "touchstart",
+        () => preaquecerTarefasRotina(rotina.id),
+        { once: true, passive: true },
+      );
+
+      fragmentoRotinas.appendChild(li);
     });
 
+    listaRotinas.appendChild(fragmentoRotinas);
     ativarDragRotinas();
   } catch (erro) {
     console.error("Erro ao carregar rotinas:", erro);
@@ -8319,61 +8554,133 @@ function renderizarTabelaPorDia(tarefas, campos) {
 function animarTransicaoRotina() {
   if (!secaoRotinas) return;
 
+  cancelAnimationFrame(animacaoRotinaFrame);
   secaoRotinas.classList.remove("rotina-transicao-suave");
-  void secaoRotinas.offsetWidth;
-  secaoRotinas.classList.add("rotina-transicao-suave");
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  animacaoRotinaFrame = requestAnimationFrame(() => {
+    secaoRotinas.classList.add("rotina-transicao-suave");
+  });
 }
 
-async function carregarTarefas(rotinaId, nomeRotina) {
+function prepararPainelRotina(rotina, nomeRotina) {
+  if (rotina) rotinaAtual = rotina;
+
+  const tipoRotina = obterTipoRotina(nomeRotina, rotina);
+  const modeloRotina = rotina?.tipo_modelo || "tabela";
+  let camposPersonalizados = [];
+
+  try {
+    camposPersonalizados = normalizarCamposRotina(
+      rotina?.campos_config,
+      [],
+    );
+  } catch {
+    camposPersonalizados = [];
+  }
+
+  camposPersonalizados = ajustarCamposParaRotina(
+    camposPersonalizados,
+    tipoRotina,
+    rotina,
+  );
+
+  tituloRotina.textContent = nomeRotina;
+  campoNotas.value = rotina?.notas || "";
+  atualizarVisibilidadeBotaoFrequenciaRotina(tipoRotina);
+
+  if (camposPersonalizados.length > 0) {
+    renderizarCabecalhoPersonalizado(camposPersonalizados);
+  } else {
+    renderizarCabecalhoTarefas(tipoRotina);
+  }
+
+  atualizarBotaoSilenciarRotina();
+
+  return { tipoRotina, modeloRotina, camposPersonalizados };
+}
+
+function mostrarCarregamentoTarefas(tipoRotina, modeloRotina) {
+  const usaCards =
+    tipoRotina === "treino" ||
+    tipoRotina === "semanal" ||
+    modeloRotina === "treino_card" ||
+    modeloRotina === "tabela_por_dia";
+
+  if (usaCards) {
+    tabelaCard.classList.add("hidden");
+    areaTreino.classList.remove("hidden");
+    areaTreino.innerHTML =
+      '<p class="estado-carregando-rotina">Carregando tarefas...</p>';
+    return;
+  }
+
+  tabelaCard.classList.remove("hidden");
+  areaTreino.classList.add("hidden");
+  areaTreino.innerHTML = "";
+
+  const totalColunas =
+    tabelaTarefas.querySelectorAll("thead th").length || 1;
+  corpoTabelaTarefas.innerHTML = `
+    <tr class="linha-vazia estado-carregando-rotina">
+      <td colspan="${totalColunas}">Carregando tarefas...</td>
+    </tr>
+  `;
+}
+
+async function carregarTarefas(rotinaId, nomeRotina, rotinaConhecida = null) {
+  const carregamentoId = ++sequenciaCarregamentoRotina;
+  const chaveRotina = String(rotinaId);
+
   try {
     rotinaSelecionadaId = rotinaId;
     rotinaSelecionadaNome = nomeRotina;
     tituloRotina.textContent = nomeRotina;
-    const tipoRotina = obterTipoRotina(nomeRotina);
-    atualizarVisibilidadeBotaoFrequenciaRotina(tipoRotina);
 
     if (btnMenuRotina) {
       btnMenuRotina.classList.remove("hidden");
     }
 
-    const rotinaResposta = await fetch(
-      `${API_BASE_URL}/rotinas/${rotinaId}`,
-      {
-        headers: headersAuth(),
-      },
+    const rotinaCache =
+      rotinaConhecida || obterRotinaEmCache(rotinaId);
+    let configuracaoVisual = prepararPainelRotina(
+      rotinaCache,
+      nomeRotina,
     );
-    rotinaAtual = await rotinaResposta.json();
+    const temTarefasEmCache = Object.prototype.hasOwnProperty.call(
+      cacheTarefasPorRotina,
+      chaveRotina,
+    );
 
-    const modeloRotina = rotinaAtual?.tipo_modelo || "tabela";
-
-    campoNotas.value = rotinaAtual.notas || "";
-
-    let camposPersonalizados = [];
-
-    try {
-      camposPersonalizados = normalizarCamposRotina(
-        rotinaAtual.campos_config,
-        [],
+    if (!temTarefasEmCache) {
+      mostrarCarregamentoTarefas(
+        configuracaoVisual.tipoRotina,
+        configuracaoVisual.modeloRotina,
       );
-    } catch {
-      camposPersonalizados = [];
     }
 
-    camposPersonalizados = ajustarCamposParaRotina(
-      camposPersonalizados,
-      tipoRotina,
-      rotinaAtual,
+    const [detalhesRotina, tarefas] = await Promise.all([
+      buscarDetalhesRotina(rotinaId, rotinaCache),
+      buscarTarefasDaRotina(rotinaId),
+    ]);
+
+    if (
+      carregamentoId !== sequenciaCarregamentoRotina ||
+      String(rotinaSelecionadaId) !== chaveRotina
+    ) {
+      return;
+    }
+
+    configuracaoVisual = prepararPainelRotina(
+      detalhesRotina,
+      nomeRotina,
     );
-
-    if (camposPersonalizados.length > 0) {
-      renderizarCabecalhoPersonalizado(camposPersonalizados);
-    } else {
-      renderizarCabecalhoTarefas(tipoRotina);
-    }
-
-    atualizarBotaoSilenciarRotina();
-
-    const tarefas = await buscarTarefasDaRotina(rotinaId);
+    const {
+      tipoRotina,
+      modeloRotina,
+      camposPersonalizados,
+    } = configuracaoVisual;
 
     if (tipoRotina === "treino") {
       tabelaCard.classList.add("hidden");
@@ -8394,28 +8701,6 @@ async function carregarTarefas(rotinaId, nomeRotina) {
     }
 
     corpoTabelaTarefas.innerHTML = "";
-
-    if (tipoRotina === "semanal") {
-      tabelaCard.classList.add("hidden");
-      areaTreino.classList.remove("hidden");
-      areaTreino.innerHTML = "";
-
-      btnSilenciarRotina.classList.add("hidden");
-
-      renderizarSemanal(tarefas);
-      return;
-    }
-
-    if (tipoRotina === "treino") {
-      tabelaCard.classList.add("hidden");
-      areaTreino.classList.remove("hidden");
-      areaTreino.innerHTML = "";
-
-      btnSilenciarRotina.classList.add("hidden");
-
-      renderizarTreino(tarefas);
-      return;
-    }
 
     if (
       tipoRotina === "treino" &&
@@ -8451,6 +8736,8 @@ async function carregarTarefas(rotinaId, nomeRotina) {
       animarTransicaoRotina();
       return;
     }
+
+    const fragmentoTarefas = document.createDocumentFragment();
 
     tarefas.forEach((tarefa) => {
       const tr = document.createElement("tr");
@@ -8580,9 +8867,10 @@ invalidarCacheTarefas(rotinaSelecionadaId);
         }
       });
 
-      corpoTabelaTarefas.appendChild(tr);
+      fragmentoTarefas.appendChild(tr);
     });
 
+    corpoTabelaTarefas.appendChild(fragmentoTarefas);
     marcarColunasOpcionaisTabela();
 
     if (modoEdicaoTabela) {
@@ -8591,6 +8879,13 @@ invalidarCacheTarefas(rotinaSelecionadaId);
 
     animarTransicaoRotina();
   } catch (erro) {
+    if (
+      carregamentoId !== sequenciaCarregamentoRotina ||
+      String(rotinaSelecionadaId) !== chaveRotina
+    ) {
+      return;
+    }
+
     console.error("Erro ao carregar tarefas:", erro);
     mostrarAviso("erro", "Erro ao carregar tarefas.");
   }
@@ -9672,6 +9967,17 @@ campoNotas.addEventListener("blur", async () => {
 
     if (!resposta.ok) {
       mostrarAviso("erro", dados.msg || "Erro ao salvar notas.");
+      return;
+    }
+
+    if (rotinaAtual) {
+      rotinaAtual.notas = campoNotas.value;
+    }
+    const rotinaCache = cacheRotinas?.find(
+      (rotina) => String(rotina.id) === String(rotinaSelecionadaId),
+    );
+    if (rotinaCache) {
+      rotinaCache.notas = campoNotas.value;
     }
   } catch (erro) {
     console.error("Erro ao salvar notas:", erro);
@@ -9688,13 +9994,26 @@ btnLembretes.addEventListener("click", () => {
   carregarLembretes();
 });
 
-btnAnotacoes?.addEventListener("click", () => {
+btnAnotacoes?.addEventListener("click", async () => {
   btnHojeCalendario?.classList.add("hidden");
   btnAdicionarEventoCalendario?.classList.add("hidden");
   ativarItemSidebar(btnAnotacoes);
   mostrarSecaoAnotacoes();
-  window.MyNoteAnotacoes?.abrir();
+
+  try {
+    await garantirModuloAnotacoes();
+    window.MyNoteAnotacoes?.abrir();
+  } catch (erro) {
+    console.error("Nao foi possivel carregar as anotacoes:", erro);
+    mostrarAviso("erro", "Nao foi possivel abrir as anotacoes.");
+  }
 });
+
+btnAnotacoes?.addEventListener(
+  "pointerenter",
+  () => garantirModuloAnotacoes().catch(() => {}),
+  { once: true },
+);
 
 btnConfiguracoes.addEventListener("click", () => {
   ativarItemSidebar(btnConfiguracoes);
@@ -9709,6 +10028,7 @@ window.MyNoteDashboardContext = {
   mostrarAviso,
   mostrarConfirmacao,
   definirTelaMobileDashboard,
+  garantirEditorAnotacoes,
   estaEmMobileDashboard,
   btnVoltarMobile,
 };
@@ -10808,7 +11128,10 @@ async function inicializarDashboard() {
     }
   });
   window.addEventListener("focus", consumirAcaoAlarmeNativo);
-  setInterval(agendarSincronizacaoAlarmesNativos, 15 * 60 * 1000);
+  setInterval(
+    () => sincronizarAlarmesNativos({ force: true }),
+    15 * 60 * 1000,
+  );
 }
 
 inicializarDashboard();

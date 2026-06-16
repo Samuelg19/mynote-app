@@ -2,6 +2,22 @@ const db = require("../config/db");
 
 const CALORIAS_MAXIMAS = 5000;
 
+function queryAsync(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.query(sql, params, (err, results) => {
+      if (err) return reject(err);
+      resolve(results);
+    });
+  });
+}
+
+function formatarDataLocal(data) {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
 function garantirColunaAlarmeTarefas() {
   db.query(
     "ALTER TABLE tarefas ADD COLUMN alarme TINYINT(1) DEFAULT 1",
@@ -74,7 +90,7 @@ exports.criar = (req, res) => {
   );
 };
 
-exports.listar = (req, res) => {
+function listarTarefasLegado(req, res) {
   const { rotina_id } = req.query;
   const usuario_id = req.usuario.id;
 
@@ -85,8 +101,8 @@ exports.listar = (req, res) => {
   const segundaFeira = new Date(hoje);
   segundaFeira.setDate(hoje.getDate() + diferencaParaSegunda);
 
-  const semanaAtual = segundaFeira.toISOString().slice(0, 10);
-  const dataHoje = hoje.toISOString().slice(0, 10);
+  const semanaAtual = formatarDataLocal(segundaFeira);
+  const dataHoje = formatarDataLocal(hoje);
 
   // 🔐 Verifica se a rotina pertence ao usuário
   db.query(
@@ -159,6 +175,88 @@ exports.listar = (req, res) => {
       );
     },
   );
+}
+
+exports.listar = async (req, res) => {
+  const { rotina_id } = req.query;
+  const usuario_id = req.usuario.id;
+
+  if (!Number.isInteger(Number(rotina_id)) || Number(rotina_id) <= 0) {
+    return res.status(400).json({ msg: "Rotina invalida." });
+  }
+
+  const hoje = new Date();
+  const diaSemana = hoje.getDay();
+  const diferencaParaSegunda = diaSemana === 0 ? -6 : 1 - diaSemana;
+  const segundaFeira = new Date(hoje);
+  segundaFeira.setDate(hoje.getDate() + diferencaParaSegunda);
+
+  const semanaAtual = formatarDataLocal(segundaFeira);
+  const dataHoje = formatarDataLocal(hoje);
+
+  try {
+    await Promise.all([
+      queryAsync(
+        `
+        DELETE t FROM tarefas t
+        JOIN rotinas r ON r.id = t.rotina_id
+        WHERE t.rotina_id = ?
+          AND r.usuario_id = ?
+          AND LOWER(t.repeticao) IN ('unico', 'único')
+          AND (
+            t.concluida = true
+            OR t.data_criacao < ?
+          )
+        `,
+        [rotina_id, usuario_id, dataHoje],
+      ),
+      queryAsync(
+        `
+        UPDATE tarefas t
+        JOIN rotinas r ON r.id = t.rotina_id
+        SET
+          t.concluida = false,
+          t.status = 'Pendente',
+          t.ultima_semana_reset = ?
+        WHERE t.rotina_id = ?
+          AND r.usuario_id = ?
+          AND t.repeticao = 'Semanal'
+          AND (
+            t.ultima_semana_reset IS NULL
+            OR t.ultima_semana_reset < ?
+          )
+        `,
+        [semanaAtual, rotina_id, usuario_id, semanaAtual],
+      ),
+    ]);
+
+    const resultados = await queryAsync(
+      `
+      SELECT r.id AS rotina_autorizada, t.*
+      FROM rotinas r
+      LEFT JOIN tarefas t ON t.rotina_id = r.id
+      WHERE r.id = ? AND r.usuario_id = ?
+      ORDER BY t.ordem IS NULL, t.ordem ASC, t.id ASC
+      `,
+      [rotina_id, usuario_id],
+    );
+
+    if (!resultados.length) {
+      return res.status(403).json({ msg: "Acesso negado." });
+    }
+
+    const tarefas = resultados
+      .filter((resultado) => resultado.id !== null)
+      .map(({ rotina_autorizada, ...tarefa }) => tarefa);
+
+    return res.json(tarefas);
+  } catch (err) {
+    console.error("Erro ao listar tarefas:", err);
+    return res.status(500).json({
+      msg: "Nao foi possivel listar as tarefas.",
+      detalhe: err?.sqlMessage || err?.message || "Erro interno do banco.",
+    });
+  }
 };
 
 exports.atualizarStatus = (req, res) => {
