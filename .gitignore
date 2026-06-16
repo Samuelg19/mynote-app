@@ -9,3 +9,5 @@ frontend/.env
 .railway
 /package.json
 /package-lock.json
+keystore.properties
+*.jks

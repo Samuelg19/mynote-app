@@ -730,7 +730,7 @@ function limparAgrupamentoEventosCalendario() {
 }
 
 function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
-  agendarSincronizacaoAlarmesNativos();
+  agendarSincronizacaoAlarmesNativos({ oferecerPermissoes: true, force: true });
 
   if (rotinaId) {
     const chave = String(rotinaId);
@@ -744,7 +744,7 @@ function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
 }
 
 function invalidarCacheRotinas() {
-  agendarSincronizacaoAlarmesNativos();
+  agendarSincronizacaoAlarmesNativos({ oferecerPermissoes: true, force: true });
   cacheRotinas = null;
   versaoCacheRotinas += 1;
   limparAgrupamentoEventosCalendario();
@@ -3239,6 +3239,8 @@ let filaAlarmesWeb = [];
 let chavesAlarmesWeb = new Set();
 let respondendoAlarmeWeb = false;
 let timerAvisoTarefaWeb = null;
+let timerFimAlarmeWeb = null;
+const DURACAO_AVISO_ALARME_MS = 30000;
 const DeviceSound = window.Capacitor?.Plugins?.DeviceSound;
 const NativeTaskAlarms = window.MyNoteNativeAlarms;
 const MODO_SOM_DISPOSITIVO_PADRAO = "device-default";
@@ -3246,6 +3248,7 @@ const MODO_SOM_MYNOTES = "mynotes";
 const MODO_SOM_DISPOSITIVO_ESCOLHIDO = "device-picked";
 const SOM_NOTIFICACAO_PADRAO = "assets/notificacao-mynote.mp3";
 const SOM_ALARME_PADRAO = "assets/alarme-mynote-editado.mp3";
+const JANELA_ATRASO_INICIO_MINUTOS = 5;
 
 function converterAntecedenciaEmMinutos(texto) {
   const valor = String(texto || "").toLowerCase();
@@ -3548,6 +3551,7 @@ function iniciarSomAlarmeWeb() {
   if (alarmeWebTocando || configuracoesNotificacao.modoFoco) return;
   if (!configuracoesNotificacao.somNotificacao) return;
 
+  clearTimeout(timerFimAlarmeWeb);
   if (audioNotificacaoWeb) {
     audioNotificacaoWeb.pause();
     audioNotificacaoWeb.currentTime = 0;
@@ -3563,9 +3567,12 @@ function iniciarSomAlarmeWeb() {
     console.warn("Nao foi possivel iniciar o alarme do site:", erro);
     alarmeWebTocando = false;
   });
+  timerFimAlarmeWeb = setTimeout(pararSomAlarmeWeb, DURACAO_AVISO_ALARME_MS);
 }
 
 function pararSomAlarmeWeb() {
+  clearTimeout(timerFimAlarmeWeb);
+  timerFimAlarmeWeb = null;
   if (!audioAlarmeWeb) return;
   audioAlarmeWeb.pause();
   audioAlarmeWeb.currentTime = 0;
@@ -3579,6 +3586,7 @@ function renderizarAlarmeWebAtual() {
 
   if (!tarefa) {
     ocultarAvisoTarefaWeb();
+    pararSomAlarmeWeb();
     chavesAlarmesWeb.clear();
     return;
   }
@@ -3602,8 +3610,8 @@ function iniciarFilaAlarmesWeb(tarefas) {
 
   if (!filaAlarmesWeb.length) return;
   garantirInterfaceAlarmesWeb();
-  tocarSomNotificacao();
-  vibrarNotificacao();
+  iniciarSomAlarmeWeb();
+  vibrarNotificacao({ alarme: true });
   renderizarAlarmeWebAtual();
 }
 
@@ -3655,6 +3663,7 @@ function ocultarAvisoTarefaWeb({ limparFila = false } = {}) {
   if (limparFila) {
     filaAlarmesWeb = [];
     chavesAlarmesWeb.clear();
+    pararSomAlarmeWeb();
   }
   document.getElementById("webTaskReminderPopup")?.classList.add("hidden");
 }
@@ -4114,7 +4123,7 @@ function estaNaJanelaDeInicio(minutosRestantes) {
   return (
     minutosRestantes !== null &&
     minutosRestantes <= 0 &&
-    minutosRestantes > -2
+    minutosRestantes > -JANELA_ATRASO_INICIO_MINUTOS
   );
 }
 
@@ -6006,12 +6015,15 @@ let timerSincronizacaoAlarmesNativos = null;
 let sincronizacaoAlarmesNativosEmExecucao = false;
 let permissaoAlarmesNativosOferecida = false;
 
-function agendarSincronizacaoAlarmesNativos() {
+function agendarSincronizacaoAlarmesNativos({
+  oferecerPermissoes = false,
+  force = true,
+} = {}) {
   if (!NativeTaskAlarms?.isAvailable?.()) return;
 
   clearTimeout(timerSincronizacaoAlarmesNativos);
   timerSincronizacaoAlarmesNativos = setTimeout(() => {
-    sincronizarAlarmesNativos().catch((erro) =>
+    sincronizarAlarmesNativos({ oferecerPermissoes, force }).catch((erro) =>
       console.warn("Nao foi possivel atualizar os alarmes nativos:", erro),
     );
   }, 900);
