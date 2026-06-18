@@ -50,6 +50,7 @@ async function inicializarSocialLoginGoogle() {
       google: {
         webClientId: GOOGLE_WEB_CLIENT_ID,
         mode: "online",
+        scopes: ["email", "profile"],
       },
     });
   }
@@ -58,12 +59,27 @@ async function inicializarSocialLoginGoogle() {
   return SocialLogin;
 }
 
-function extrairIdTokenGoogle(login) {
+function normalizarCredentialGoogle(valor) {
+  if (!valor) return null;
+  if (typeof valor === "string") return valor;
+  if (typeof valor.token === "string") return valor.token;
+  if (typeof valor.idToken === "string") return valor.idToken;
+  if (typeof valor.id_token === "string") return valor.id_token;
+  return null;
+}
+
+function extrairCredentialGoogle(login) {
+  const resultado = login?.result || login || {};
+
   return (
-    login?.result?.idToken ||
-    login?.result?.id_token ||
-    login?.idToken ||
-    login?.id_token ||
+    normalizarCredentialGoogle(resultado.idToken) ||
+    normalizarCredentialGoogle(resultado.id_token) ||
+    normalizarCredentialGoogle(resultado.authentication?.idToken) ||
+    normalizarCredentialGoogle(resultado.authentication?.id_token) ||
+    normalizarCredentialGoogle(resultado.accessToken) ||
+    normalizarCredentialGoogle(resultado.access_token) ||
+    normalizarCredentialGoogle(login?.idToken) ||
+    normalizarCredentialGoogle(login?.id_token) ||
     null
   );
 }
@@ -161,13 +177,13 @@ async function cadastroGoogleNativo() {
       },
     });
 
-    const idToken = extrairIdTokenGoogle(login);
-    if (!idToken) {
+    const credential = extrairCredentialGoogle(login);
+    if (!credential) {
       mostrarModalCadastroAviso("O Google não retornou o token de cadastro.");
       return;
     }
 
-    await cadastrarComGoogleNoBackend(idToken);
+    await cadastrarComGoogleNoBackend(credential);
   } catch (erro) {
     if (erro?.code === "USER_CANCELLED") return;
     console.error("Erro no cadastro nativo com Google:", erro);

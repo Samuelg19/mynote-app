@@ -1,7 +1,11 @@
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const { OAuth2Client } = require("google-auth-library");
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const GOOGLE_WEB_CLIENT_ID_PADRAO =
+  "889270972410-j0gvc2qd8ls2ssrkig8187kf95rdnthb.apps.googleusercontent.com";
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID || GOOGLE_WEB_CLIENT_ID_PADRAO,
+);
 const jwt = require("jsonwebtoken");
 const {
   garantirTabelasAnotacoes,
@@ -20,6 +24,55 @@ function gerarTokenUsuario(user) {
     process.env.JWT_SECRET,
     { expiresIn: "30d" },
   );
+}
+
+function obterGoogleClientIdsPermitidos() {
+  return [
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_WEB_CLIENT_ID,
+    process.env.GOOGLE_ANDROID_CLIENT_ID,
+    GOOGLE_WEB_CLIENT_ID_PADRAO,
+  ]
+    .filter(Boolean)
+    .map((clientId) => String(clientId).trim())
+    .filter(Boolean)
+    .filter((clientId, index, lista) => lista.indexOf(clientId) === index);
+}
+
+function pareceIdTokenGoogle(credential) {
+  return String(credential || "").split(".").length === 3;
+}
+
+async function obterPayloadGoogle(credential) {
+  const clientIdsPermitidos = obterGoogleClientIdsPermitidos();
+
+  if (!clientIdsPermitidos.length) {
+    throw new Error("Nenhum client ID do Google configurado.");
+  }
+
+  if (pareceIdTokenGoogle(credential)) {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: clientIdsPermitidos,
+    });
+
+    return ticket.getPayload();
+  }
+
+  const tokenInfo = await googleClient.getTokenInfo(credential);
+  const audiencia = tokenInfo.aud || tokenInfo.azp;
+
+  if (audiencia && !clientIdsPermitidos.includes(audiencia)) {
+    throw new Error("Token do Google emitido para outro aplicativo.");
+  }
+
+  return {
+    email: tokenInfo.email,
+    email_verified: tokenInfo.email_verified,
+    name: tokenInfo.name || tokenInfo.email?.split("@")[0],
+    sub: tokenInfo.sub,
+    picture: tokenInfo.picture,
+  };
 }
 
 exports.cadastro = async (req, res) => {
@@ -581,19 +634,7 @@ exports.googleLogin = async (req, res) => {
       });
     }
 
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      return res.status(500).json({
-        code: "GOOGLE_CLIENT_ID_MISSING",
-        msg: "GOOGLE_CLIENT_ID nao configurado no backend.",
-      });
-    }
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
+    const payload = await obterPayloadGoogle(credential);
     const email = payload.email;
     const nome = payload.name || payload.given_name || email?.split("@")[0];
     const foto = payload.picture;

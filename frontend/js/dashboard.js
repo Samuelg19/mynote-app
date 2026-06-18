@@ -721,6 +721,8 @@ let moduloAnotacoesPromise = null;
 let eventosPorDataCalendario = new Map();
 let verificacoesNotificacaoEmExecucao = false;
 let sincronizacaoCompartilhadaEmExecucao = false;
+let salvandoNovaTarefa = false;
+let salvandoNovoLembrete = false;
 let ultimaSincronizacaoCompartilhada = 0;
 let recarregamentoRotinasPendente = null;
 let tentativasRecarregarRotinas = 0;
@@ -730,7 +732,7 @@ function limparAgrupamentoEventosCalendario() {
 }
 
 function invalidarCacheTarefas(rotinaId = rotinaSelecionadaId) {
-  agendarSincronizacaoAlarmesNativos({ oferecerPermissoes: true, force: true });
+  agendarSincronizacaoAlarmesNativos({ oferecerPermissoes: true, force: false });
 
   if (rotinaId) {
     const chave = String(rotinaId);
@@ -1664,7 +1666,7 @@ async function salvarEdicaoAlimentacao() {
 
     fecharModalEditarAlimentacaoFunc();
     invalidarCacheTarefas(rotinaSelecionadaId);
-      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
     mostrarMensagem("Refeição atualizada com sucesso!");
   } catch (erro) {
     console.error("Erro ao editar refeição:", erro);
@@ -8851,32 +8853,36 @@ invalidarCacheTarefas(rotinaSelecionadaId);
         mostrarConfirmacao(
           `Deseja excluir a tarefa "${tarefa.titulo}"?`,
           async () => {
+            if (btnExcluir.disabled) return;
+            btnExcluir.disabled = true;
+
+            try {
+              const resposta = await fetch(
+                `${API_BASE_URL}/tarefas/${tarefa.id}`,
+                {
+                  method: "DELETE",
+                  headers: headersAuth(),
+                },
+              );
+
+              const dados = await lerRespostaJsonSegura(resposta);
+
+              if (!resposta.ok) {
+                mostrarAviso("erro", dados.msg || "Erro ao excluir tarefa.");
+                return;
+              }
+
+              mostrarAviso("sucesso", "Tarefa excluída com sucesso!");
+              invalidarCacheTarefas(rotinaSelecionadaId);
+              carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+            } catch (erro) {
+              console.error("Erro ao excluir tarefa:", erro);
+              mostrarAviso("erro", "Não foi possível excluir a tarefa.");
+            } finally {
+              btnExcluir.disabled = false;
+            }
           },
         );
-
-        try {
-          const resposta = await fetch(
-            `${API_BASE_URL}/tarefas/${tarefa.id}`,
-            {
-              method: "DELETE",
-              headers: headersAuth(),
-            },
-          );
-
-          const dados = await resposta.json();
-
-          if (!resposta.ok) {
-            mostrarAviso("erro", dados.msg || "Erro ao excluir tarefa.");
-            return;
-          }
-
-          mostrarAviso("sucesso", "Tarefa excluída com sucesso!");
-          invalidarCacheTarefas(rotinaSelecionadaId);
-      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
-        } catch (erro) {
-          console.error("Erro ao excluir tarefa:", erro);
-          mostrarAviso("erro", "Não foi possível excluir a tarefa.");
-        }
       });
 
       fragmentoTarefas.appendChild(tr);
@@ -9147,6 +9153,14 @@ async function salvarNovaTarefa() {
     dados.alarme = alarmeDaTarefa;
   }
 
+  if (salvandoNovaTarefa) return;
+  salvandoNovaTarefa = true;
+  const textoOriginalSalvarTarefa = salvarTarefa?.textContent || "Salvar";
+  if (salvarTarefa) {
+    salvarTarefa.disabled = true;
+    salvarTarefa.textContent = "Salvando...";
+  }
+
   try {
     const resposta = await fetch(`${API_BASE_URL}/tarefas`, {
       method: "POST",
@@ -9168,13 +9182,19 @@ async function salvarNovaTarefa() {
     }
     fecharModalNovaTarefa();
     invalidarCacheTarefas(rotinaSelecionadaId);
-      carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
+    await carregarTarefas(rotinaSelecionadaId, tituloRotina.textContent);
   } catch (erro) {
     console.error("Erro completo ao criar tarefa:", erro);
     mostrarAviso(
       "erro",
       "Não foi possível criar a tarefa. Veja o console do navegador.",
     );
+  } finally {
+    salvandoNovaTarefa = false;
+    if (salvarTarefa) {
+      salvarTarefa.disabled = false;
+      salvarTarefa.textContent = textoOriginalSalvarTarefa;
+    }
   }
 }
 
@@ -9828,63 +9848,88 @@ async function carregarLembretes() {
 }
 
 async function salvarNovoLembrete() {
-  if (lembreteCalendarioEmEdicao) {
-    const dados = {
-      titulo: tituloLembreteInput.value.trim(),
-      horario: horarioLembreteInput.value,
-      dia_mes: diaMesLembreteInput.value.trim(),
-      prioridade: prioridadeLembreteInput.value,
-      notificacao: notificacaoLembreteInput.checked,
-      alarme:
-        notificacaoLembreteInput.checked && alarmeLembreteInput?.checked !== false,
-    };
+  if (salvandoNovoLembrete) return;
+  salvandoNovoLembrete = true;
+  const textoOriginalSalvarLembrete = salvarLembrete?.textContent || "Salvar";
 
-    await fetch(
-      `${API_BASE_URL}/lembretes/${lembreteCalendarioEmEdicao.lembreteId}`,
-      {
-        method: "PUT",
-        headers: headersAuth(),
-        body: JSON.stringify(dados),
-      },
-    );
-
-    salvarPreferenciaCalendario(
-      `lembrete-${lembreteCalendarioEmEdicao.lembreteId}`,
-      {
-        modo: dados.dia_mes ? "prazo" : "horario",
-        alarme: dados.alarme,
-      },
-    );
-
-    lembreteCalendarioEmEdicao = null;
-    salvarLembrete.textContent = "Salvar";
-
-    fecharModalNovoLembrete();
-    await carregarLembretes();
-    await renderizarCalendario();
-
-    if (dataSelecionadaCalendario) {
-      mostrarEventosDoDia(dataSelecionadaCalendario);
-    }
-
-    return;
+  if (salvarLembrete) {
+    salvarLembrete.disabled = true;
+    salvarLembrete.textContent = "Salvando...";
   }
-
-  const titulo = tituloLembreteInput.value.trim();
-  const horario = horarioLembreteInput.value;
-  const diaMes = diaMesLembreteInput.value.trim();
-  const prioridade = prioridadeLembreteInput.value;
-  const notificacao = notificacaoLembreteInput.checked;
-  const alarme = notificacao && alarmeLembreteInput?.checked !== false;
-
-  if (!titulo) {
-    mostrarAviso("aviso", "Digite o título do lembrete.");
-    return;
-  }
-
-  const lembreteEditandoId = salvarLembrete.dataset.editandoId;
 
   try {
+    if (lembreteCalendarioEmEdicao) {
+      const dados = {
+        titulo: tituloLembreteInput.value.trim(),
+        horario: horarioLembreteInput.value,
+        dia_mes: diaMesLembreteInput.value.trim(),
+        prioridade: prioridadeLembreteInput.value,
+        notificacao: notificacaoLembreteInput.checked,
+        alarme:
+          notificacaoLembreteInput.checked &&
+          alarmeLembreteInput?.checked !== false,
+      };
+
+      if (!dados.titulo) {
+        mostrarAviso("aviso", "Digite o título do lembrete.");
+        return;
+      }
+
+      const resposta = await fetch(
+        `${API_BASE_URL}/lembretes/${lembreteCalendarioEmEdicao.lembreteId}`,
+        {
+          method: "PUT",
+          headers: headersAuth(),
+          body: JSON.stringify(dados),
+        },
+      );
+
+      const dadosResposta = await lerRespostaJsonSegura(resposta);
+
+      if (!resposta.ok) {
+        mostrarAviso(
+          "erro",
+          dadosResposta.msg || "Erro ao salvar lembrete.",
+        );
+        return;
+      }
+
+      salvarPreferenciaCalendario(
+        `lembrete-${lembreteCalendarioEmEdicao.lembreteId}`,
+        {
+          modo: dados.dia_mes ? "prazo" : "horario",
+          alarme: dados.alarme,
+        },
+      );
+
+      lembreteCalendarioEmEdicao = null;
+      salvarLembrete.textContent = "Salvar";
+
+      fecharModalNovoLembrete();
+      await carregarLembretes();
+      await renderizarCalendario();
+
+      if (dataSelecionadaCalendario) {
+        mostrarEventosDoDia(dataSelecionadaCalendario);
+      }
+
+      return;
+    }
+
+    const titulo = tituloLembreteInput.value.trim();
+    const horario = horarioLembreteInput.value;
+    const diaMes = diaMesLembreteInput.value.trim();
+    const prioridade = prioridadeLembreteInput.value;
+    const notificacao = notificacaoLembreteInput.checked;
+    const alarme = notificacao && alarmeLembreteInput?.checked !== false;
+
+    if (!titulo) {
+      mostrarAviso("aviso", "Digite o título do lembrete.");
+      return;
+    }
+
+    const lembreteEditandoId = salvarLembrete.dataset.editandoId;
+
     const resposta = await fetch(
       lembreteEditandoId
         ? `${API_BASE_URL}/lembretes/${lembreteEditandoId}`
@@ -9916,7 +9961,13 @@ async function salvarNovoLembrete() {
       return;
     }
 
-    mostrarAviso("sucesso", "Lembrete criado com sucesso!");
+    mostrarAviso(
+      "sucesso",
+      lembreteEditandoId
+        ? "Lembrete atualizado com sucesso!"
+        : "Lembrete criado com sucesso!",
+    );
+
     const lembreteSalvoId = lembreteEditandoId || dados.id;
     if (lembreteSalvoId) {
       salvarPreferenciaCalendario(`lembrete-${lembreteSalvoId}`, {
@@ -9927,10 +9978,20 @@ async function salvarNovoLembrete() {
     delete salvarLembrete.dataset.editandoId;
 
     fecharModalNovoLembrete();
-    carregarLembretes();
+    await carregarLembretes();
   } catch (erro) {
     console.error("Erro ao criar lembrete:", erro);
     mostrarAviso("erro", "Erro ao criar lembrete.");
+  } finally {
+    salvandoNovoLembrete = false;
+    if (salvarLembrete) {
+      const aindaEditando =
+        salvarLembrete.dataset.editandoId || lembreteCalendarioEmEdicao;
+      salvarLembrete.disabled = false;
+      salvarLembrete.textContent = aindaEditando
+        ? textoOriginalSalvarLembrete
+        : "Salvar";
+    }
   }
 }
 
