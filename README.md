@@ -1,8 +1,8 @@
 # MyNote
 
-MyNote e uma aplicacao web e PWA para organizar rotinas, tarefas, lembretes, eventos de calendario e notificacoes. O projeto foi desenvolvido como um app de produtividade pessoal simples, visual e rapido de usar, com foco em criar compromissos e receber avisos sem precisar passar muito tempo dentro da aplicacao.
+MyNote e uma aplicacao web, PWA e app Android via Capacitor para organizar rotinas, tarefas, lembretes, eventos de calendario, anotacoes e notificacoes. O projeto foi desenvolvido como um app de produtividade pessoal simples, visual e rapido de usar, com foco em criar compromissos, registrar informacoes importantes e receber avisos sem precisar passar muito tempo dentro da aplicacao.
 
-O sistema possui frontend em HTML, CSS e JavaScript puro, backend em Node.js com Express, banco MySQL, autenticacao por JWT e suporte a notificacoes push para desktop e mobile.
+O sistema possui frontend em HTML, CSS e JavaScript puro, backend em Node.js com Express, banco MySQL, autenticacao por JWT, login com Google, suporte a notificacoes push para desktop/mobile e empacotamento Android com APK release assinado.
 
 ## Visao geral
 
@@ -11,8 +11,10 @@ O sistema possui frontend em HTML, CSS e JavaScript puro, backend em Node.js com
 - Tarefas com horario, status, notificacao, alarme e conclusao.
 - Lembretes independentes com prioridade, data, horario, notificacao e alarme.
 - Calendario mensal e anual com eventos, feriados e datas comemorativas.
+- Anotacoes com categorias, editor rico, anexos e links.
 - Interface adaptada para computador e celular.
 - Instalacao como app mobile via PWA.
+- App Android via Capacitor com splash screen personalizada e alarmes nativos.
 - Tutorial inicial e personalizacao no primeiro acesso.
 - Configuracoes de tema, notificacoes, privacidade, backup e produtividade.
 
@@ -21,12 +23,14 @@ O sistema possui frontend em HTML, CSS e JavaScript puro, backend em Node.js com
 ### Autenticacao e conta
 
 - Login com Google.
+- Login Google no site e no app Android, com suporte ao fluxo nativo do Google no Capacitor.
 - Login com e-mail e senha.
 - Cadastro de novos usuarios.
 - Recuperacao de senha por e-mail.
 - Autenticacao com JWT.
 - Dados separados por usuario.
 - Protecao de rotas no backend.
+- Validacao de token Google no backend com client IDs permitidos para web/app.
 
 ### Dashboard
 
@@ -36,6 +40,8 @@ O sistema possui frontend em HTML, CSS e JavaScript puro, backend em Node.js com
 - Botao de voltar nas abas mobile para retornar a lista de rotinas.
 - Botao flutuante para acessar rapidamente o calendario e criar novos itens.
 - Animacoes leves em botoes, cards, transicoes e conclusao de tarefas.
+- Cache de rotinas/tarefas e controle de carregamento para reduzir atraso ao trocar de rotina.
+- Bloqueio de duplo envio ao criar tarefas e lembretes, evitando registros duplicados em redes lentas.
 
 ### Rotinas
 
@@ -45,6 +51,20 @@ O sistema possui frontend em HTML, CSS e JavaScript puro, backend em Node.js com
 - Notas individuais por rotina, salvas mesmo apos sair do site.
 - Menu de tres pontos para acoes rapidas.
 - Personalizacao dos campos das tabelas de rotina.
+- Carregamento otimizado das tarefas da rotina selecionada.
+
+### Anotacoes
+
+- Area de anotacoes separada das tarefas e lembretes.
+- Criacao, edicao e exclusao de categorias de anotacao.
+- Modal de categoria com visual atualizado, emojis predefinidos e campo de emoji personalizado.
+- Contagem de anotacoes exibida abaixo do titulo da categoria.
+- Editor rico com negrito, italico, sublinhado, listas, checklist, alinhamento, tamanhos e links.
+- Suporte a imagens inseridas no conteudo da anotacao.
+- Anexos em anotacoes, incluindo imagens, links e arquivos permitidos.
+- Limites de quantidade e tamanho para anexos, evitando crescimento descontrolado do banco.
+- Sanitizacao de HTML no backend para bloquear scripts, executaveis, SVG e atributos perigosos.
+- Conteudo antigo continua abrindo normalmente e passa a ser tratado como HTML limpo quando editado.
 
 ### Modelos de rotina
 
@@ -123,8 +143,14 @@ O MyNote possui modelos prontos para acelerar a criacao:
 - A acao "Ja fiz" conclui a tarefa automaticamente.
 - Notificacoes duplicadas sao reduzidas por identificadores de tarefa/lembrete.
 - Som de alarme personalizado em arquivo local.
+- No site/PWA, os avisos aparecem como notificacoes e pop-ups na tela, com acoes para concluir ou manter pendente.
+- No Android, o app usa alarme nativo para tarefas/lembretes configurados com alarme.
+- Quando o celular esta bloqueado ou inativo, o alarme pode abrir uma tela propria do app.
+- Quando o celular esta em uso, o alarme aparece como notificacao de alta prioridade com som e acoes.
+- O som/vibracao do alarme foi ajustado para durar cerca de 30 segundos.
+- Acoes nativas do alarme permitem concluir ou manter a tarefa/lembrete sem abrir o app.
 
-Observacao: por limitacao dos navegadores/PWA, alarmes em tela cheia iguais ao app nativo de relogio do celular dependem de recursos nativos do sistema operacional. O MyNote usa o maximo disponivel no navegador: push, service worker, som, vibracao, notificacao persistente e acoes.
+Observacao: por limitacao dos navegadores/PWA, a tela de alarme completa fica restrita ao app Android. No site, o comportamento esperado e notificacao, som e pop-up dentro da propria pagina.
 
 ### App mobile e PWA
 
@@ -134,6 +160,11 @@ Observacao: por limitacao dos navegadores/PWA, alarmes em tela cheia iguais ao a
 - Tela inicial em modo standalone.
 - Interface mobile com navegacao por abas.
 - Calendario, lembretes, configuracoes e rotinas adaptados para celular.
+- App Android gerado com Capacitor.
+- APK release assinado para instalacao direta fora da Play Store.
+- Splash screen Android com fundo creme alinhado ao visual da marca.
+- Login Google nativo no Android via plugin SocialLogin.
+- Sincronizacao dos assets web para o app Android com `npx cap sync android`.
 
 ### Tutorial inicial
 
@@ -142,6 +173,7 @@ Observacao: por limitacao dos navegadores/PWA, alarmes em tela cheia iguais ao a
 - Etapa extra explicando:
   - menu de tres pontos;
   - notas das rotinas;
+  - area de anotacoes, categorias, editor rico e anexos;
   - configuracoes do site;
   - notificacoes e alarmes;
   - arrastar e segurar rotinas no celular para trocar a ordem.
@@ -159,13 +191,15 @@ Observacao: por limitacao dos navegadores/PWA, alarmes em tela cheia iguais ao a
 - Preferencias de produtividade.
 - Privacidade.
 - Backup e restauracao de dados.
+- Backup e restauracao incluindo rotinas, tarefas, lembretes, eventos, categorias e anotacoes.
 - Exportacao de estatisticas em PDF ou Excel.
 
 ### Sincronizacao de dados
 
-- Rotinas, tarefas, lembretes, eventos e configuracoes sao salvos no backend.
+- Rotinas, tarefas, lembretes, eventos, anotacoes, categorias e configuracoes sao salvos no backend.
 - O mesmo usuario pode acessar pelo computador ou celular.
 - As alteracoes feitas em um dispositivo sao persistidas no banco e podem aparecer no outro ao atualizar/recarregar os dados.
+- O app evita recarregamentos pesados desnecessarios ao alternar entre rotinas, mantendo cache local controlado por invalidacao.
 
 ## Tecnologias
 
@@ -178,6 +212,8 @@ Observacao: por limitacao dos navegadores/PWA, alarmes em tela cheia iguais ao a
 - Service Worker
 - Web Notifications API
 - Push API
+- Quill 2.0.3 para editor rico de anotacoes
+- DOMPurify 3.4.10 para sanitizacao de HTML
 
 ### Backend
 
@@ -189,6 +225,7 @@ Observacao: por limitacao dos navegadores/PWA, alarmes em tela cheia iguais ao a
 - Nodemailer
 - node-cron
 - web-push
+- Sanitizacao e normalizacao de anexos de anotacoes
 
 ### Banco e infraestrutura
 
@@ -196,6 +233,8 @@ Observacao: por limitacao dos navegadores/PWA, alarmes em tela cheia iguais ao a
 - Variaveis de ambiente com dotenv
 - Deploy frontend em hospedagem estatica
 - Deploy backend como API Node.js
+- Capacitor 8 para empacotar o frontend como app Android
+- @capgo/capacitor-social-login para login Google nativo no Android
 
 ## Screenshots
 
@@ -247,10 +286,33 @@ O MyNote tambem pode ser usado como app instalado no celular. No mobile, a tela 
 
 ```txt
 MyNote-app/
+|-- android/
+|   |-- app/
+|   |   |-- build.gradle
+|   |   |-- src/main/
+|   |   |   |-- assets/public/
+|   |   |   |-- java/com/mynotes/app/
+|   |   |   |   |-- MainActivity.java
+|   |   |   |   |-- AlarmActivity.java
+|   |   |   |   |-- TaskAlarmPlugin.java
+|   |   |   |   |-- TaskAlarmReceiver.java
+|   |   |   |   |-- TaskAlarmSoundService.java
+|   |   |   |   |-- TaskAlarmScheduler.java
+|   |   |   |   |-- TaskAlarmStore.java
+|   |   |   |   |-- TaskAlarmActionReceiver.java
+|   |   |   |   |-- TaskAlarmBootReceiver.java
+|   |   |   |   |-- TaskCompletionService.java
+|   |   |   |   `-- DeviceSoundPlugin.java
+|   |   |   `-- res/
+|   |-- build.gradle
+|   |-- gradlew
+|   `-- gradlew.bat
+|
 |-- backend/
 |   |-- config/
 |   |   `-- db.js
 |   |-- controllers/
+|   |   |-- anotacaoController.js
 |   |   |-- authController.js
 |   |   |-- configuracaoController.js
 |   |   |-- eventoCalendarioController.js
@@ -261,6 +323,7 @@ MyNote-app/
 |   |-- middlewares/
 |   |   `-- authMiddleware.js
 |   |-- routes/
+|   |   |-- anotacaoRoutes.js
 |   |   |-- authRoutes.js
 |   |   |-- configuracaoRoutes.js
 |   |   |-- eventoCalendarioRoutes.js
@@ -291,11 +354,13 @@ MyNote-app/
 |   |   |-- base/
 |   |   |-- components/
 |   |   |-- features/
+|   |   |   `-- anotacoes.css
 |   |   |-- pages/
 |   |   |-- responsive/
 |   |   `-- style.css
 |   |-- js/
 |   |   |-- api.js
+|   |   |-- anotacoes.js
 |   |   |-- app-preferences.js
 |   |   |-- cadastro.js
 |   |   |-- configuracoes.js
@@ -311,6 +376,9 @@ MyNote-app/
 |   |-- index.html
 |   |-- manifest.json
 |   |-- reset.html
+|   |-- vendor/
+|   |   |-- dompurify/
+|   |   `-- quill/
 |   `-- service-worker.js
 |
 |-- package.json
@@ -326,7 +394,7 @@ MyNote-app/
 O frontend e responsavel por:
 
 - renderizar o dashboard;
-- controlar modais de rotina, tarefa, lembrete e calendario;
+- controlar modais de rotina, tarefa, lembrete, calendario e anotacoes;
 - aplicar preferencias visuais do usuario;
 - registrar o Service Worker;
 - solicitar permissao de notificacao;
@@ -340,7 +408,7 @@ O backend e responsavel por:
 - autenticar usuarios;
 - proteger rotas;
 - salvar dados por usuario;
-- gerenciar rotinas, tarefas, lembretes, eventos e configuracoes;
+- gerenciar rotinas, tarefas, lembretes, eventos, anotacoes, categorias e configuracoes;
 - armazenar inscricoes push;
 - executar o scheduler de notificacoes;
 - enviar notificacoes push usando VAPID.
@@ -349,6 +417,7 @@ O backend e responsavel por:
 
 ```txt
 /auth
+/anotacoes
 /rotinas
 /tarefas
 /lembretes
@@ -373,6 +442,8 @@ DB_NAME=
 JWT_SECRET=
 
 GOOGLE_CLIENT_ID=
+GOOGLE_WEB_CLIENT_ID=
+GOOGLE_ANDROID_CLIENT_ID=
 
 EMAIL_USER=
 EMAIL_PASS=
@@ -421,11 +492,67 @@ Exemplo:
 npx serve frontend
 ```
 
+## Como gerar o APK Android
+
+O app Android e gerado com Capacitor a partir da pasta `frontend`.
+
+### APK debug
+
+```powershell
+cd MyNote-app
+npx cap sync android
+cd android
+$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
+$env:PATH="$env:JAVA_HOME\bin;$env:PATH"
+.\gradlew.bat :app:assembleDebug
+```
+
+Arquivo gerado:
+
+```txt
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+### APK release assinado
+
+Para gerar APK release assinado, o projeto usa `android/keystore.properties` localmente. Esse arquivo contem senha/chave e nao deve ser enviado para o GitHub.
+
+```powershell
+cd MyNote-app
+npx cap sync android
+cd android
+$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
+$env:PATH="$env:JAVA_HOME\bin;$env:PATH"
+.\gradlew.bat :app:assembleRelease
+```
+
+Arquivo gerado:
+
+```txt
+android/app/build/outputs/apk/release/app-release.apk
+```
+
+Para atualizar um app ja instalado por APK, gere um novo release com o mesmo `applicationId` e a mesma chave de assinatura. A cada nova versao, aumente o `versionCode` em `android/app/build.gradle`.
+
+Para instalar via ADB:
+
+```powershell
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r "android\app\build\outputs\apk\release\app-release.apk"
+```
+
+Para compartilhar fora da Play Store, envie o `app-release.apk` por Drive, OneDrive, WhatsApp, Telegram ou outro servico de arquivos. No Android, pode ser necessario permitir "instalar apps desconhecidos" para o navegador ou app usado no download.
+
+## Publicacao das atualizacoes
+
+- Alteracoes do site/frontend precisam ser enviadas para a hospedagem estatica usada pelo projeto.
+- Alteracoes do backend precisam ser publicadas no Railway ou servico equivalente.
+- Quando o deploy estiver ligado ao GitHub, depois do commit e necessario executar `git push` para disparar a publicacao.
+- Alteracoes dentro do app Android so chegam ao celular depois de gerar e instalar um novo APK.
+
 ## O que ainda pode ser adicionado
 
 - Sincronizacao em tempo real com WebSocket ou Server-Sent Events.
 - Modo offline mais completo com fila de sincronizacao.
-- App nativo ou hibrido para alarmes em tela cheia no estilo relogio do celular.
 - Historico de conclusoes por tarefa.
 - Estatisticas avancadas por rotina, semana e mes.
 - Filtros e busca global.
@@ -433,7 +560,7 @@ npx serve frontend
 - Subtarefas.
 - Importacao e exportacao de calendario no formato `.ics`.
 - Compartilhamento de rotinas entre usuarios.
-- Anexos em tarefas e lembretes.
+- Anexos tambem em tarefas e lembretes.
 - Widgets para tela inicial do celular.
 - Pomodoro ou temporizador de foco.
 - Testes automatizados no frontend e backend.
@@ -443,4 +570,4 @@ npx serve frontend
 
 ## Status do projeto
 
-Projeto em evolucao ativa. As principais bases do app ja estao implementadas: autenticacao, rotinas, tarefas, calendario, lembretes, configuracoes, PWA, notificacoes push, alarmes e responsividade mobile.
+Projeto em evolucao ativa. As principais bases do app ja estao implementadas: autenticacao, login Google, rotinas, tarefas, calendario, lembretes, anotacoes com editor rico, configuracoes, PWA, app Android via Capacitor, notificacoes push, alarmes nativos e responsividade mobile.
