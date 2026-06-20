@@ -1,5 +1,8 @@
 # MyNote
 
+- **Site:** [Acessar MyNote](https://mynote-app-six.vercel.app)
+- **App Android:** [Baixar APK release](https://github.com/Samuelg19/mynote-app/releases/latest/download/app-release.apk)
+
 MyNote e uma aplicacao web, PWA e app Android via Capacitor para organizar rotinas, tarefas, lembretes, eventos de calendario, anotacoes e notificacoes. O projeto foi desenvolvido como um app de produtividade pessoal simples, visual e rapido de usar, com foco em criar compromissos, registrar informacoes importantes e receber avisos sem precisar passar muito tempo dentro da aplicacao.
 
 O sistema possui frontend em HTML, CSS e JavaScript puro, backend em Node.js com Express, banco MySQL, autenticacao por JWT, login com Google, suporte a notificacoes push para desktop/mobile e empacotamento Android com APK release assinado.
