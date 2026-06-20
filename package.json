@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capgo/capacitor-social-login": "^8.3.22",
+    "google-auth-library": "^10.6.2",
+    "node-cron": "^4.2.1",
+    "web-push": "^3.6.7"
+  }
+}

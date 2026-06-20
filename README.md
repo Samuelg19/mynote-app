@@ -274,9 +274,9 @@ Observacao: por limitacao dos navegadores/PWA, a tela de alarme completa fica re
 
 O MyNote tambem pode ser usado como app instalado no celular. No mobile, a tela inicial mostra as rotinas e cada aba abre em tela cheia, com botao de voltar para retornar ao inicio.
 
-| Rotinas | Calendario | Lembretes |
+| Rotinas | Calendario | Alarme |
 |---|---|---|
-| <img src="frontend/assets/screenshots/mobile-rotinas.png" width="220" alt="Tela inicial mobile com rotinas"> | <img src="frontend/assets/screenshots/mobile-calendario.png" width="220" alt="Calendario mobile"> | <img src="frontend/assets/screenshots/mobile-lembretes.png" width="220" alt="Lembretes mobile"> |
+| <img src="frontend/assets/screenshots/mobile-rotinas.png" width="220" alt="Tela inicial mobile com rotinas"> | <img src="frontend/assets/screenshots/mobile-calendario.png" width="220" alt="Calendario mobile"> | <img src="frontend/assets/screenshots/mobile-alarme.png" width="220" alt="Tela de alarme nativo no Android"> |
 
 | Nova tarefa | Criar rotina | Frequencia |
 |---|---|---|
